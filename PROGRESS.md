@@ -55,7 +55,9 @@
 
 - [ ] **Protection de branche `main`** non configuree : le depot distant existe, mais la protection
       doit etre activee manuellement dans les reglages GitHub (pas de `gh`/token disponible ici).
-- [ ] **CI GitHub Actions** : declenchee par le push sur `main`, resultat non confirme localement.
+- [x] **CI GitHub Actions** verte sur le push `main` : Backend CI #1 et Frontend CI #1 (commit `94fb050`).
+      Avertissement non bloquant : actions `checkout@v4`/`setup-node@v4`/`setup-dotnet@v4` executees
+      sous Node 24 (deprecation Node 20) ; migration possible vers les versions d'action plus recentes.
 - [ ] `docker-compose` ne contient pas encore les services `api` et `coturn` (prevus sprints 5 et 6).
 - [ ] Tests Angular (`npm test`) non executes : necessite Chrome headless, non requis pour le Sprint 0
       (`ng build` suffit). A brancher au Sprint 1.
