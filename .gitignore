@@ -1,0 +1,52 @@
+# ---- .NET / Visual Studio ----
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii]dth/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+*.userosscache
+*.sln.docstates
+TestResults/
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
+publish/
+artifacts/
+
+# ---- Node / Angular ----
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tsbuildinfo
+.eslintcache
+
+# ---- Environment / secrets ----
+.env
+.env.*
+!.env.example
+appsettings.Development.json
+appsettings.Local.json
+*.pfx
+*.p12
+
+# ---- Docker ----
+.docker/
+
+# ---- OS ----
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store

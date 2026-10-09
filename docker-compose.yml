@@ -1,0 +1,43 @@
+name: teamchat
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: teamchat-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-teamchat}
+      POSTGRES_USER: ${POSTGRES_USER:-teamchat}
+      # Valeur de developpement uniquement : surcharger via .env (jamais un secret ici).
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-teamchat_dev_only}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-teamchat} -d ${POSTGRES_DB:-teamchat}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # Cache distribue L2 optionnel : demarrer avec `docker compose --profile redis up -d`.
+  redis:
+    image: redis:7-alpine
+    container_name: teamchat-redis
+    profiles: ["redis"]
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:
+  redis-data:
