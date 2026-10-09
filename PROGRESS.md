@@ -20,6 +20,7 @@
 ### Fait
 
 - Depot Git initialise (branche `main`), `.gitignore` (.NET + Node), `README.md` minimal.
+- Depot publie sur GitHub : `https://github.com/ademhmercha/teamchat` (remote `origin`, branche `main`).
 - `PROGRESS.md`, `.env.example` (variables de la section 10 du cahier des charges).
 - Solution .NET `backend/TeamChat.sln` (.NET 10 LTS) :
   - `src/TeamChat.Domain`, `src/TeamChat.Application`,
@@ -52,8 +53,9 @@
 
 ### Problemes connus / non verifie
 
-- [ ] **Protection de branche `main`** non configuree : aucun depot distant (GitHub) n'existe encore.
-- [ ] **CI GitHub Actions** non executee : workflows ecrits mais aucun remote/PR pour les declencher.
+- [ ] **Protection de branche `main`** non configuree : le depot distant existe, mais la protection
+      doit etre activee manuellement dans les reglages GitHub (pas de `gh`/token disponible ici).
+- [ ] **CI GitHub Actions** : declenchee par le push sur `main`, resultat non confirme localement.
 - [ ] `docker-compose` ne contient pas encore les services `api` et `coturn` (prevus sprints 5 et 6).
 - [ ] Tests Angular (`npm test`) non executes : necessite Chrome headless, non requis pour le Sprint 0
       (`ng build` suffit). A brancher au Sprint 1.
