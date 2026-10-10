@@ -1,0 +1,16 @@
+using TeamChat.Application.Common;
+using TeamChat.Application.Users.Dtos;
+
+namespace TeamChat.Application.Abstractions;
+
+/// <summary>Lecture de l'annuaire (cote requetes). L'implementation applique le cache (60 s).</summary>
+public interface IUserQueries
+{
+    Task<PagedResult<UserListItemDto>> SearchAsync(
+        string? search,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
+    Task<UserProfileDto?> GetProfileAsync(Guid id, CancellationToken cancellationToken = default);
+}

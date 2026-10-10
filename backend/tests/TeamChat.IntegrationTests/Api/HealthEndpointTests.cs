@@ -1,22 +1,23 @@
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
+using TeamChat.IntegrationTests.Support;
 
 namespace TeamChat.IntegrationTests.Api;
 
-public sealed class HealthEndpointTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection("api")]
+public sealed class HealthEndpointTests
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly ApiCollectionFixture _fixture;
 
-    public HealthEndpointTests(WebApplicationFactory<Program> factory)
+    public HealthEndpointTests(ApiCollectionFixture fixture)
     {
-        _factory = factory;
+        _fixture = fixture;
     }
 
     [Fact]
     public async Task Health_endpoint_returns_ok_with_cache_resolved()
     {
-        using var client = _factory.CreateClient();
+        using var client = _fixture.Factory.CreateClient();
 
         var response = await client.GetAsync("/api/health");
 

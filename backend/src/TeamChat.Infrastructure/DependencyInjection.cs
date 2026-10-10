@@ -1,22 +1,38 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TeamChat.Application.Abstractions;
+using TeamChat.Application.Common;
 using TeamChat.Infrastructure.Caching;
+using TeamChat.Infrastructure.Email;
+using TeamChat.Infrastructure.Identity;
+using TeamChat.Infrastructure.Persistence;
+using TeamChat.Infrastructure.Security;
+using TeamChat.Domain.Entities;
 
 namespace TeamChat.Infrastructure;
 
 public static class DependencyInjection
 {
-    /// <summary>
-    /// Enregistre les services d'infrastructure : cache (HybridCache + Redis optionnel),
-    /// puis EF Core / Identity / stockage dans les sprints suivants.
-    /// </summary>
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration)
     {
         services.Configure<CacheOptions>(configuration.GetSection(CacheOptions.SectionName));
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<GoogleOptions>(configuration.GetSection(GoogleOptions.SectionName));
 
+        AddCache(services, configuration);
+        AddDatabase(services, configuration);
+        AddIdentity(services);
+        AddServices(services);
+
+        return services;
+    }
+
+    private static void AddCache(IServiceCollection services, IConfiguration configuration)
+    {
         var redisConnection = configuration["Redis:ConnectionString"];
         if (!string.IsNullOrWhiteSpace(redisConnection))
         {
@@ -25,7 +41,48 @@ public static class DependencyInjection
 
         services.AddHybridCache();
         services.AddSingleton<ICacheService, HybridCacheService>();
+    }
 
-        return services;
+    private static void AddDatabase(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddDbContext<TeamChatDbContext>((provider, options) =>
+        {
+            var connectionString = provider.GetRequiredService<IConfiguration>().GetConnectionString("Default")
+                ?? throw new InvalidOperationException("La chaine de connexion 'Default' est requise.");
+            options.UseNpgsql(connectionString);
+        });
+    }
+
+    private static void AddIdentity(IServiceCollection services)
+    {
+        services.AddIdentityCore<AppUser>(options =>
+            {
+                options.Password.RequiredLength = 8;
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireNonAlphanumeric = true;
+
+                options.Lockout.AllowedForNewUsers = true;
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+
+                options.User.RequireUniqueEmail = true;
+            })
+            .AddRoles<IdentityRole<Guid>>()
+            .AddEntityFrameworkStores<TeamChatDbContext>()
+            .AddDefaultTokenProviders();
+    }
+
+    private static void AddServices(IServiceCollection services)
+    {
+        services.AddScoped<IIdentityService, IdentityService>();
+        services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
+        services.AddScoped<IUserQueries, UserQueries>();
+        services.AddScoped<IUserProfileCache, UserProfileCache>();
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
+        services.AddScoped<IEmailSender, DevEmailSender>();
+        services.AddHostedService<DatabaseInitializer>();
     }
 }

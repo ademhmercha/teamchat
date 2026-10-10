@@ -1,0 +1,214 @@
+using System.Security.Cryptography;
+using FluentValidation;
+using Microsoft.Extensions.Options;
+using TeamChat.Application.Abstractions;
+using TeamChat.Application.Auth.Dtos;
+using TeamChat.Application.Common;
+using TeamChat.Application.Users.Dtos;
+using TeamChat.Domain.Entities;
+
+namespace TeamChat.Application.Auth;
+
+public sealed class AuthService : IAuthService
+{
+    private readonly IIdentityService _identity;
+    private readonly IJwtTokenService _jwt;
+    private readonly IRefreshTokenStore _refreshTokens;
+    private readonly IUserProfileCache _profileCache;
+    private readonly IGoogleTokenValidator _google;
+    private readonly JwtOptions _jwtOptions;
+    private readonly TimeProvider _clock;
+
+    public AuthService(
+        IIdentityService identity,
+        IJwtTokenService jwt,
+        IRefreshTokenStore refreshTokens,
+        IUserProfileCache profileCache,
+        IGoogleTokenValidator google,
+        IOptions<JwtOptions> jwtOptions,
+        TimeProvider clock)
+    {
+        _identity = identity;
+        _jwt = jwt;
+        _refreshTokens = refreshTokens;
+        _profileCache = profileCache;
+        _google = google;
+        _jwtOptions = jwtOptions.Value;
+        _clock = clock;
+    }
+
+    public async Task<AuthResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _identity.FindByEmailAsync(request.Email, cancellationToken)
+            ?? throw new UnauthorizedException("Email ou mot de passe invalide.");
+
+        if (!user.IsActive)
+        {
+            throw new UnauthorizedException("Compte desactive.");
+        }
+
+        var outcome = await _identity.CheckPasswordAsync(user, request.Password, lockoutOnFailure: true, cancellationToken);
+
+        switch (outcome)
+        {
+            case SignInOutcome.Success:
+                break;
+            case SignInOutcome.LockedOut:
+                throw new UnauthorizedException("Compte temporairement verrouille. Reessayez plus tard.");
+            default:
+                throw new UnauthorizedException("Email ou mot de passe invalide.");
+        }
+
+        user.LastSeenAt = _clock.GetUtcNow();
+        await _identity.UpdateAsync(user, cancellationToken);
+
+        return await IssueTokensAsync(user, cancellationToken);
+    }
+
+    public async Task<AuthResult> LoginWithGoogleAsync(GoogleLoginRequest request, CancellationToken cancellationToken = default)
+    {
+        var info = await _google.ValidateAsync(request.IdToken, cancellationToken)
+            ?? throw new UnauthorizedException("Jeton Google invalide.");
+
+        var user = await _identity.FindByEmailAsync(info.Email, cancellationToken)
+            ?? throw new UnauthorizedException("Aucun compte n'est associe a cet email. Contactez un administrateur.");
+
+        if (!user.IsActive)
+        {
+            throw new UnauthorizedException("Compte desactive.");
+        }
+
+        return await IssueTokensAsync(user, cancellationToken);
+    }
+
+    public async Task<AuthResult> RefreshAsync(string refreshToken, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            throw new UnauthorizedException("Refresh token manquant.");
+        }
+
+        var hash = Hash(refreshToken);
+        var stored = await _refreshTokens.FindByHashAsync(hash, cancellationToken)
+            ?? throw new UnauthorizedException("Refresh token invalide.");
+
+        if (stored.RevokedAt is not null)
+        {
+            // Reutilisation d'un token deja tourne : on revoque toute la famille par precaution.
+            await _refreshTokens.RevokeAllForUserAsync(stored.UserId, cancellationToken);
+            throw new UnauthorizedException("Refresh token deja utilise.");
+        }
+
+        if (!stored.IsActive)
+        {
+            throw new UnauthorizedException("Refresh token expire.");
+        }
+
+        var user = await _identity.FindByIdAsync(stored.UserId, cancellationToken)
+            ?? throw new UnauthorizedException("Utilisateur introuvable.");
+
+        if (!user.IsActive)
+        {
+            throw new UnauthorizedException("Compte desactive.");
+        }
+
+        var roles = await _identity.GetRolesAsync(user, cancellationToken);
+        var access = _jwt.CreateAccessToken(user, roles);
+
+        var newRaw = GenerateRefreshToken();
+        var newHash = Hash(newRaw);
+        var newExpiresAt = _clock.GetUtcNow().AddDays(_jwtOptions.RefreshTokenDays);
+
+        stored.RevokedAt = _clock.GetUtcNow();
+        stored.ReplacedByTokenHash = newHash;
+        await _refreshTokens.UpdateAsync(stored, cancellationToken);
+
+        await _refreshTokens.AddAsync(new RefreshToken
+        {
+            UserId = user.Id,
+            TokenHash = newHash,
+            ExpiresAt = newExpiresAt,
+        }, cancellationToken);
+
+        return new AuthResult(access.Token, access.ExpiresAt, newRaw, newExpiresAt, ToProfile(user, roles));
+    }
+
+    public async Task LogoutAsync(string refreshToken, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            return;
+        }
+
+        var stored = await _refreshTokens.FindByHashAsync(Hash(refreshToken), cancellationToken);
+        if (stored is { RevokedAt: null })
+        {
+            stored.RevokedAt = _clock.GetUtcNow();
+            await _refreshTokens.UpdateAsync(stored, cancellationToken);
+        }
+    }
+
+    public async Task<UserProfileDto> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _identity.FindByIdAsync(userId, cancellationToken)
+            ?? throw new NotFoundException("Utilisateur introuvable.");
+
+        var roles = await _identity.GetRolesAsync(user, cancellationToken);
+        return ToProfile(user, roles);
+    }
+
+    public async Task AcceptInviteAsync(AcceptInviteRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _identity.FindByIdAsync(request.UserId, cancellationToken)
+            ?? throw new NotFoundException("Utilisateur introuvable.");
+
+        var result = await _identity.ResetPasswordAsync(user, request.Token, request.Password, cancellationToken);
+        if (!result.Succeeded)
+        {
+            throw new ValidationException(result.Errors.Select(e =>
+                new FluentValidation.Results.ValidationFailure(nameof(request.Password), e)));
+        }
+
+        await _profileCache.InvalidateAsync(user.Id, cancellationToken);
+    }
+
+    private async Task<AuthResult> IssueTokensAsync(AppUser user, CancellationToken cancellationToken)
+    {
+        var roles = await _identity.GetRolesAsync(user, cancellationToken);
+        var access = _jwt.CreateAccessToken(user, roles);
+
+        var raw = GenerateRefreshToken();
+        var refreshExpiresAt = _clock.GetUtcNow().AddDays(_jwtOptions.RefreshTokenDays);
+        await _refreshTokens.AddAsync(new RefreshToken
+        {
+            UserId = user.Id,
+            TokenHash = Hash(raw),
+            ExpiresAt = refreshExpiresAt,
+        }, cancellationToken);
+
+        return new AuthResult(access.Token, access.ExpiresAt, raw, refreshExpiresAt, ToProfile(user, roles));
+    }
+
+    private static UserProfileDto ToProfile(AppUser user, IReadOnlyList<string> roles) => new(
+        user.Id,
+        user.DisplayName,
+        user.Email ?? string.Empty,
+        user.AvatarUrl,
+        roles.FirstOrDefault() ?? string.Empty,
+        user.IsActive);
+
+    internal static string GenerateRefreshToken()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(64);
+        return Convert.ToBase64String(bytes)
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
+    }
+
+    internal static string Hash(string token)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(token);
+        return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+    }
+}

@@ -14,6 +14,8 @@ public static class CacheKeys
 
     public static string User(Guid userId) => $"{Root}:user:{userId}";
 
+    public static string UserTag(Guid userId) => $"{Root}:user:{userId}";
+
     public static string Membership(Guid conversationId, Guid userId) =>
         $"{Root}:membership:{conversationId}:{userId}";
 
