@@ -6,7 +6,7 @@
 ## Etat des sprints
 
 - [x] **Sprint 0 : Initialisation** - termine
-- [ ] Sprint 1 : Authentification, roles, annuaire
+- [x] **Sprint 1 : Authentification, roles, annuaire** - termine (en attente de validation utilisateur)
 - [ ] Sprint 2 : Conversations privees et temps reel
 - [ ] Sprint 3 : Groupes, modification, suppression, non lus
 - [ ] Sprint 4 : Fichiers et messages vocaux
@@ -84,3 +84,91 @@ Angular CLI local `21.2.26`, Docker `29.3.1` / Compose `v5.1.1`.
 Notes : le warning `Failed to determine the https port` apparait uniquement en execution HTTP locale
 sans HTTPS configure (normal a ce stade). Les conteneurs Postgres et Redis sont laisses demarres ;
 arret via `docker compose --profile redis down`.
+
+---
+
+## Sprint 1 : Authentification, roles, annuaire
+
+### Fait
+
+**Backend**
+- Entites `AppUser` (herite de `IdentityUser<Guid>`) et `RefreshToken` ; `TeamChatDbContext`
+  (Identity + refresh tokens) ; migration `InitialIdentity` ; seed des roles et du compte admin
+  via configuration (`Admin__SeedEmail` / `Admin__SeedPassword`, jamais en dur).
+- Identity : politique de mot de passe, verrouillage apres 5 echecs (5 min). JWT access token
+  (15 min) ; refresh token avec **rotation**, stocke **hache** (SHA-256), envoye en cookie
+  `HttpOnly` `Path=/api/auth` `SameSite=Lax` (`Secure` hors dev).
+- Endpoints `auth/*` : `login`, `google`, `refresh`, `logout`, `accept-invite`, `me`.
+- Connexion Google : validation de l'ID token cote serveur (`Google.Apis.Auth`, audience = Client ID),
+  refus des comptes absents ou inactifs (pas d'auto-inscription).
+- Creation d'utilisateur par l'admin + invitation (`POST /api/admin/users`) : lien avec token,
+  `DevEmailSender` journalise le lien en dev (pas d'envoi SMTP reel).
+- `PATCH /api/admin/users/{id}` : nom, activation (revocation de tous les refresh tokens) et **role**.
+- `GET /api/users` : recherche (nom/email) + pagination, resultats **mis en cache 60 s**
+  (tag `tc:v1:directory`), invalidation a chaque creation/modification/desactivation.
+- Profil minimal (role, `IsActive`, nom, avatar) **mis en cache 1 min**, revalide a chaque requete
+  authentifiee (`JwtBearerEvents.OnTokenValidated`), invalide immediatement a la desactivation.
+- Rate limiting sur `login` et `google` (fenetre fixe par IP).
+- Erreurs au format **ProblemDetails** (handler global + filtre de validation FluentValidation).
+
+**Frontend** (Angular 21, standalone + signals)
+- Page de connexion (email/mot de passe + bouton Google rendu seulement si un Client ID est configure).
+- `AuthService` (signals), `authInterceptor` (ajout du Bearer, `withCredentials`, **refresh
+  automatique sur 401**), guards `authGuard` / `adminGuard` / `guestGuard`.
+- Layout principal : barre laterale (navigation + section Admin), barre superieure (utilisateur,
+  deconnexion), zone centrale `router-outlet`.
+- Page annuaire : liste des utilisateurs actifs, recherche avec **debounce 300 ms**, pagination.
+- Environnements `environment.ts` / `environment.production.ts` + `fileReplacements` (prod).
+
+### En cours
+
+- Aucun.
+
+### Decisions
+
+| # | Decision | Raison |
+|---|---|---|
+| D9 | Access token **non persiste** cote client (memoire) ; restauration de session via `POST /auth/refresh` (cookie) au chargement, dans les guards | Evite d'exposer le JWT au stockage navigateur ; le refresh token HttpOnly reste la seule persistance. |
+| D10 | Frontend dev pointe directement sur `http://localhost:5285` (CORS + `withCredentials`) plutot qu'un proxy | Valide la config CORS/credentials reelle. `environment.production.ts` laisse vide (URL relative) jusqu'au deploiement (Sprint 6). |
+| D11 | Bouton Google affiche uniquement si `environment.googleClientId` est renseigne | Pas de Client ID en dev ; evite un bouton casse. |
+| D12 | Abstraction `IIdentityService` (Application) implementee par `UserManager` (Infrastructure) | Respect de la Clean Architecture : aucune dependance Identity dans l'Application/Domain. |
+| D13 | Rotation du refresh token + detection de reutilisation (revocation de toute la famille) | Renforce la securite (section 8). |
+| D14 | Cookie refresh `SameSite=Lax` | `localhost:4200` -> `localhost:5285` reste *same-site* en dev. En prod cross-site, prevoir sous-domaines `app.` / `api.` ou reecriture (piege Vercel, section 8). |
+
+### Problemes connus / non verifie
+
+- [ ] **Google** non teste de bout en bout : aucun Client ID configure, le bouton est donc masque en dev.
+- [ ] **Tests Angular** (`npm test`) toujours non executes (necessite un navigateur headless) ;
+      seul `ng build --configuration production` a ete execute. A brancher.
+- [ ] Verrouillage de compte couvert par un test d'integration mais pas re-verifie manuellement.
+- [ ] `environment.production.ts` : `apiBaseUrl` vide a completer lors du deploiement (Sprint 6).
+- [ ] Pas de mecanisme de revocation des access tokens deja emis (duree de vie 15 min) : la
+      desactivation est verifiee via le cache profil a chaque requete (immediat), l'access token
+      lui-meme n'est pas rejoue.
+
+### Resultats de verification (reels, executes le 2026-10-10)
+
+Environnement : Windows, SDK .NET `10.0.401`, Node `v20.20.2`, npm `10.9.8`, Angular `21.2.26`,
+PostgreSQL 16 (conteneur `teamchat-postgres`).
+
+| Verification | Commande | Resultat |
+|---|---|---|
+| Build backend | `dotnet build backend/TeamChat.sln -c Debug` | OK, **0 erreur / 0 avertissement** |
+| Tests backend | `dotnet test backend/TeamChat.sln --no-build` | OK, **20/20** (4 unitaires + 16 integration) |
+| Build frontend | `npm run build -- --configuration production` (dans `frontend/`) | OK, total initial ~256 kB |
+| API au runtime | `dotnet run` (env vars) puis `GET /api/health` | `{"status":"ok","service":"TeamChat.Api","cache":"HybridCacheService"}` |
+| Login admin | `POST /api/auth/login` | 200, role=Admin, cookie `tc_refresh` emis |
+| Refresh | `POST /api/auth/refresh` (cookie) | 200, nouveau access token |
+| `me` | `GET /api/auth/me` | 200, email + role |
+| Annuaire | `GET /api/users?search=admin` | 200, `totalCount=1` |
+| Creation utilisateur | `POST /api/admin/users` | **201** + `Location: /api/users/{id}` (bug `CreatedAtAction` corrige) |
+| Doublon email | `POST /api/admin/users` (meme email) | 409 |
+| Role / email invalide | `POST /api/admin/users` | 400 (FluentValidation) |
+| Route admin sans token | `POST /api/admin/users` | 401 |
+| Invitation | create -> lien journalise -> `POST /api/auth/accept-invite` -> login | OK, role=User |
+| Controle de role | `POST /api/admin/users` avec token User | **403** |
+| Desactivation | `PATCH /api/admin/users/{id}` puis `GET /api/auth/me` (ancien JWT) | 200 puis **401** (cache profil invalide immediatement) |
+
+Notes : l'API a ete lancee sur `http://localhost:5285` avec la base PostgreSQL locale ; la creation
+d'un utilisateur initialise son mot de passe uniquement via le flux d'invitation (aucun mot de passe
+en clair cote admin). Le fichier `backend/.config/dotnet-tools.json` (outil `dotnet-ef`) est ajoute au suivi.
