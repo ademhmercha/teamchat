@@ -8,6 +8,7 @@ using TeamChat.Infrastructure.Caching;
 using TeamChat.Infrastructure.Email;
 using TeamChat.Infrastructure.Identity;
 using TeamChat.Infrastructure.Persistence;
+using TeamChat.Infrastructure.Realtime;
 using TeamChat.Infrastructure.Security;
 using TeamChat.Domain.Entities;
 
@@ -83,6 +84,9 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
         services.AddScoped<IEmailSender, DevEmailSender>();
+        services.AddScoped<IConversationQueries, ConversationQueries>();
+        services.AddScoped<IMembershipService, MembershipService>();
+        services.AddSingleton<IPresenceTracker, PresenceTracker>();
         services.AddHostedService<DatabaseInitializer>();
     }
 }

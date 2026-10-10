@@ -30,6 +30,7 @@ public sealed class TeamChatApiFactory : WebApplicationFactory<Program>
                 ["Admin:SeedPassword"] = ApiCollectionFixture.AdminPassword,
                 ["Cors:AllowedOrigins"] = "http://localhost:4200",
                 ["RateLimiting:LoginPermitLimit"] = "100",
+                ["RateLimiting:ChatPermitLimit"] = "1000",
             });
         });
     }

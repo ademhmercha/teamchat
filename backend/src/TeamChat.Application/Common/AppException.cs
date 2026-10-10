@@ -22,6 +22,13 @@ public sealed class ForbiddenException : AppException
     }
 }
 
+public sealed class BadRequestException : AppException
+{
+    public BadRequestException(string message) : base(message)
+    {
+    }
+}
+
 public sealed class NotFoundException : AppException
 {
     public NotFoundException(string message) : base(message)

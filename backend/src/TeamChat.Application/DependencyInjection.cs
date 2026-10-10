@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using TeamChat.Application.Abstractions;
 using TeamChat.Application.Auth;
+using TeamChat.Application.Conversations;
 using TeamChat.Application.Users;
 
 namespace TeamChat.Application;
@@ -15,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserDirectoryService, UserDirectoryService>();
         services.AddScoped<IAdminUserService, AdminUserService>();
+        services.AddScoped<IConversationService, ConversationService>();
 
         services.AddSingleton(TimeProvider.System);
 

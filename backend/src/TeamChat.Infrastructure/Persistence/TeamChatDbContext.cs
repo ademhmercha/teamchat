@@ -13,6 +13,12 @@ public sealed class TeamChatDbContext : IdentityDbContext<AppUser, IdentityRole<
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+
+    public DbSet<ConversationParticipant> ConversationParticipants => Set<ConversationParticipant>();
+
+    public DbSet<Message> Messages => Set<Message>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -37,6 +43,51 @@ public sealed class TeamChatDbContext : IdentityDbContext<AppUser, IdentityRole<
                 .HasForeignKey(t => t.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.Ignore(t => t.IsActive);
+        });
+
+        builder.Entity<Conversation>(entity =>
+        {
+            entity.ToTable("Conversations");
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.Name).HasMaxLength(100);
+            entity.Property(c => c.DirectKey).HasMaxLength(80);
+            entity.HasIndex(c => c.DirectKey).IsUnique();
+            entity.HasOne<AppUser>()
+                .WithMany()
+                .HasForeignKey(c => c.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ConversationParticipant>(entity =>
+        {
+            entity.ToTable("ConversationParticipants");
+            entity.HasKey(p => new { p.ConversationId, p.UserId });
+            entity.HasOne<Conversation>()
+                .WithMany()
+                .HasForeignKey(p => p.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<AppUser>()
+                .WithMany()
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(p => p.UserId);
+        });
+
+        builder.Entity<Message>(entity =>
+        {
+            entity.ToTable("Messages");
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.Sequence).UseIdentityColumn();
+            entity.Property(m => m.Content).HasMaxLength(2000);
+            entity.HasIndex(m => new { m.ConversationId, m.Sequence });
+            entity.HasOne<Conversation>()
+                .WithMany()
+                .HasForeignKey(m => m.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<AppUser>()
+                .WithMany()
+                .HasForeignKey(m => m.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

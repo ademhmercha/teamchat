@@ -39,6 +39,7 @@ public sealed class AppExceptionHandler : IExceptionHandler
         {
             UnauthorizedException => (StatusCodes.Status401Unauthorized, "Non autorise"),
             ForbiddenException => (StatusCodes.Status403Forbidden, "Interdit"),
+            BadRequestException => (StatusCodes.Status400BadRequest, "Requete invalide"),
             NotFoundException => (StatusCodes.Status404NotFound, "Ressource introuvable"),
             ConflictException => (StatusCodes.Status409Conflict, "Conflit"),
             _ => (StatusCodes.Status500InternalServerError, "Erreur serveur"),

@@ -14,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>());
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
+builder.Services.AddSignalR();
 builder.Services.AddExceptionHandler<AppExceptionHandler>();
 
 builder.Services.AddApplication();
@@ -58,6 +59,19 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
                     context.Fail("Compte inexistant ou desactive.");
                 }
             },
+            OnMessageReceived = context =>
+            {
+                // SignalR ne peut pas envoyer de header d'autorisation en
+                // WebSocket : le JWT passe en query string pour /hubs.
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            },
         };
     });
 builder.Services.AddAuthorization();
@@ -86,6 +100,17 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0,
             }));
+
+    var chatPermitLimit = builder.Configuration.GetValue("RateLimiting:ChatPermitLimit", 120);
+    options.AddPolicy("chat", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = chatPermitLimit,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            }));
 });
 
 var app = builder.Build();
@@ -95,8 +120,12 @@ app.UseCors("frontend");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseWebSockets();
 
 app.MapControllers();
+app.MapHub<TeamChat.Api.Hubs.ChatHub>("/hubs/chat")
+    .RequireAuthorization()
+    .RequireRateLimiting("chat");
 
 app.Run();
 
