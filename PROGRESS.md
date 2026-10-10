@@ -6,8 +6,8 @@
 ## Etat des sprints
 
 - [x] **Sprint 0 : Initialisation** - termine
-- [x] **Sprint 1 : Authentification, roles, annuaire** - termine (en attente de validation utilisateur)
-- [ ] Sprint 2 : Conversations privees et temps reel
+- [x] **Sprint 1 : Authentification, roles, annuaire** - termine et pousse sur `sprint-1-auth` (PR manuelle a creer)
+- [x] **Sprint 2 : Conversations privees et temps reel** - termine (en attente de validation utilisateur)
 - [ ] Sprint 3 : Groupes, modification, suppression, non lus
 - [ ] Sprint 4 : Fichiers et messages vocaux
 - [ ] Sprint 5 : Appels audio, video et partage d'ecran
@@ -172,3 +172,81 @@ PostgreSQL 16 (conteneur `teamchat-postgres`).
 Notes : l'API a ete lancee sur `http://localhost:5285` avec la base PostgreSQL locale ; la creation
 d'un utilisateur initialise son mot de passe uniquement via le flux d'invitation (aucun mot de passe
 en clair cote admin). Le fichier `backend/.config/dotnet-tools.json` (outil `dotnet-ef`) est ajoute au suivi.
+
+---
+
+## Sprint 2 : Conversations privees et temps reel
+
+### Fait
+
+**Backend**
+- Entites `Conversation`, `ConversationParticipant`, `Message` (avec `Sequence` bigint identity) et
+  enums `ConversationType` / `MessageType` ; migrations `AddConversations` + `AddMessageSequence`
+  (index unique `DirectKey`, index `(ConversationId, Sequence)`) appliquees sur la base de dev.
+- Application : DTOs (`ConversationDto`, `ConversationListItemDto`, `MessageDto`, `MessageHistoryResult`,
+  `CreateDirectConversationRequest`, `SendMessageRequest`), `IConversationService`, `IConversationQueries`,
+  `IMembershipService`, `IPresenceTracker`, `ConversationService`, validators ; `BadRequestException`
+  ajoutee et mappee en **400**.
+- Infrastructure : `ConversationQueries` (direct idempotent sous rafle `DirectKey`, historique pagine,
+  liste avec dernier message), `MembershipService` (cache 5 min + invalidation), `PresenceTracker`
+  (en memoire, multi-onglets).
+- API : `GET /api/conversations`, `POST /api/conversations/direct`, `GET /api/conversations/{id}/messages`
+  (`before` / `limit` 1-100) ; hub SignalR `/hubs/chat` (`SendMessage`, `StartTyping`, `StopTyping`,
+  events `ReceiveMessage`, `UserTyping`, `UserStoppedTyping`, `PresenceChanged`, `PresenceSnapshot`) ;
+  `app.UseWebSockets()`, auth JWT du hub via `access_token` en query (`OnMessageReceived`), rate
+  limiting « chat » (defaut 120/min/IP).
+- Tests `ConversationsEndpointTests` (7) + `ChatHubTests` (4) ; **31/31 verts** (4 unitaires + 27 integration).
+
+**Frontend** (Angular 21, standalone + signals)
+- `@microsoft/signalr` installe ; `ChatService` : connexion avec access token, **reconnexion
+  automatique**, rejoint les groupes cote serveur a chaque `OnConnected` (resubscribe implicite),
+  signals de presence et de typing (expiration 2,5 s), observable `receiveMessage$`.
+- Page conversations : liste des echanges (1er message affiche + heure), pastille de presence en
+  surimpression, bouton « Nouvelle conversation » (recherche utilisateur + creation directe
+  idempotente, redirection vers le fil).
+- Fil de discussion `/conversations/:id` : chargement des messages les plus recents, **scroll infini
+  ascendant** (curseur `Sequence`), reception temps reel avec deduplication par `id`, envoi via le hub
+  (echo serveur), indicateur « X ecrit… », presence de l'interlocuteur, auto-scroll si l'utilisateur
+  est en bas.
+
+### En cours
+
+- Aucun.
+
+### Decisions
+
+| # | Decision | Raison |
+|---|---|---|
+| D15 | Les messages sont envoyes **uniquement via le hub** (pas d'endpoint REST de send) | Diffusion temps reel garantie ; le hub fait office de bus. |
+| D16 | Presence **en memoire par instance** (`IPresenceTracker` singleton, multi-onglets dedoubles) | Un seul processus en dev ; a revisiter si scale-out (Sprint 6). |
+| D17 | Curseur d'historique = **`Message.Sequence`** (bigint identity, ordre global) | Le couple `(CreatedAt, Guid.CompareTo)` est fragile (ordre .NET vs Postgres, egalites horodatees). |
+| D18 | L'envoi au groupe conversation se fait **y compris a l'expediteur** (echo serveur) | Un seul chemin de rendu ; le client deduplique par `message.id`. |
+| D19 | Membership **mis en cache 5 min** avec tags `tc:v1` et invalidation a la creation d'une conversation | Envol categorie meme si faible ; evite 1 requete/s/message. |
+| D20 | Conversation directe **idempotente** via `DirectKey` `d:{min}:{max}` + gestion de course (`DbUpdateException` -> refetch) | Deux onglets peuvent cliquer simultanement sur « Nouvelle conversation ». |
+| D21 | Non lus (`LastReadMessageId`), groupes (`Group`) et fichiers/vocal reportes **Sprint 3 / Sprint 4** | Perimetre du Sprint 2 strict (prive + temps reel + presence). |
+
+### Problemes connus / non verifie
+
+- [ ] **Sprint 1 non fusionne** : `sprint-2-conversations` est basse sur `sprint-1-auth` ; a revoir
+      au moment des PR (base/rebase) et de la creation manuelle des PR (pas de `gh`).
+- [ ] **Test manuel navigateur (2 onglets)** non realisable ici (pas de navigateur automatise) : la
+      verification runtime a ete faite au niveau API avec le client `@microsoft/signalr` reel sur
+      WebSockets (equivalent fonctionnel). A re-tester visuellement par l'utilisateur.
+- [ ] Presence **par instance** : deux instances d'API = presences incoherentes (accepte en dev).
+- [ ] Les echecs d'envoi (`send()`) sont silencieux cote UI (pas encore de gestion d'erreur visible).
+- [ ] Message non-texte rendu « Contenu non texte » cote UI (pieces jointes : Sprint 4).
+
+### Resultats de verification (reels, executes le 2026-10-10)
+
+Environnement : identique au Sprint 1 (SDK .NET 10.0.401, Node v20.20.2, PostgreSQL conteneur).
+
+| Verification | Commande | Resultat |
+|---|---|---|
+| Build backend | `dotnet build backend/TeamChat.sln -c Debug` | OK, **0 erreur / 0 avertissement** |
+| Tests backend | `dotnet test backend/TeamChat.sln --no-build` | OK, **31/31** (4 unitaires + 27 integration) |
+| Build frontend | `npm run build` (dans `frontend/`) | OK, chunk `thread` + `conversations-list` generes |
+| Runtime realtime | script node (`@microsoft/signalr` 10.0.12, transport **WebSockets** via `ws`) contre `localhost:5285` | **0 echec** : invitation + login A/B, conversation directe + idempotence, connexion WS 2 clients, `PresenceChanged`, `ReceiveMessage`, historique, liste |
+
+Note : le script de verification runtime est en dehors du depot
+(`%TEMP%/opencode/teamchat-realtime-check.cjs`, non committe). L'API tournait en arriere-plan sur
+`http://localhost:5285` avec les logs rediriges pour lire les liens d'invitation.
