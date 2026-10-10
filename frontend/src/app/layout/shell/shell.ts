@@ -1,6 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { ChatService } from '../../core/chat/chat.service';
 
 @Component({
   selector: 'app-shell',
@@ -11,6 +12,7 @@ import { AuthService } from '../../core/auth/auth.service';
 export class ShellComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly chat = inject(ChatService);
 
   readonly user = this.auth.user;
   readonly isAdmin = this.auth.isAdmin;
@@ -24,7 +26,12 @@ export class ShellComponent {
       .join('');
   });
 
+  constructor() {
+    this.chat.start();
+  }
+
   logout(): void {
+    this.chat.stop();
     this.auth.logout().subscribe(() => void this.router.navigate(['/login']));
   }
 }

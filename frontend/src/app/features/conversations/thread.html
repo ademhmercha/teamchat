@@ -1,0 +1,73 @@
+<div class="thread">
+  <header class="thread-header">
+    <a class="back" routerLink="/conversations">← Conversations</a>
+    @if (conversation(); as conv) {
+      <div class="peer">
+        <div class="avatar">
+          {{ peerInitials() }}
+          @if (peerOnline()) {
+            <span class="presence-dot" aria-label="En ligne"></span>
+          }
+        </div>
+        <div class="peer-info">
+          <span class="peer-name">{{ conv.otherDisplayName ?? 'Conversation' }}</span>
+          @if (otherTypingName(); as typingName) {
+            <span class="typing-banner">{{ typingName }} écrit…</span>
+          }
+        </div>
+      </div>
+    }
+  </header>
+
+  @if (error(); as message) {
+    <div class="alert" role="alert">{{ message }}</div>
+  }
+
+  <div class="scroll-area" #scrollArea (scroll)="onScroll()">
+    @if (loadingOlder()) {
+      <div class="state state-small">Chargement des messages précédents…</div>
+    } @else if (hasMore()) {
+      <div class="state state-small">Faites défiler pour plus de messages</div>
+    }
+
+    @if (messages().length === 0) {
+      <div class="state">Aucun message pour l'instant.</div>
+    } @else {
+      @for (message of messages(); track message.id) {
+        <div class="message" [class.own]="message.senderId === currentUserId">
+          @if (message.deleted) {
+            <div class="bubble deleted">Ce message a été supprimé</div>
+          } @else {
+            <div class="bubble">
+              @if (message.type !== 0) {
+                <div class="unsupported">Contenu non texte (type {{ message.type }})</div>
+              } @else {
+                <div class="text">{{ message.content }}</div>
+                @if (message.edited) {
+                  <span class="edited">modifié</span>
+                }
+              }
+            </div>
+            <div class="meta">{{ message.senderDisplayName }} · {{ time(message) }}</div>
+          }
+        </div>
+      }
+    }
+  </div>
+
+  <footer class="composer">
+    <form (ngSubmit)="send()">
+      <input
+        type="text"
+        class="composer-input"
+        placeholder="Écrire un message…"
+        [value]="input()"
+        (input)="onInputEvent($event)"
+        autocomplete="off"
+      />
+      <button type="submit" class="send-button" [disabled]="sending() || !input().trim()">
+        Envoyer
+      </button>
+    </form>
+  </footer>
+</div>

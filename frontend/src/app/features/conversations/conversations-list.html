@@ -1,0 +1,81 @@
+<div class="conversations">
+  <header class="conversations-header">
+    <div>
+      <h1>Conversations</h1>
+      <p>{{ items().length }} échange(s)</p>
+    </div>
+    <button type="button" class="new-button" (click)="openPicker()">Nouvelle conversation</button>
+  </header>
+
+  @if (error(); as message) {
+    <div class="alert" role="alert">{{ message }}</div>
+  }
+
+  <div class="card">
+    @if (loading()) {
+      <div class="state">Chargement…</div>
+    } @else if (isEmpty()) {
+      <div class="state">Aucune conversation. Démarrez un échange !</div>
+    } @else {
+      <ul class="conversation-list">
+        @for (item of items(); track item.id) {
+          <li>
+            <a class="conversation-row" [routerLink]="['/conversations', item.id]">
+              <div class="avatar">
+                {{ initials(item) }}
+                @if (isOnline(item)) {
+                  <span class="presence-dot" aria-label="En ligne"></span>
+                }
+              </div>
+              <div class="conversation-info">
+                <div class="conversation-line">
+                  <span class="conversation-name">{{ item.otherDisplayName ?? 'Chat' }}</span>
+                  @if (item.lastMessageAt) {
+                    <span class="conversation-time">{{ shortTime(item.lastMessageAt) }}</span>
+                  }
+                </div>
+                <span class="conversation-preview">
+                  {{ item.lastMessagePreview ?? 'Nouvelle conversation' }}
+                </span>
+              </div>
+            </a>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>
+
+@if (pickerOpen()) {
+  <div class="modal-backdrop" (click)="closePicker()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>Nouvelle conversation</h2>
+      <input
+        type="search"
+        class="search"
+        placeholder="Rechercher un utilisateur…"
+        [value]="pickerSearch()"
+        (input)="onPickerSearchEvent($event)"
+        autofocus
+      />
+      <div class="modal-list">
+        @if (pickerLoading()) {
+          <div class="state">Recherche…</div>
+        } @else if (pickerUsers().length === 0) {
+          <div class="state">Aucun utilisateur.</div>
+        } @else {
+          @for (user of pickerUsers(); track user.id) {
+            <button type="button" class="user-row" (click)="startConversation(user)">
+              <div class="avatar">{{ initialsOfUser(user) }}</div>
+              <div class="user-info">
+                <span class="user-name">{{ user.displayName }}</span>
+                <span class="user-email">{{ user.email }}</span>
+              </div>
+            </button>
+          }
+        }
+      </div>
+      <button type="button" class="cancel" (click)="closePicker()">Annuler</button>
+    </div>
+  </div>
+}

@@ -18,6 +18,16 @@ export const routes: Routes = [
         loadComponent: () => import('./features/directory/directory').then((m) => m.DirectoryComponent),
       },
       {
+        path: 'conversations',
+        loadComponent: () =>
+          import('./features/conversations/conversations-list').then((m) => m.ConversationsListComponent),
+      },
+      {
+        path: 'conversations/:id',
+        loadComponent: () =>
+          import('./features/conversations/thread').then((m) => m.ThreadComponent),
+      },
+      {
         path: 'admin',
         canActivate: [adminGuard],
         loadComponent: () => import('./features/admin/admin-home').then((m) => m.AdminHomeComponent),
