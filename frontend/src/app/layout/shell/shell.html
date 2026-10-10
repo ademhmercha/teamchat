@@ -1,0 +1,39 @@
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">TeamChat</div>
+
+    <nav class="nav">
+      <a routerLink="/directory" routerLinkActive="active" class="nav-link">
+        <span class="dot"></span> Annuaire
+      </a>
+    </nav>
+
+    @if (isAdmin()) {
+      <nav class="nav nav-admin">
+        <span class="nav-title">Administration</span>
+        <a routerLink="/admin" routerLinkActive="active" class="nav-link">
+          <span class="dot"></span> Tableau de bord
+        </a>
+      </nav>
+    }
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">Bienvenue{{ user() ? ', ' + user()!.displayName : '' }}</div>
+
+      <div class="account">
+        <div class="avatar">{{ initials() }}</div>
+        <div class="account-info">
+          <span class="account-name">{{ user()?.displayName }}</span>
+          <span class="account-role">{{ user()?.role }}</span>
+        </div>
+        <button type="button" class="logout" (click)="logout()">Deconnexion</button>
+      </div>
+    </header>
+
+    <section class="content">
+      <router-outlet />
+    </section>
+  </div>
+</div>

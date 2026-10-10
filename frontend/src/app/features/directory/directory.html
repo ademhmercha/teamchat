@@ -1,0 +1,54 @@
+<div class="directory">
+  <header class="directory-header">
+    <div>
+      <h1>Annuaire</h1>
+      <p>{{ result()?.totalCount ?? 0 }} utilisateur(s) actif(s)</p>
+    </div>
+    <input
+      type="search"
+      class="search"
+      placeholder="Rechercher un nom ou un email…"
+      [formControl]="searchInput"
+      aria-label="Rechercher un utilisateur"
+    />
+  </header>
+
+  @if (error(); as message) {
+    <div class="alert" role="alert">{{ message }}</div>
+  }
+
+  <div class="card">
+    @if (loading()) {
+      <div class="state">Chargement…</div>
+    } @else if (result(); as page) {
+      @if (page.items.length === 0) {
+        <div class="state">Aucun utilisateur trouve.</div>
+      } @else {
+        <ul class="user-list">
+          @for (user of page.items; track user.id) {
+            <li class="user-row">
+              <div class="avatar">{{ initials(user) }}</div>
+              <div class="user-info">
+                <span class="user-name">{{ user.displayName }}</span>
+                <span class="user-email">{{ user.email }}</span>
+              </div>
+              <span class="badge" [class.inactive]="!user.isActive">
+                {{ user.isActive ? 'Actif' : 'Inactif' }}
+              </span>
+            </li>
+          }
+        </ul>
+      }
+    }
+  </div>
+
+  @if (totalPages() > 1) {
+    <nav class="pagination" aria-label="Pagination">
+      <button type="button" (click)="goToPage(page() - 1)" [disabled]="page() <= 1">Precedent</button>
+      <span>Page {{ page() }} / {{ totalPages() }}</span>
+      <button type="button" (click)="goToPage(page() + 1)" [disabled]="page() >= totalPages()">
+        Suivant
+      </button>
+    </nav>
+  }
+</div>

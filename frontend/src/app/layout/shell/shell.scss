@@ -1,0 +1,162 @@
+.shell {
+  display: flex;
+  height: 100dvh;
+  background: var(--tc-bg, #f4f5fb);
+}
+
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: #1f1b3a;
+  color: #d8d6f0;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1rem;
+  gap: 1.5rem;
+}
+
+.brand {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.nav-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8a86b8;
+  margin-bottom: 0.25rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 9px;
+  color: #d8d6f0;
+  text-decoration: none;
+  font-size: 0.92rem;
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.7;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &.active {
+    background: #5b4bd6;
+    color: #fff;
+  }
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  height: 64px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  background: #fff;
+  border-bottom: 1px solid #e6e7f1;
+}
+
+.topbar-title {
+  font-weight: 600;
+  color: #2c2f42;
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #5b4bd6;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.account-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.account-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2c2f42;
+}
+
+.account-role {
+  font-size: 0.75rem;
+  color: #7a8095;
+}
+
+.logout {
+  margin-left: 0.5rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid #d3d6e4;
+  border-radius: 8px;
+  background: #fff;
+  color: #2c2f42;
+  font-size: 0.85rem;
+  cursor: pointer;
+
+  &:hover {
+    background: #f4f5fb;
+  }
+}
+
+.content {
+  flex: 1;
+  overflow: auto;
+  padding: 1.5rem;
+}
+
+@media (max-width: 720px) {
+  .sidebar {
+    width: 72px;
+    padding: 1rem 0.5rem;
+  }
+
+  .brand,
+  .nav-title,
+  .nav-link {
+    font-size: 0;
+  }
+
+  .nav-link {
+    justify-content: center;
+  }
+}

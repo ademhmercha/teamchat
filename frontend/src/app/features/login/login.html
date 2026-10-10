@@ -1,0 +1,37 @@
+<div class="login-page">
+  <form class="login-card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <header class="login-header">
+      <h1>TeamChat</h1>
+      <p>Connectez-vous a votre espace de travail.</p>
+    </header>
+
+    @if (error(); as message) {
+      <div class="alert" role="alert">{{ message }}</div>
+    }
+
+    <label class="field">
+      <span>Email</span>
+      <input type="email" formControlName="email" autocomplete="username" placeholder="prenom.nom@societe.com" />
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <small class="field-error">Email invalide.</small>
+      }
+    </label>
+
+    <label class="field">
+      <span>Mot de passe</span>
+      <input type="password" formControlName="password" autocomplete="current-password" placeholder="••••••••" />
+      @if (form.controls.password.touched && form.controls.password.invalid) {
+        <small class="field-error">Mot de passe requis.</small>
+      }
+    </label>
+
+    <button type="submit" class="submit" [disabled]="loading()">
+      {{ loading() ? 'Connexion…' : 'Se connecter' }}
+    </button>
+
+    @if (googleEnabled) {
+      <div class="divider"><span>ou</span></div>
+      <div id="google-button" class="google-button"></div>
+    }
+  </form>
+</div>
