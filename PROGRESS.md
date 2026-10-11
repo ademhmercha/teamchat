@@ -8,7 +8,7 @@
 - [x] **Sprint 0 : Initialisation** - termine
 - [x] **Sprint 1 : Authentification, roles, annuaire** - termine et pousse sur `sprint-1-auth` (PR manuelle a creer)
 - [x] **Sprint 2 : Conversations privees et temps reel** - termine (en attente de validation utilisateur)
-- [ ] Sprint 3 : Groupes, modification, suppression, non lus
+- [~] **Sprint 3 : Groupes, modification, suppression, non lus** - en cours (backend + frontend realises, en attente de validation)
 - [ ] Sprint 4 : Fichiers et messages vocaux
 - [ ] Sprint 5 : Appels audio, video et partage d'ecran
 - [ ] Sprint 6 : Dashboard admin, qualite, deploiement
@@ -250,3 +250,90 @@ Environnement : identique au Sprint 1 (SDK .NET 10.0.401, Node v20.20.2, Postgre
 Note : le script de verification runtime est en dehors du depot
 (`%TEMP%/opencode/teamchat-realtime-check.cjs`, non committe). L'API tournait en arriere-plan sur
 `http://localhost:5285` avec les logs rediriges pour lire les liens d'invitation.
+
+---
+
+## Sprint 3 : Groupes, modification, suppression, non lus
+
+### Fait
+
+**Backend**
+- `Conversation.ArchivedAt` (nullable) : archivage **logique**. Migration `AddGroupsAndUnread`
+  (ajoute uniquement `ArchivedAt` ; `ConversationParticipant.LastReadMessageId` existait deja) appliquee
+  sur la base de dev.
+- Non lus : `ConversationParticipant.LastReadMessageId` sert de curseur. `ConversationListItemDto`
+  expose `ParticipantCount` et `UnreadCount`. Un message compte comme non lu si
+  `Sequence > seqOf(LastReadMessageId)` **et** `SenderId != userId` **et** non supprime.
+- `IConversationService` etendu : `EditMessageAsync`, `DeleteMessageAsync`, `MarkAsReadAsync`
+  (auteur uniquement, message supprime non modifiable, idempotent). `IConversationQueries` etendu :
+  `FindMessageAsync`, `UpdateMessageAsync`, `SoftDeleteMessageAsync`, `GetLastMessageIdAsync`,
+  `SetLastReadAsync`. `ConversationQueries` reecrit : liste des conversations incluant les groupes,
+  excluant les conversations archivees, avec `UnreadCount`/`ParticipantCount` (une seule requete
+  agregee) ; `GetMemberConversationIdsAsync` exclut les archives.
+- `MembershipService` : une conversation archivee n'est **jamais** un membre (acces refuse).
+- **Groupes (admin)** : `IAdminGroupService`/`IAdminGroupQueries` + `AdminGroupService` (validators
+  FluentValidation) ; creation par un admin (createur auto-membre, **>= 2 membres**, utilisateurs
+  existants verifies), remplacement complet des membres (`PUT`, **>= 1 membre**), archivage. Chaque
+  mutation **invalide le cache d'appartenance** de la conversation. Endpoints
+  `GET/POST /api/admin/groups`, `PUT /api/admin/groups/{id}/members`, `DELETE /api/admin/groups/{id}`
+  (role `Admin` requis).
+- Temps reel : `IChatClient` + `ChatHub` etendus (`EditMessage`, `DeleteMessage`, `MarkAsRead` ;
+  events `MessageEdited`, `MessageDeleted`, `AddedToGroup`, `ConversationUpdated`). `ChatGroups`
+  (helper de nommage) partage entre hub et controllers. `AdminGroupsController` synchronise les groupes
+  SignalR via `IHubContext<ChatHub, IChatClient>` + `IPresenceTracker.GetConnectionIds` (ajout/retrait
+  de connexions + notifications). Endpoint `POST /api/conversations/{id}/read` (body optionnel
+  `{ messageId }`, `null` = dernier message).
+- Tests `AdminGroupsEndpointTests` (4), `MessageEditDeleteTests` (2), `UnreadTests` (1) ;
+  **4 unitaires + 34 integration = 38/38 verts**.
+
+**Frontend** (Angular 21, standalone + signals)
+- `ChatService` : nouveaux flux `messageEdited$`, `messageDeleted$`, `addedToGroup$`,
+  `conversationUpdated$` ; invocation `editMessage`/`deleteMessage`.
+- Fil de discussion : menu **Modifier/Supprimer** sur ses propres messages (edition en ligne),
+  mise a jour live via les events (message modifie/supprime), **marquage comme lu** (REST
+  `POST .../read`) au chargement et a la reception ; en-tete adapte aux **groupes** (nom + nombre
+  de membres, plus de pastille de presence).
+- Liste des conversations : **badge de non lus**, rendu des groupes (nom du groupe), rafraichissement
+  a chaque `ConversationUpdated`/`AddedToGroup`.
+- Espace admin : page `/admin/groups` (liste, creation avec selection de membres, edition des
+  membres, archivage), lien dans la navigation + carte sur le tableau de bord.
+- `AdminGroupsService`, modeles `GroupDto`/`GroupMemberDto`, `conversation.models.ts` etendu.
+
+### En cours
+
+- Aucun.
+
+### Decisions
+
+| # | Decision | Raison |
+|---|---|---|
+| D22 | Archivage **logique** (`ArchivedAt`), pas de suppression physique | Conserve l'historique et les references ; reversible. |
+| D23 | Non lus bases sur `LastReadMessageId` (curseur) plutot qu'un compteur denormalise | Un seul champ, coherent avec la pagination par `Sequence` ; pas de derive de compteur. |
+| D24 | Edition/suppression de message **via le hub uniquement** (pas de REST) | Meme chemin temps reel que l'envoi ; broadcast garanti aux membres connectes. |
+| D25 | Groupes **crees et geres par les admins** (`Roles.Admin`) ; `PUT members` = remplacement complet | Pas de creation de groupe en libre-service dans ce sprint (section 9). |
+| D26 | Synchronisation des groupes SignalR cote **controller** (via `IHubContext`) et non dans le service | Le service reste agnostique du transport ; le controller connait presence + hub. |
+| D27 | Marquage comme lu cote front via **REST** (`POST .../read`) | Simplifie le cas « dernier message » (messageId null) ; la methode hub `MarkAsRead` existe pour les clients temps reel. |
+
+### Problemes connus / non verifie
+
+- [ ] **Test manuel navigateur (2 onglets)** non realisable ici : verification faite par tests
+      d'integration (hub SignalR reel en LongPolling). A re-tester visuellement par l'utilisateur.
+- [ ] **Verification runtime API (script node)** du Sprint 3 non encore rejouee (couverture assuree par
+      les tests d'integration ; un passage bout-en-bout reste souhaitable).
+- [ ] `MarkAsRead` du hub prend un `Guid messageId` non nullable (le cas « tout lire » passe par REST).
+- [ ] Test de presence historique rendu **deterministe** : l'assertion verifie desormais que l'appelant
+      figure dans son propre snapshot (l'ancienne assertion attendait un utilisateur connecte plus tard,
+      source de flakiness).
+- [ ] Google login toujours non teste de bout en bout (pas de Client ID).
+- [ ] Suppression de message **logique** cote UI : le contenu original n'est pas recuperable.
+
+### Resultats de verification (reels, executes le 2026-10-11)
+
+Environnement : identique aux sprints precedents (SDK .NET 10.0.401, Node v20.20.2, PostgreSQL conteneur).
+
+| Verification | Commande | Resultat |
+|---|---|---|
+| Build backend | `dotnet build backend/TeamChat.sln -c Debug` | OK, **0 erreur / 0 avertissement** |
+| Migration | `dotnet ef migrations add AddGroupsAndUnread` + `database update` | OK (colonne `ArchivedAt`), base de dev a jour |
+| Tests backend | `dotnet test backend/TeamChat.sln -c Debug` | OK, **38/38** (4 unitaires + 34 integration) |
+| Build frontend | `npm run build` (dans `frontend/`) | OK, chunks `admin-groups` + `thread` + `conversations-list` generes |
