@@ -25,4 +25,8 @@ export class ConversationsService {
 
     return this.http.get<MessageHistoryResult>(`${this.baseUrl}/${conversationId}/messages`, { params });
   }
+
+  markAsRead(conversationId: string, messageId?: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${conversationId}/read`, { messageId: messageId ?? null });
+  }
 }

@@ -33,6 +33,18 @@ export class ChatService {
   private readonly _receiveMessage = new Subject<MessageDto>();
   readonly receiveMessage$ = this._receiveMessage.asObservable();
 
+  private readonly _messageEdited = new Subject<MessageDto>();
+  readonly messageEdited$ = this._messageEdited.asObservable();
+
+  private readonly _messageDeleted = new Subject<{ conversationId: string; messageId: string }>();
+  readonly messageDeleted$ = this._messageDeleted.asObservable();
+
+  private readonly _addedToGroup = new Subject<string>();
+  readonly addedToGroup$ = this._addedToGroup.asObservable();
+
+  private readonly _conversationUpdated = new Subject<string>();
+  readonly conversationUpdated$ = this._conversationUpdated.asObservable();
+
   isConnected(): boolean {
     return this.connection?.state === HubConnectionState.Connected;
   }
@@ -57,6 +69,12 @@ export class ChatService {
     hub.onclose(() => this.state.set(HubConnectionState.Disconnected));
 
     hub.on('ReceiveMessage', (message: MessageDto) => this._receiveMessage.next(message));
+    hub.on('MessageEdited', (message: MessageDto) => this._messageEdited.next(message));
+    hub.on('MessageDeleted', (conversationId: string, messageId: string) =>
+      this._messageDeleted.next({ conversationId, messageId }),
+    );
+    hub.on('AddedToGroup', (conversationId: string) => this._addedToGroup.next(conversationId));
+    hub.on('ConversationUpdated', (conversationId: string) => this._conversationUpdated.next(conversationId));
     hub.on('PresenceSnapshot', (onlineIds: string[]) => this.applySnapshot(onlineIds));
     hub.on('PresenceChanged', (userId: string, isOnline: boolean) => {
       if (isOnline) {
@@ -105,6 +123,22 @@ export class ChatService {
     }
 
     return this.connection.invoke('SendMessage', conversationId, content);
+  }
+
+  editMessage(messageId: string, newContent: string): Promise<void> {
+    if (!this.isConnected()) {
+      return Promise.reject(new Error('Connexion temps reel indisponible.'));
+    }
+
+    return this.connection!.invoke('EditMessage', messageId, newContent);
+  }
+
+  deleteMessage(messageId: string): Promise<void> {
+    if (!this.isConnected()) {
+      return Promise.reject(new Error('Connexion temps reel indisponible.'));
+    }
+
+    return this.connection!.invoke('DeleteMessage', messageId);
   }
 
   startTyping(conversationId: string): void {

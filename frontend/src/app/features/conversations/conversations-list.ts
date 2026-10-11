@@ -50,16 +50,28 @@ export class ConversationsListComponent {
       .subscribe(() => this.load());
 
     this.chat.receiveMessage$?.pipe(takeUntilDestroyed()).subscribe(() => this.refresh$.next());
+    this.chat.messageEdited$?.pipe(takeUntilDestroyed()).subscribe(() => this.refresh$.next());
+    this.chat.messageDeleted$?.pipe(takeUntilDestroyed()).subscribe(() => this.refresh$.next());
+    this.chat.conversationUpdated$?.pipe(takeUntilDestroyed()).subscribe(() => this.refresh$.next());
+    this.chat.addedToGroup$?.pipe(takeUntilDestroyed()).subscribe(() => this.refresh$.next());
 
     this.load();
   }
 
+  isGroup(item: ConversationListItemDto): boolean {
+    return item.type === 1;
+  }
+
+  title(item: ConversationListItemDto): string {
+    return item.type === 1 ? (item.name ?? 'Groupe') : (item.otherDisplayName ?? 'Chat');
+  }
+
   isOnline(item: ConversationListItemDto): boolean {
-    return item.otherUserId !== null && this.chat.isOnline(item.otherUserId);
+    return !this.isGroup(item) && item.otherUserId !== null && this.chat.isOnline(item.otherUserId);
   }
 
   initials(item: ConversationListItemDto): string {
-    return initialsOf(item.otherDisplayName ?? '?');
+    return initialsOf(item.type === 1 ? (item.name ?? 'Groupe') : (item.otherDisplayName ?? '?'));
   }
 
   openPicker(): void {

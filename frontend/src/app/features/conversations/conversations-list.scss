@@ -139,6 +139,21 @@
   white-space: nowrap;
 }
 
+.unread-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #5b4bd6;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .alert {
   padding: 0.6rem 0.75rem;
   border-radius: 9px;

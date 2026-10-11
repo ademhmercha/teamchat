@@ -14,8 +14,11 @@
     @if (isAdmin()) {
       <nav class="nav nav-admin">
         <span class="nav-title">Administration</span>
-        <a routerLink="/admin" routerLinkActive="active" class="nav-link">
+        <a routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link">
           <span class="dot"></span> Tableau de bord
+        </a>
+        <a routerLink="/admin/groups" routerLinkActive="active" class="nav-link">
+          <span class="dot"></span> Groupes
         </a>
       </nav>
     }

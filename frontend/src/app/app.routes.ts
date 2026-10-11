@@ -32,6 +32,11 @@ export const routes: Routes = [
         canActivate: [adminGuard],
         loadComponent: () => import('./features/admin/admin-home').then((m) => m.AdminHomeComponent),
       },
+      {
+        path: 'admin/groups',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/admin-groups').then((m) => m.AdminGroupsComponent),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

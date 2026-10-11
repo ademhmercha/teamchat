@@ -29,7 +29,7 @@
               </div>
               <div class="conversation-info">
                 <div class="conversation-line">
-                  <span class="conversation-name">{{ item.otherDisplayName ?? 'Chat' }}</span>
+                  <span class="conversation-name">{{ title(item) }}</span>
                   @if (item.lastMessageAt) {
                     <span class="conversation-time">{{ shortTime(item.lastMessageAt) }}</span>
                   }
@@ -38,6 +38,9 @@
                   {{ item.lastMessagePreview ?? 'Nouvelle conversation' }}
                 </span>
               </div>
+              @if (item.unreadCount > 0) {
+                <span class="unread-badge">{{ item.unreadCount }}</span>
+              }
             </a>
           </li>
         }

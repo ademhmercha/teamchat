@@ -34,6 +34,22 @@ export interface ConversationListItemDto {
   otherAvatarUrl: string | null;
   lastMessageAt: string | null;
   lastMessagePreview: string | null;
+  participantCount: number;
+  unreadCount: number;
+}
+
+export interface GroupMemberDto {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface GroupDto {
+  id: string;
+  name: string;
+  createdAt: string;
+  isArchived: boolean;
+  members: GroupMemberDto[];
 }
 
 export interface MessageDto {

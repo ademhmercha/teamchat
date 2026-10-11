@@ -1,16 +1,19 @@
 <div class="thread">
   <header class="thread-header">
     <a class="back" routerLink="/conversations">← Conversations</a>
-    @if (conversation(); as conv) {
+    @if (conversation()) {
       <div class="peer">
         <div class="avatar">
-          {{ peerInitials() }}
-          @if (peerOnline()) {
+          {{ headerInitials() }}
+          @if (!isGroup() && peerOnline()) {
             <span class="presence-dot" aria-label="En ligne"></span>
           }
         </div>
         <div class="peer-info">
-          <span class="peer-name">{{ conv.otherDisplayName ?? 'Conversation' }}</span>
+          <span class="peer-name">{{ conversationTitle() }}</span>
+          @if (isGroup()) {
+            <span class="group-meta">{{ participantCount() }} membre(s)</span>
+          }
           @if (otherTypingName(); as typingName) {
             <span class="typing-banner">{{ typingName }} écrit…</span>
           }
@@ -37,6 +40,22 @@
         <div class="message" [class.own]="message.senderId === currentUserId">
           @if (message.deleted) {
             <div class="bubble deleted">Ce message a été supprimé</div>
+          } @else if (editingId() === message.id) {
+            <div class="bubble edit-bubble">
+              <input
+                type="text"
+                class="edit-input"
+                [value]="editValue()"
+                (input)="onEditInputEvent($event)"
+                autofocus
+              />
+              <div class="edit-actions">
+                <button type="submit" (click)="saveEdit()" [disabled]="savingEdit() || !editValue().trim()">
+                  Enregistrer
+                </button>
+                <button type="button" class="ghost" (click)="cancelEdit()">Annuler</button>
+              </div>
+            </div>
           } @else {
             <div class="bubble">
               @if (message.type !== 0) {
@@ -48,7 +67,15 @@
                 }
               }
             </div>
-            <div class="meta">{{ message.senderDisplayName }} · {{ time(message) }}</div>
+            <div class="meta">
+              <span>{{ message.senderDisplayName }} · {{ time(message) }}</span>
+              @if (canEdit(message)) {
+                <span class="actions">
+                  <button type="button" class="link" (click)="startEdit(message)">Modifier</button>
+                  <button type="button" class="link danger" (click)="deleteMessage(message)">Supprimer</button>
+                </span>
+              }
+            </div>
           }
         </div>
       }

@@ -1,0 +1,103 @@
+<div class="admin-groups">
+  <header class="page-header">
+    <div>
+      <h1>Groupes</h1>
+      <p>{{ items().length }} groupe(s)</p>
+    </div>
+    <button type="button" class="primary" (click)="openCreate()">Nouveau groupe</button>
+  </header>
+
+  @if (error(); as message) {
+    <div class="alert" role="alert">{{ message }}</div>
+  }
+
+  <div class="card">
+    @if (loading()) {
+      <div class="state">Chargement…</div>
+    } @else if (items().length === 0) {
+      <div class="state">Aucun groupe. Créez le premier.</div>
+    } @else {
+      <ul class="group-list">
+        @for (group of items(); track group.id) {
+          <li class="group-row" [class.archived]="group.isArchived">
+            <div class="avatar">{{ initials(group) }}</div>
+            <div class="group-info">
+              <div class="group-line">
+                <span class="group-name">{{ group.name }}</span>
+                @if (group.isArchived) {
+                  <span class="tag">Archivé</span>
+                } @else {
+                  <span class="tag">{{ group.members.length }} membre(s)</span>
+                }
+              </div>
+              <span class="group-members">{{ memberNames(group) }}</span>
+            </div>
+            @if (!group.isArchived) {
+              <div class="row-actions">
+                <button type="button" class="ghost" (click)="openEdit(group)">Membres</button>
+                <button type="button" class="ghost danger" (click)="archive(group)">Archiver</button>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>
+
+@if (editorOpen()) {
+  <div class="modal-backdrop" (click)="closeEditor()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>{{ editorTitle() }}</h2>
+
+      @if (formError(); as message) {
+        <div class="alert" role="alert">{{ message }}</div>
+      }
+
+      @if (!editingGroupId()) {
+        <label class="field">
+          <span>Nom du groupe</span>
+          <input
+            type="text"
+            [value]="groupName()"
+            (input)="onNameInputEvent($event)"
+            placeholder="Ex. Équipe produit"
+            autofocus
+          />
+        </label>
+      }
+
+      <div class="members">
+        <span class="members-title">Membres ({{ selectedIds().length }})</span>
+        @if (candidates().length === 0) {
+          <div class="state">Aucun utilisateur disponible.</div>
+        } @else {
+          <div class="members-list">
+            @for (user of candidates(); track user.id) {
+              <button
+                type="button"
+                class="user-row"
+                [class.selected]="isSelected(user.id)"
+                (click)="toggleMember(user.id)"
+              >
+                <div class="avatar small">{{ initialsOfUser(user) }}</div>
+                <div class="user-info">
+                  <span class="user-name">{{ user.displayName }}</span>
+                  <span class="user-email">{{ user.email }}</span>
+                </div>
+                <span class="check">{{ isSelected(user.id) ? '✓' : '' }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="ghost" (click)="closeEditor()">Annuler</button>
+        <button type="button" class="primary" [disabled]="saving()" (click)="save()">
+          {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

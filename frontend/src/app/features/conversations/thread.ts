@@ -41,6 +41,10 @@ export class ThreadComponent {
   readonly conversation = signal<ConversationListItemDto | null>(null);
   readonly typing = this.chat.typing;
 
+  readonly editingId = signal<string | null>(null);
+  readonly editValue = signal('');
+  readonly savingEdit = signal(false);
+
   readonly currentUserId = this.auth.user()?.id;
 
   constructor() {
@@ -51,6 +55,25 @@ export class ThreadComponent {
     this.chat.receiveMessage$.pipe(takeUntilDestroyed()).subscribe((message) => {
       if (message.conversationId === this.conversationId()) {
         this.appendLiveMessage(message);
+        this.markRead();
+      }
+    });
+
+    this.chat.messageEdited$.pipe(takeUntilDestroyed()).subscribe((message) => {
+      if (message.conversationId === this.conversationId()) {
+        this.messages.update((current) => current.map((m) => (m.id === message.id ? message : m)));
+      }
+    });
+
+    this.chat.messageDeleted$.pipe(takeUntilDestroyed()).subscribe(({ conversationId, messageId }) => {
+      if (conversationId === this.conversationId()) {
+        this.messages.update((current) =>
+          current.map((m) =>
+            m.id === messageId
+              ? { ...m, content: null, edited: false, deleted: true }
+              : m,
+          ),
+        );
       }
     });
 
@@ -58,6 +81,7 @@ export class ThreadComponent {
       const id = params.get('id');
       if (id && id !== this.conversationId()) {
         this.conversationId.set(id);
+        this.cancelEdit();
         this.reload();
       }
     });
@@ -128,6 +152,80 @@ export class ThreadComponent {
     return key ? typing[key] : undefined;
   }
 
+  isGroup(): boolean {
+    return this.conversation()?.type === 1;
+  }
+
+  conversationTitle(): string {
+    const conversation = this.conversation();
+    if (!conversation) {
+      return 'Conversation';
+    }
+
+    return conversation.type === 1
+      ? (conversation.name ?? 'Groupe')
+      : (conversation.otherDisplayName ?? 'Conversation');
+  }
+
+  headerInitials(): string {
+    const conversation = this.conversation();
+    if (!conversation) {
+      return '?';
+    }
+
+    return initialsOf(
+      conversation.type === 1 ? (conversation.name ?? 'Groupe') : (conversation.otherDisplayName ?? '?'),
+    );
+  }
+
+  participantCount(): number {
+    return this.conversation()?.participantCount ?? 0;
+  }
+
+  canEdit(message: MessageDto): boolean {
+    return message.senderId === this.currentUserId && !message.deleted;
+  }
+
+  startEdit(message: MessageDto): void {
+    this.editingId.set(message.id);
+    this.editValue.set(message.content ?? '');
+  }
+
+  cancelEdit(): void {
+    this.editingId.set(null);
+    this.editValue.set('');
+    this.savingEdit.set(false);
+  }
+
+  onEditInputEvent(event: Event): void {
+    this.editValue.set((event.target as HTMLInputElement).value);
+  }
+
+  saveEdit(): void {
+    const messageId = this.editingId();
+    const content = this.editValue().trim();
+    if (!messageId || !content) {
+      return;
+    }
+
+    this.savingEdit.set(true);
+    this.chat
+      .editMessage(messageId, content)
+      .then(() => {
+        this.savingEdit.set(false);
+        this.cancelEdit();
+      })
+      .catch(() => this.savingEdit.set(false));
+  }
+
+  deleteMessage(message: MessageDto): void {
+    if (!confirm('Supprimer ce message ?')) {
+      return;
+    }
+
+    void this.chat.deleteMessage(message.id).catch(() => undefined);
+  }
+
   peerInitials(): string {
     return initialsOf(this.conversation()?.otherDisplayName ?? '?');
   }
@@ -165,6 +263,7 @@ export class ThreadComponent {
         this.messages.set([...result.items].reverse());
         this.hasMore.set(result.hasMore);
         this.scrollToBottom();
+        this.markRead();
       },
       error: (error: HttpErrorResponse) => {
         this.error.set(this.readErrorMessage(error));
@@ -213,6 +312,17 @@ export class ThreadComponent {
     if (this.atBottom()) {
       this.scrollToBottom();
     }
+  }
+
+  private markRead(): void {
+    const conversationId = this.conversationId();
+    const current = this.messages();
+    if (!conversationId || current.length === 0) {
+      return;
+    }
+
+    const last = current[current.length - 1];
+    this.conversations.markAsRead(conversationId, last.id).subscribe({ error: () => undefined });
   }
 
   private scrollToBottom(): void {
