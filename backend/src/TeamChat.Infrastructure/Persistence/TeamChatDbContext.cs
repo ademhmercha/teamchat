@@ -51,8 +51,7 @@ public sealed class TeamChatDbContext : IdentityDbContext<AppUser, IdentityRole<
             entity.HasKey(c => c.Id);
             entity.Property(c => c.Name).HasMaxLength(100);
             entity.Property(c => c.DirectKey).HasMaxLength(80);
-            entity.HasIndex(c => c.DirectKey).IsUnique();
-            entity.HasOne<AppUser>()
+            entity.HasIndex(c => c.DirectKey).IsUnique();            entity.HasOne<AppUser>()
                 .WithMany()
                 .HasForeignKey(c => c.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);

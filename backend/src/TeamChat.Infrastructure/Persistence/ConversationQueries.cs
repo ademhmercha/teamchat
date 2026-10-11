@@ -174,9 +174,8 @@ public sealed class ConversationQueries : IConversationQueries
         CancellationToken cancellationToken = default)
     {
         var conversations = await _db.Conversations.AsNoTracking()
-            .Where(c => c.Type == ConversationType.Direct &&
+            .Where(c => c.ArchivedAt == null &&
                         _db.ConversationParticipants.Any(p => p.ConversationId == c.Id && p.UserId == userId))
-            .OrderByDescending(c => c.CreatedAt)
             .ToListAsync(cancellationToken);
 
         if (conversations.Count == 0)
@@ -186,24 +185,44 @@ public sealed class ConversationQueries : IConversationQueries
 
         var conversationIds = conversations.Select(c => c.Id).ToList();
 
-        var participants = await (from p in _db.ConversationParticipants.AsNoTracking()
-                                  join u in _db.Users.AsNoTracking() on p.UserId equals u.Id
-                                  where conversationIds.Contains(p.ConversationId) && p.UserId != userId
-                                  select new { p.ConversationId, u.Id, u.DisplayName, u.AvatarUrl })
+        var others = await (from p in _db.ConversationParticipants.AsNoTracking()
+                            join u in _db.Users.AsNoTracking() on p.UserId equals u.Id
+                            where conversationIds.Contains(p.ConversationId) && p.UserId != userId
+                            select new { p.ConversationId, u.Id, u.DisplayName, u.AvatarUrl })
             .ToListAsync(cancellationToken);
 
-        var messages = await _db.Messages.AsNoTracking()
+        var participantCounts = await _db.ConversationParticipants.AsNoTracking()
+            .Where(p => conversationIds.Contains(p.ConversationId))
+            .GroupBy(p => p.ConversationId)
+            .Select(g => new { ConversationId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ConversationId, x => x.Count, cancellationToken);
+
+        var myReads = await _db.ConversationParticipants.AsNoTracking()
+            .Where(p => p.UserId == userId && conversationIds.Contains(p.ConversationId))
+            .Select(p => new { p.ConversationId, p.LastReadMessageId })
+            .ToDictionaryAsync(x => x.ConversationId, x => x.LastReadMessageId, cancellationToken);
+
+        var messageRows = await _db.Messages.AsNoTracking()
             .Where(m => conversationIds.Contains(m.ConversationId))
-            .OrderByDescending(m => m.CreatedAt)
-            .ThenByDescending(m => m.Id)
+            .Select(m => new MessageRow(m.Id, m.ConversationId, m.Sequence, m.SenderId, m.CreatedAt, m.Content, m.DeletedAt))
             .ToListAsync(cancellationToken);
-        var lastMessages = messages.GroupBy(m => m.ConversationId).ToDictionary(g => g.Key, g => g.First());
+
+        var sequenceById = messageRows.ToDictionary(m => m.Id, m => m.Sequence);
+        var lastMessages = messageRows
+            .GroupBy(m => m.ConversationId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(m => m.Sequence).First());
 
         return conversations
             .Select(c =>
             {
-                var other = participants.FirstOrDefault(p => p.ConversationId == c.Id);
+                var other = others.FirstOrDefault(p => p.ConversationId == c.Id);
                 var last = lastMessages.GetValueOrDefault(c.Id);
+                var lastReadSequence = ResolveSequence(myReads.GetValueOrDefault(c.Id), sequenceById);
+                var unread = messageRows.Count(m =>
+                    m.ConversationId == c.Id &&
+                    m.SenderId != userId &&
+                    m.DeletedAt is null &&
+                    m.Sequence > lastReadSequence);
 
                 return new ConversationListItemDto(
                     c.Id,
@@ -213,21 +232,164 @@ public sealed class ConversationQueries : IConversationQueries
                     other?.DisplayName,
                     other?.AvatarUrl,
                     last?.CreatedAt,
-                    BuildPreview(last));
+                    BuildPreview(last),
+                    participantCounts.GetValueOrDefault(c.Id),
+                    unread);
             })
+            .OrderByDescending(item => item.LastMessageAt ?? DateTimeOffset.MinValue)
             .ToList();
     }
 
     public async Task<IReadOnlyList<Guid>> GetMemberConversationIdsAsync(
         Guid userId,
         CancellationToken cancellationToken = default)
-    {
-        var ids = await _db.ConversationParticipants.AsNoTracking()
-            .Where(p => p.UserId == userId)
+        => await _db.ConversationParticipants.AsNoTracking()
+            .Where(p => p.UserId == userId &&
+                        _db.Conversations.Any(c => c.Id == p.ConversationId && c.ArchivedAt == null))
             .Select(p => p.ConversationId)
             .ToListAsync(cancellationToken);
 
-        return ids;
+    public async Task<MessageDto?> FindMessageAsync(
+        Guid messageId,
+        CancellationToken cancellationToken = default)
+    {
+        var row = await (from m in _db.Messages.AsNoTracking()
+                         join u in _db.Users.AsNoTracking() on m.SenderId equals u.Id into members
+                         from u in members.DefaultIfEmpty()
+                         where m.Id == messageId
+                         select new { Message = m, SenderName = u == null ? string.Empty : u.DisplayName, SenderAvatar = u == null ? null : u.AvatarUrl })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return row is null ? null : ToMessageDto(row.Message, row.SenderName, row.SenderAvatar);
+    }
+
+    public async Task<MessageDto> UpdateMessageAsync(
+        Guid messageId,
+        string content,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default)
+    {
+        var message = await _db.Messages.FirstAsync(m => m.Id == messageId, cancellationToken);
+        message.Content = content;
+        message.EditedAt = now;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return await RequireMessageDtoAsync(messageId, cancellationToken);
+    }
+
+    public async Task<MessageDto> SoftDeleteMessageAsync(
+        Guid messageId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default)
+    {
+        var message = await _db.Messages.FirstAsync(m => m.Id == messageId, cancellationToken);
+        message.DeletedAt = now;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var dto = await RequireMessageDtoAsync(messageId, cancellationToken);
+        return dto with { Content = null, Deleted = true };
+    }
+
+    public async Task<Guid?> GetLastMessageIdAsync(
+        Guid conversationId,
+        CancellationToken cancellationToken = default)
+        => await _db.Messages.AsNoTracking()
+            .Where(m => m.ConversationId == conversationId)
+            .OrderByDescending(m => m.Sequence)
+            .Select(m => (Guid?)m.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task SetLastReadAsync(
+        Guid conversationId,
+        Guid userId,
+        Guid? messageId,
+        CancellationToken cancellationToken = default)
+    {
+        if (messageId is null)
+        {
+            return;
+        }
+
+        var participant = await _db.ConversationParticipants
+            .FirstOrDefaultAsync(p => p.ConversationId == conversationId && p.UserId == userId, cancellationToken);
+        if (participant is null)
+        {
+            return;
+        }
+
+        var targetSequence = await _db.Messages.AsNoTracking()
+            .Where(m => m.Id == messageId && m.ConversationId == conversationId)
+            .Select(m => (long?)m.Sequence)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (targetSequence is null)
+        {
+            return;
+        }
+
+        if (participant.LastReadMessageId is { } currentId)
+        {
+            var currentSequence = await _db.Messages.AsNoTracking()
+                .Where(m => m.Id == currentId)
+                .Select(m => (long?)m.Sequence)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (currentSequence is not null && currentSequence >= targetSequence)
+            {
+                return;
+            }
+        }
+
+        participant.LastReadMessageId = messageId;
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<MessageDto> RequireMessageDtoAsync(Guid messageId, CancellationToken cancellationToken)
+        => await FindMessageAsync(messageId, cancellationToken)
+           ?? throw new NotFoundException("Message introuvable.");
+
+    private static long ResolveSequence(Guid? messageId, IReadOnlyDictionary<Guid, long> sequenceById)
+        => messageId is { } id && sequenceById.TryGetValue(id, out var sequence) ? sequence : 0;
+
+    private static MessageDto ToMessageDto(Message message, string senderName, string? senderAvatar)
+        => new(
+            message.Sequence,
+            message.Id,
+            message.ConversationId,
+            message.SenderId,
+            senderName,
+            senderAvatar,
+            message.Type,
+            message.DeletedAt is null ? message.Content : null,
+            message.AttachmentId,
+            message.CreatedAt,
+            Edited: message.EditedAt is not null,
+            Deleted: message.DeletedAt is not null);
+
+    private sealed record MessageRow(
+        Guid Id,
+        Guid ConversationId,
+        long Sequence,
+        Guid SenderId,
+        DateTimeOffset CreatedAt,
+        string? Content,
+        DateTimeOffset? DeletedAt);
+
+    private static string? BuildPreview(object? message)
+        => message switch
+        {
+            MessageRow row => BuildPreview(row.Content, row.DeletedAt),
+            Message msg => BuildPreview(msg.Content, msg.DeletedAt),
+            _ => null,
+        };
+
+    private static string? BuildPreview(string? content, DateTimeOffset? deletedAt)
+    {
+        if (deletedAt is not null)
+        {
+            return "Message supprime";
+        }
+
+        var text = content ?? string.Empty;
+        return text.Length <= 60 ? text : text[..60] + "...";
     }
 
     private async Task<ConversationDto> BuildConversationDtoAsync(
@@ -257,21 +419,5 @@ public sealed class ConversationQueries : IConversationQueries
     {
         var (min, max) = userA.CompareTo(userB) <= 0 ? (userA, userB) : (userB, userA);
         return $"d:{min:D}:{max:D}";
-    }
-
-    private static string? BuildPreview(Message? message)
-    {
-        if (message is null)
-        {
-            return null;
-        }
-
-        if (message.DeletedAt is not null)
-        {
-            return "Message supprime";
-        }
-
-        var content = message.Content ?? string.Empty;
-        return content.Length <= 60 ? content : content[..60] + "...";
     }
 }

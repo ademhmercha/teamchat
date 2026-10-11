@@ -19,4 +19,7 @@ public sealed class Conversation
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public string? DirectKey { get; set; }
+
+    /// <summary>Date d'archivage (les groupes archives sont masques et inaccessibles).</summary>
+    public DateTimeOffset? ArchivedAt { get; set; }
 }

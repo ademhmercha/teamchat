@@ -38,4 +38,34 @@ public interface IConversationQueries
     Task<IReadOnlyList<Guid>> GetMemberConversationIdsAsync(
         Guid userId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Charge un message par identifiant (toutes conversations confondues).</summary>
+    Task<MessageDto?> FindMessageAsync(
+        Guid messageId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Met a jour le contenu d'un message et renvoie sa representation a jour.</summary>
+    Task<MessageDto> UpdateMessageAsync(
+        Guid messageId,
+        string content,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Marque un message comme supprime (suppression douce) et le renvoie.</summary>
+    Task<MessageDto> SoftDeleteMessageAsync(
+        Guid messageId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Identifiant du dernier message d'une conversation (null si aucun message).</summary>
+    Task<Guid?> GetLastMessageIdAsync(
+        Guid conversationId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Positionne le dernier message lu du participant (sans jamais reculer).</summary>
+    Task SetLastReadAsync(
+        Guid conversationId,
+        Guid userId,
+        Guid? messageId,
+        CancellationToken cancellationToken = default);
 }

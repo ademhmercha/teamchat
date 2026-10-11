@@ -54,7 +54,7 @@ public sealed class ChatHubTests
     public async Task Presence_changes_are_broadcast_and_snapshot_sent()
     {
         using var client = _fixture.Factory.CreateClient();
-        var (_, tokenA) = await ProvisionUserAndLoginAsync(client, "presenceA@teamchat.test");
+        var (selfId, tokenA) = await ProvisionUserAndLoginAsync(client, "presenceA@teamchat.test");
         var (otherId, tokenB) = await ProvisionUserAndLoginAsync(client, "presenceB@teamchat.test");
 
         await using var connectionA = CreateConnection(tokenA);
@@ -77,7 +77,7 @@ public sealed class ChatHubTests
         await connectionB.StartAsync();
 
         var snapshotResult = await snapshot.Task.WaitAsync(TimeSpan.FromSeconds(15));
-        Assert.Contains(otherId, snapshotResult);
+        Assert.Contains(selfId, snapshotResult);
 
         var onlineReceived = await online.Task.WaitAsync(TimeSpan.FromSeconds(15));
         Assert.True(onlineReceived);

@@ -46,7 +46,9 @@ public sealed record ConversationListItemDto(
     string? OtherDisplayName,
     string? OtherAvatarUrl,
     DateTimeOffset? LastMessageAt,
-    string? LastMessagePreview);
+    string? LastMessagePreview,
+    int ParticipantCount,
+    int UnreadCount);
 
 public sealed record MessageDto(
     long Sequence,
@@ -68,3 +70,12 @@ public sealed record MessageHistoryResult(
     IReadOnlyList<MessageDto> Items,
     MessageCursor? NextCursor,
     bool HasMore);
+
+public sealed record GroupMemberDto(Guid UserId, string DisplayName, string? AvatarUrl);
+
+public sealed record GroupDto(
+    Guid Id,
+    string Name,
+    DateTimeOffset CreatedAt,
+    bool IsArchived,
+    IReadOnlyList<GroupMemberDto> Members);

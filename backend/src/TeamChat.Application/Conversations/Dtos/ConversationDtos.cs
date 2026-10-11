@@ -22,7 +22,9 @@ public sealed record ConversationListItemDto(
     string? OtherDisplayName,
     string? OtherAvatarUrl,
     DateTimeOffset? LastMessageAt,
-    string? LastMessagePreview);
+    string? LastMessagePreview,
+    int ParticipantCount,
+    int UnreadCount);
 
 public sealed record MessageDto(
     long Sequence,
@@ -49,3 +51,26 @@ public sealed record MessageHistoryResult(
 public sealed record CreateDirectConversationRequest(Guid UserId);
 
 public sealed record SendMessageRequest(string Content);
+
+/// <summary>Marque la conversation comme lue jusqu'a ce message (null = dernier message).</summary>
+public sealed record MarkAsReadRequest(Guid? MessageId);
+
+public sealed record CreateGroupRequest(string Name, IReadOnlyList<Guid> MemberIds);
+
+public sealed record UpdateGroupMembersRequest(IReadOnlyList<Guid> MemberIds);
+
+public sealed record GroupMemberDto(Guid UserId, string DisplayName, string? AvatarUrl);
+
+public sealed record GroupDto(
+    Guid Id,
+    string Name,
+    DateTimeOffset CreatedAt,
+    bool IsArchived,
+    IReadOnlyList<GroupMemberDto> Members);
+
+/// <summary>Resultat d'une mutation de groupe : sert a synchroniser les groupes SignalR.</summary>
+public sealed record GroupOperationResult(
+    Guid ConversationId,
+    IReadOnlyList<Guid> AddedUserIds,
+    IReadOnlyList<Guid> RemovedUserIds,
+    IReadOnlyList<Guid> CurrentMemberIds);

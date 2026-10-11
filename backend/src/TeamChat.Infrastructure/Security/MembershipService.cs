@@ -41,5 +41,9 @@ public sealed class MembershipService : IMembershipService
 
     private ValueTask<bool> HasMembershipAsync(Guid conversationId, Guid userId, CancellationToken cancellationToken)
         => new(_db.ConversationParticipants.AsNoTracking()
-            .AnyAsync(p => p.ConversationId == conversationId && p.UserId == userId, cancellationToken));
+            .AnyAsync(
+                p => p.ConversationId == conversationId
+                     && p.UserId == userId
+                     && _db.Conversations.Any(c => c.Id == p.ConversationId && c.ArchivedAt == null),
+                cancellationToken));
 }

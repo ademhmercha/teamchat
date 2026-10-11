@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddScoped<IUserDirectoryService, UserDirectoryService>();
         services.AddScoped<IAdminUserService, AdminUserService>();
         services.AddScoped<IConversationService, ConversationService>();
+        services.AddScoped<IAdminGroupService, AdminGroupService>();
 
         services.AddSingleton(TimeProvider.System);
 

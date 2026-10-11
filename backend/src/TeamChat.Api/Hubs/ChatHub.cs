@@ -13,9 +13,6 @@ namespace TeamChat.Api.Hubs;
 [Authorize]
 public sealed class ChatHub : Hub<IChatClient>
 {
-    private const string ConversationGroupPrefix = "conversation:";
-    private const string UserGroupPrefix = "user:";
-
     private readonly IConversationService _conversations;
     private readonly IMembershipService _membership;
     private readonly IPresenceTracker _presence;
@@ -37,10 +34,10 @@ public sealed class ChatHub : Hub<IChatClient>
     {
         var userId = GetCurrentUserId();
 
-        await Groups.AddToGroupAsync(Context.ConnectionId, UserGroup(userId));
+        await Groups.AddToGroupAsync(Context.ConnectionId, ChatGroups.User(userId));
         foreach (var conversationId in await _conversations.GetMemberConversationIdsAsync(userId))
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, ConversationGroup(conversationId));
+            await Groups.AddToGroupAsync(Context.ConnectionId, ChatGroups.Conversation(conversationId));
         }
 
         var change = await _presence.ConnectAsync(userId, Context.ConnectionId);
@@ -75,7 +72,24 @@ public sealed class ChatHub : Hub<IChatClient>
         }
 
         var message = await _conversations.SendMessageAsync(userId, conversationId, content);
-        await Clients.Group(ConversationGroup(conversationId)).ReceiveMessage(message);
+        await Clients.Group(ChatGroups.Conversation(conversationId)).ReceiveMessage(message);
+    }
+
+    public async Task EditMessage(Guid messageId, string newContent)
+    {
+        var message = await _conversations.EditMessageAsync(GetCurrentUserId(), messageId, newContent);
+        await Clients.Group(ChatGroups.Conversation(message.ConversationId)).MessageEdited(message);
+    }
+
+    public async Task DeleteMessage(Guid messageId)
+    {
+        var message = await _conversations.DeleteMessageAsync(GetCurrentUserId(), messageId);
+        await Clients.Group(ChatGroups.Conversation(message.ConversationId)).MessageDeleted(message.ConversationId, message.Id);
+    }
+
+    public async Task MarkAsRead(Guid conversationId, Guid messageId)
+    {
+        await _conversations.MarkAsReadAsync(GetCurrentUserId(), conversationId, messageId);
     }
 
     public async Task StartTyping(Guid conversationId)
@@ -88,7 +102,7 @@ public sealed class ChatHub : Hub<IChatClient>
         }
 
         var profile = await _profiles.GetAsync(userId);
-        await Clients.OthersInGroup(ConversationGroup(conversationId))
+        await Clients.OthersInGroup(ChatGroups.Conversation(conversationId))
             .UserTyping(conversationId, userId, profile?.DisplayName ?? string.Empty);
     }
 
@@ -101,7 +115,7 @@ public sealed class ChatHub : Hub<IChatClient>
             return;
         }
 
-        await Clients.OthersInGroup(ConversationGroup(conversationId))
+        await Clients.OthersInGroup(ChatGroups.Conversation(conversationId))
             .UserStoppedTyping(conversationId, userId);
     }
 
@@ -117,8 +131,4 @@ public sealed class ChatHub : Hub<IChatClient>
 
         return Context.User.GetUserId();
     }
-
-    private static string ConversationGroup(Guid conversationId) => $"{ConversationGroupPrefix}{conversationId:D}";
-
-    private static string UserGroup(Guid userId) => $"{UserGroupPrefix}{userId:D}";
 }

@@ -18,3 +18,20 @@ public sealed class SendMessageRequestValidator : AbstractValidator<SendMessageR
         RuleFor(x => x.Content).NotEmpty().MaximumLength(2000);
     }
 }
+
+public sealed class CreateGroupRequestValidator : AbstractValidator<CreateGroupRequest>
+{
+    public CreateGroupRequestValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.MemberIds).NotEmpty();
+    }
+}
+
+public sealed class UpdateGroupMembersRequestValidator : AbstractValidator<UpdateGroupMembersRequest>
+{
+    public UpdateGroupMembersRequestValidator()
+    {
+        RuleFor(x => x.MemberIds).NotEmpty();
+    }
+}

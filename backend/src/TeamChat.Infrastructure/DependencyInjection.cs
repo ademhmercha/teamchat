@@ -85,6 +85,7 @@ public static class DependencyInjection
         services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
         services.AddScoped<IEmailSender, DevEmailSender>();
         services.AddScoped<IConversationQueries, ConversationQueries>();
+        services.AddScoped<IAdminGroupQueries, AdminGroupQueries>();
         services.AddScoped<IMembershipService, MembershipService>();
         services.AddSingleton<IPresenceTracker, PresenceTracker>();
         services.AddHostedService<DatabaseInitializer>();

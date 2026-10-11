@@ -24,4 +24,7 @@ public interface IPresenceTracker
         CancellationToken cancellationToken = default);
 
     IReadOnlyList<Guid> GetOnlineUserIds();
+
+    /// <summary>Identifiants de connexion SignalR actifs pour un utilisateur (pour gerer ses groupes).</summary>
+    IReadOnlyList<string> GetConnectionIds(Guid userId);
 }

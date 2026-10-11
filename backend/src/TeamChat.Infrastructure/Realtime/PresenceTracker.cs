@@ -44,4 +44,7 @@ public sealed class PresenceTracker : IPresenceTracker
 
     public IReadOnlyList<Guid> GetOnlineUserIds()
         => _onlineCounts.Keys.ToList();
+
+    public IReadOnlyList<string> GetConnectionIds(Guid userId)
+        => _connections.Where(pair => pair.Value == userId).Select(pair => pair.Key).ToList();
 }

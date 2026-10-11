@@ -39,4 +39,16 @@ public sealed class ConversationsController : ControllerBase
         [FromQuery, System.ComponentModel.DataAnnotations.RangeAttribute(1, 100)] int limit = 50,
         CancellationToken cancellationToken = default)
         => _conversations.GetHistoryAsync(User.GetUserId(), conversationId, before, limit, cancellationToken);
+
+    [HttpPost("{conversationId:guid}/read")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> MarkAsRead(
+        Guid conversationId,
+        [FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] MarkAsReadRequest? request,
+        CancellationToken cancellationToken)
+    {
+        await _conversations.MarkAsReadAsync(User.GetUserId(), conversationId, request?.MessageId, cancellationToken);
+        return NoContent();
+    }
 }
