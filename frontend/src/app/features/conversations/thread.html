@@ -57,14 +57,31 @@
               </div>
             </div>
           } @else {
-            <div class="bubble">
-              @if (message.type !== 0) {
-                <div class="unsupported">Contenu non texte (type {{ message.type }})</div>
-              } @else {
+            <div class="bubble" [class.bubble-media]="message.type === 1 || message.type === 3">
+              @if (message.type === 0) {
                 <div class="text">{{ message.content }}</div>
                 @if (message.edited) {
                   <span class="edited">modifié</span>
                 }
+              } @else if (message.type === 3 && message.attachment) {
+                <img class="msg-image" [src]="mediaUrl(message)" [alt]="message.attachment!.fileName" loading="lazy" />
+              } @else if (message.type === 1 && message.attachment) {
+                <div class="voice">
+                  <audio controls preload="metadata" [src]="mediaUrl(message)"></audio>
+                  <span class="voice-duration">{{ duration(message.attachment!.durationSec) }}</span>
+                </div>
+              } @else if (message.type === 2 && message.attachment) {
+                <button
+                  type="button"
+                  class="file-card"
+                  (click)="downloadAttachment(message.attachment!.id, message.attachment!.fileName)"
+                >
+                  <span class="file-name">{{ message.attachment!.fileName }}</span>
+                  <span class="file-size">{{ size(message.attachment!.sizeBytes) }}</span>
+                  <span class="file-download">Télécharger</span>
+                </button>
+              } @else {
+                <div class="unsupported">Contenu non pris en charge</div>
               }
             </div>
             <div class="meta">
@@ -83,18 +100,53 @@
   </div>
 
   <footer class="composer">
-    <form (ngSubmit)="send()">
-      <input
-        type="text"
-        class="composer-input"
-        placeholder="Écrire un message…"
-        [value]="input()"
-        (input)="onInputEvent($event)"
-        autocomplete="off"
-      />
-      <button type="submit" class="send-button" [disabled]="sending() || !input().trim()">
-        Envoyer
-      </button>
-    </form>
+    @if (uploading()) {
+      <div class="upload">
+        <div class="upload-bar"><div class="upload-fill" [style.width.%]="uploadProgress()"></div></div>
+        <span class="upload-label">Envoi… {{ uploadProgress() }}%</span>
+      </div>
+    }
+
+    @if (recording()) {
+      <div class="recorder">
+        <span class="rec-dot"></span>
+        <span class="rec-time">{{ duration(recordSeconds()) }}</span>
+        <button type="button" class="send-button" (click)="stopRecordingAndSend()">Envoyer</button>
+        <button type="button" class="ghost" (click)="cancelRecording()">Annuler</button>
+      </div>
+    } @else {
+      <form (ngSubmit)="send()">
+        <input #fileInput type="file" hidden (change)="onFileSelected($event)" />
+        <button
+          type="button"
+          class="composer-action"
+          title="Joindre un fichier ou une image"
+          (click)="pickFile()"
+          [disabled]="uploading()"
+        >
+          Fichier
+        </button>
+        <button
+          type="button"
+          class="composer-action"
+          title="Enregistrer un message vocal"
+          (click)="startRecording()"
+          [disabled]="uploading()"
+        >
+          Vocal
+        </button>
+        <input
+          type="text"
+          class="composer-input"
+          placeholder="Écrire un message…"
+          [value]="input()"
+          (input)="onInputEvent($event)"
+          autocomplete="off"
+        />
+        <button type="submit" class="send-button" [disabled]="sending() || !input().trim()">
+          Envoyer
+        </button>
+      </form>
+    }
   </footer>
 </div>

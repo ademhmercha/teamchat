@@ -289,3 +289,156 @@
     cursor: not-allowed;
   }
 }
+
+.bubble.bubble-media {
+  background: transparent;
+  padding: 0.2rem;
+}
+
+.message.own .bubble.bubble-media {
+  background: transparent;
+  color: inherit;
+}
+
+.msg-image {
+  display: block;
+  max-width: 260px;
+  max-height: 260px;
+  border-radius: 10px;
+}
+
+.voice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  audio {
+    height: 36px;
+    max-width: 240px;
+  }
+}
+
+.voice-duration {
+  font-size: 0.72rem;
+  color: #7a8095;
+}
+
+.file-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  align-items: flex-start;
+  padding: 0.3rem 0.1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+
+  .file-name {
+    font-weight: 600;
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-size {
+    font-size: 0.72rem;
+    color: #7a8095;
+  }
+
+  .file-download {
+    font-size: 0.75rem;
+    color: #5b4bd6;
+  }
+}
+
+.message.own .file-card .file-size {
+  color: #d7d3f4;
+}
+
+.composer-action {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #d3d6e4;
+  border-radius: 9px;
+  background: #fff;
+  color: #2c2f42;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    border-color: #5b4bd6;
+    color: #5b4bd6;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.upload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.upload-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: #e6e7f1;
+  overflow: hidden;
+}
+
+.upload-fill {
+  height: 100%;
+  background: #5b4bd6;
+  transition: width 0.15s ease;
+}
+
+.upload-label {
+  font-size: 0.72rem;
+  color: #7a8095;
+}
+
+.recorder {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+
+  .rec-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #b3261e;
+    animation: pulse 1s infinite;
+  }
+
+  .rec-time {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: #2c2f42;
+  }
+
+  .ghost {
+    padding: 0.55rem 1rem;
+    border-radius: 9px;
+    border: 1px solid #d3d6e4;
+    background: #fff;
+    font-size: 0.88rem;
+    cursor: pointer;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}

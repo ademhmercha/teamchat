@@ -1,18 +1,20 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
+import { AttachmentsService } from '../../core/api/attachments.service';
 import { ConversationsService } from '../../core/api/conversations.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ChatService } from '../../core/chat/chat.service';
 import { ConversationListItemDto, MessageDto } from '../../core/models/conversation.models';
-import { initialsOf, shortTime } from '../../core/utils/display';
+import { formatDuration, formatFileSize, initialsOf, shortTime } from '../../core/utils/display';
 
 const TYPING_SENT_INTERVAL_MS = 1500;
 const STOP_TYPING_DELAY_MS = 1000;
+const MAX_VOICE_SECONDS = 120;
 
 @Component({
   selector: 'app-thread',
@@ -23,12 +25,20 @@ const STOP_TYPING_DELAY_MS = 1000;
 export class ThreadComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly conversations = inject(ConversationsService);
+  private readonly attachments = inject(AttachmentsService);
   private readonly chat = inject(ChatService);
   private readonly auth = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
 
   private readonly scrollArea = viewChild<ElementRef<HTMLDivElement>>('scrollArea');
+  private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
   private readonly stopTyping$ = new Subject<void>();
   private lastTypingSent = 0;
+
+  private mediaRecorder: MediaRecorder | null = null;
+  private recordedChunks: Blob[] = [];
+  private recordStart = 0;
+  private recordTimer?: number;
 
   readonly conversationId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
@@ -40,6 +50,12 @@ export class ThreadComponent {
   readonly atBottom = signal(true);
   readonly conversation = signal<ConversationListItemDto | null>(null);
   readonly typing = this.chat.typing;
+
+  readonly uploading = signal(false);
+  readonly uploadProgress = signal(0);
+  readonly recording = signal(false);
+  readonly recordSeconds = signal(0);
+  readonly mediaUrls = signal<Record<string, string>>({});
 
   readonly editingId = signal<string | null>(null);
   readonly editValue = signal('');
@@ -85,6 +101,83 @@ export class ThreadComponent {
         this.reload();
       }
     });
+
+    this.destroyRef.onDestroy(() => {
+      this.finishRecording(false);
+      this.attachments.releaseAll();
+    });
+  }
+
+  pickFile(): void {
+    this.fileInput()?.nativeElement.click();
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) {
+      return;
+    }
+
+    this.uploadFile(file, file.name);
+  }
+
+  downloadAttachment(attachmentId: string, fileName: string): void {
+    this.attachments.download(attachmentId, fileName);
+  }
+
+  async startRecording(): Promise<void> {
+    if (this.recording() || !navigator.mediaDevices?.getUserMedia) {
+      this.error.set('L\'enregistrement audio n\'est pas disponible sur ce navigateur.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = this.pickAudioMimeType();
+      this.mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      this.recordedChunks = [];
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          this.recordedChunks.push(event.data);
+        }
+      };
+      this.mediaRecorder.start();
+
+      this.recordStart = Date.now();
+      this.recordSeconds.set(0);
+      this.recording.set(true);
+      this.recordTimer = window.setInterval(() => {
+        this.recordSeconds.update((value) => value + 1);
+        if (this.recordSeconds() >= MAX_VOICE_SECONDS) {
+          this.stopRecordingAndSend();
+        }
+      }, 1000);
+    } catch {
+      this.error.set('Micro indisponible ou accès refusé.');
+    }
+  }
+
+  stopRecordingAndSend(): void {
+    this.finishRecording(true);
+  }
+
+  cancelRecording(): void {
+    this.finishRecording(false);
+  }
+
+  size(bytes: number): string {
+    return formatFileSize(bytes);
+  }
+
+  duration(seconds: number | null | undefined): string {
+    return formatDuration(seconds);
+  }
+
+  mediaUrl(message: MessageDto): string {
+    const attachment = message.attachment;
+    return attachment ? (this.mediaUrls()[attachment.id] ?? '') : '';
   }
 
   onScroll(): void {
@@ -239,6 +332,96 @@ export class ThreadComponent {
     return shortTime(message.createdAt);
   }
 
+  private uploadFile(file: File, fileName: string): void {
+    this.uploadBlob(file, fileName, undefined, false);
+  }
+
+  private uploadBlob(blob: Blob, fileName: string, durationSec: number | undefined, isVoice: boolean): void {
+    const conversationId = this.conversationId();
+    if (!conversationId) {
+      return;
+    }
+
+    this.error.set(null);
+    this.uploading.set(true);
+    this.uploadProgress.set(0);
+
+    this.attachments
+      .upload(conversationId, blob, { fileName, isVoice, durationSec })
+      .subscribe({
+        next: (event) => this.uploadProgress.set(event.progress),
+        error: (error: HttpErrorResponse) => {
+          this.uploading.set(false);
+          this.uploadProgress.set(0);
+          this.error.set(this.readErrorMessage(error));
+        },
+        complete: () => {
+          this.uploading.set(false);
+          this.uploadProgress.set(0);
+          this.scrollToBottom();
+        },
+      });
+  }
+
+  private finishRecording(send: boolean): void {
+    const recorder = this.mediaRecorder;
+    if (this.recordTimer !== undefined) {
+      clearInterval(this.recordTimer);
+      this.recordTimer = undefined;
+    }
+
+    if (!recorder) {
+      this.recording.set(false);
+      return;
+    }
+
+    const duration = Math.max(1, Math.round((Date.now() - this.recordStart) / 1000));
+    const mimeType = recorder.mimeType || 'audio/webm';
+    const stream = recorder.stream;
+
+    recorder.onstop = () => {
+      stream.getTracks().forEach((track) => track.stop());
+      if (send && this.recordedChunks.length > 0) {
+        const type = mimeType.split(';')[0];
+        const extension = type.includes('mp4') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm';
+        const blob = new Blob(this.recordedChunks, { type });
+        this.uploadBlob(blob, `vocal.${extension}`, duration, true);
+      }
+
+      this.recordedChunks = [];
+    };
+
+    this.mediaRecorder = null;
+    this.recording.set(false);
+    this.recordSeconds.set(0);
+    recorder.stop();
+  }
+
+  private pickAudioMimeType(): string | undefined {
+    if (typeof MediaRecorder === 'undefined') {
+      return undefined;
+    }
+
+    const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+    return candidates.find((candidate) => MediaRecorder.isTypeSupported(candidate));
+  }
+
+  private ensureMedia(message: MessageDto): void {
+    const attachment = message.attachment;
+    if (!attachment || (message.type !== 1 && message.type !== 3)) {
+      return;
+    }
+
+    if (this.mediaUrls()[attachment.id]) {
+      return;
+    }
+
+    this.attachments.getBlobUrl(attachment.id).subscribe({
+      next: (url) => this.mediaUrls.update((current) => ({ ...current, [attachment.id]: url })),
+      error: () => undefined,
+    });
+  }
+
   private reload(): void {
     const conversationId = this.conversationId();
     if (!conversationId) {
@@ -262,6 +445,7 @@ export class ThreadComponent {
       next: (result) => {
         this.messages.set([...result.items].reverse());
         this.hasMore.set(result.hasMore);
+        result.items.forEach((message) => this.ensureMedia(message));
         this.scrollToBottom();
         this.markRead();
       },
@@ -290,6 +474,7 @@ export class ThreadComponent {
         const merged = [...older.filter((m) => !currentIds.has(m.id)), ...current];
         this.messages.set(merged);
         this.hasMore.set(result.hasMore);
+        older.forEach((message) => this.ensureMedia(message));
 
         if (el) {
           el.scrollTop = el.scrollHeight - previousHeight;
@@ -309,6 +494,7 @@ export class ThreadComponent {
     }
 
     this.messages.set([...current, message]);
+    this.ensureMedia(message);
     if (this.atBottom()) {
       this.scrollToBottom();
     }

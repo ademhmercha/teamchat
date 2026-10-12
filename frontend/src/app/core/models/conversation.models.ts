@@ -52,6 +52,14 @@ export interface GroupDto {
   members: GroupMemberDto[];
 }
 
+export interface MessageAttachmentDto {
+  id: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  durationSec: number | null;
+}
+
 export interface MessageDto {
   sequence: number;
   id: string;
@@ -65,6 +73,7 @@ export interface MessageDto {
   createdAt: string;
   edited: boolean;
   deleted: boolean;
+  attachment: MessageAttachmentDto | null;
 }
 
 export interface MessageCursor {
