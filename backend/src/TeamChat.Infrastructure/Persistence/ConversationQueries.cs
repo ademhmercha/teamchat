@@ -118,6 +118,46 @@ public sealed class ConversationQueries : IConversationQueries
             Deleted: false);
     }
 
+    public async Task<MessageDto> AddSystemMessageAsync(
+        Guid conversationId,
+        Guid senderId,
+        string content,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default)
+    {
+        var message = new Message
+        {
+            Id = Guid.NewGuid(),
+            ConversationId = conversationId,
+            SenderId = senderId,
+            Type = MessageType.System,
+            Content = content,
+            CreatedAt = now,
+        };
+
+        _db.Messages.Add(message);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var sender = await _db.Users.AsNoTracking()
+            .Where(u => u.Id == senderId)
+            .Select(u => new { u.DisplayName, u.AvatarUrl })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return new MessageDto(
+            message.Sequence,
+            message.Id,
+            message.ConversationId,
+            message.SenderId,
+            sender?.DisplayName ?? string.Empty,
+            sender?.AvatarUrl,
+            message.Type,
+            message.Content,
+            message.AttachmentId,
+            message.CreatedAt,
+            Edited: false,
+            Deleted: false);
+    }
+
     public async Task<MessageHistoryResult> GetMessagesAsync(
         Guid conversationId,
         long? before,

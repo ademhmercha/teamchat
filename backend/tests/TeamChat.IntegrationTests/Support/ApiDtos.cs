@@ -87,3 +87,29 @@ public sealed record GroupDto(
     DateTimeOffset CreatedAt,
     bool IsArchived,
     IReadOnlyList<GroupMemberDto> Members);
+
+public sealed record CallSessionDto(
+    Guid CallId,
+    Guid CallerId,
+    string CallerDisplayName,
+    Guid CalleeId,
+    string CalleeDisplayName,
+    int Type,
+    int Status,
+    Guid ConversationId,
+    DateTimeOffset StartedAt);
+
+public sealed record IceServerDto(
+    IReadOnlyList<string> Urls,
+    string? Username,
+    string? Credential);
+
+public sealed record CallHistoryItemDto(
+    Guid Id,
+    Guid OtherUserId,
+    string OtherDisplayName,
+    int Type,
+    int Status,
+    DateTimeOffset StartedAt,
+    int? DurationSeconds,
+    bool Outgoing);

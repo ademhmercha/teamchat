@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TeamChat.Application.Abstractions;
 using TeamChat.Application.Attachments;
 using TeamChat.Application.Auth;
+using TeamChat.Application.Calls;
 using TeamChat.Application.Conversations;
 using TeamChat.Application.Users;
 
@@ -20,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<IConversationService, ConversationService>();
         services.AddScoped<IAdminGroupService, AdminGroupService>();
         services.AddScoped<IAttachmentService, AttachmentService>();
+        services.AddScoped<ICallService, CallService>();
 
         services.AddSingleton(TimeProvider.System);
 

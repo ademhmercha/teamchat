@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TeamChat.Application.Abstractions;
 using TeamChat.Application.Common;
 using TeamChat.Infrastructure.Caching;
+using TeamChat.Infrastructure.Calls;
 using TeamChat.Infrastructure.Email;
 using TeamChat.Infrastructure.Identity;
 using TeamChat.Infrastructure.Persistence;
@@ -25,6 +26,8 @@ public static class DependencyInjection
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<GoogleOptions>(configuration.GetSection(GoogleOptions.SectionName));
         services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
+        services.Configure<CallOptions>(configuration.GetSection(CallOptions.SectionName));
+        services.Configure<TurnOptions>(configuration.GetSection(TurnOptions.SectionName));
 
         AddCache(services, configuration);
         AddDatabase(services, configuration);
@@ -105,6 +108,8 @@ public static class DependencyInjection
         services.AddScoped<IConversationQueries, ConversationQueries>();
         services.AddScoped<IAdminGroupQueries, AdminGroupQueries>();
         services.AddScoped<IMembershipService, MembershipService>();
+        services.AddScoped<ICallQueries, CallQueries>();
+        services.AddScoped<IIceServerProvider, TurnIceServerProvider>();
         services.AddSingleton<IPresenceTracker, PresenceTracker>();
         services.AddHostedService<DatabaseInitializer>();
     }

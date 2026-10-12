@@ -38,6 +38,30 @@ services:
       timeout: 3s
       retries: 10
 
+  # Serveur TURN optionnel (relais NAT pour les appels) : demarrer avec
+  # `docker compose --profile turn up -d`. Le secret doit rester identique a
+  # `Turn__Secret` cote API (TURN REST API, identifiants temporaires).
+  coturn:
+    image: coturn/coturn:4.6-alpine
+    container_name: teamchat-coturn
+    profiles: ["turn"]
+    restart: unless-stopped
+    command:
+      - --no-cli
+      - --fingerprint
+      - --use-auth-secret
+      - --static-auth-secret=${TURN_SECRET:-teamchat_turn_dev_only}
+      - --realm=${TURN_REALM:-teamchat.local}
+      - --listening-port=3478
+      - --min-port=49160
+      - --max-port=49200
+      - --no-tls
+      - --no-dtls
+    ports:
+      - "${TURN_PORT:-3478}:3478/udp"
+      - "${TURN_PORT:-3478}:3478/tcp"
+      - "49160-49200:49160-49200/udp"
+
 volumes:
   postgres-data:
   redis-data:

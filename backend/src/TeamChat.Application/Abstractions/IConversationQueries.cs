@@ -25,6 +25,14 @@ public interface IConversationQueries
         DateTimeOffset now,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Ajoute un message systeme (ex. fin d'appel) dans une conversation.</summary>
+    Task<MessageDto> AddSystemMessageAsync(
+        Guid conversationId,
+        Guid senderId,
+        string content,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default);
+
     Task<MessageHistoryResult> GetMessagesAsync(
         Guid conversationId,
         long? before,

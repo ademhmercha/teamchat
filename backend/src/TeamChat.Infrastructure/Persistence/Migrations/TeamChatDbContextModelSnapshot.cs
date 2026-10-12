@@ -280,6 +280,44 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                     b.ToTable("Attachments", (string)null);
                 });
 
+            modelBuilder.Entity("TeamChat.Domain.Entities.CallLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AnsweredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CalleeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CallerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CalleeId", "StartedAt");
+
+                    b.HasIndex("CallerId", "StartedAt");
+
+                    b.HasIndex("Status", "StartedAt");
+
+                    b.ToTable("CallLogs", (string)null);
+                });
+
             modelBuilder.Entity("TeamChat.Domain.Entities.Conversation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -478,6 +516,21 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                     b.HasOne("TeamChat.Domain.Entities.AppUser", null)
                         .WithMany()
                         .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TeamChat.Domain.Entities.CallLog", b =>
+                {
+                    b.HasOne("TeamChat.Domain.Entities.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("CalleeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TeamChat.Domain.Entities.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("CallerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

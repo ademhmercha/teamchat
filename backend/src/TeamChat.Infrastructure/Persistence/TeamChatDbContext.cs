@@ -21,6 +21,8 @@ public sealed class TeamChatDbContext : IdentityDbContext<AppUser, IdentityRole<
 
     public DbSet<Attachment> Attachments => Set<Attachment>();
 
+    public DbSet<CallLog> Calls => Set<CallLog>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -106,6 +108,23 @@ public sealed class TeamChatDbContext : IdentityDbContext<AppUser, IdentityRole<
             entity.HasOne<AppUser>()
                 .WithMany()
                 .HasForeignKey(a => a.UploadedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<CallLog>(entity =>
+        {
+            entity.ToTable("CallLogs");
+            entity.HasKey(c => c.Id);
+            entity.HasIndex(c => new { c.CallerId, c.StartedAt });
+            entity.HasIndex(c => new { c.CalleeId, c.StartedAt });
+            entity.HasIndex(c => new { c.Status, c.StartedAt });
+            entity.HasOne<AppUser>()
+                .WithMany()
+                .HasForeignKey(c => c.CallerId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<AppUser>()
+                .WithMany()
+                .HasForeignKey(c => c.CalleeId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }
