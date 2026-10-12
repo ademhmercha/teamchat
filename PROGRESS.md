@@ -9,8 +9,8 @@
 - [x] **Sprint 1 : Authentification, roles, annuaire** - termine et pousse sur `sprint-1-auth` (PR manuelle a creer)
 - [x] **Sprint 2 : Conversations privees et temps reel** - termine et valide
 - [x] **Sprint 3 : Groupes, modification, suppression, non lus** - termine, valide et pousse sur `sprint-3-groups` (PR manuelle a creer)
-- [~] **Sprint 4 : Fichiers et messages vocaux** - en cours (backend + frontend realises, en attente de validation)
-- [ ] Sprint 5 : Appels audio, video et partage d'ecran
+- [x] **Sprint 4 : Fichiers et messages vocaux** - termine, valide et fusionne sur `main` (branche `sprint-4-files`)
+- [~] **Sprint 5 : Appels audio, video et partage d'ecran** - en cours (backend + frontend realises, en attente de validation)
 - [ ] Sprint 6 : Dashboard admin, qualite, deploiement
 
 ---
@@ -425,3 +425,112 @@ Environnement : identique aux sprints precedents (SDK .NET 10.0.401, Node v20.20
 | Telechargement (runtime) | `GET /api/attachments/{id}` | 200, `Content-Type=image/png`, `inline`, octets **identiques** a l'upload |
 | Refus executable | upload `MZ` (`evil.exe`) | **400** « Type de fichier non autorise. » |
 | Refus type inconnu | upload binaire sans signature | **400** |
+
+---
+
+## Sprint 5 : Appels audio, video et partage d'ecran
+
+### Fait
+
+**Backend**
+- Domaine : `CallType` (Audio=0, Video=1), `CallStatus` (Ringing=0, Accepted=1, Rejected=2, Missed=3,
+  Ended=4, Failed=5), entite `CallLog` (Id, `CallerId`, `CalleeId`, `Type`, `Status`, `StartedAt`,
+  `AnsweredAt?`, `EndedAt?`). Migration `AddCallLog` (`20261012183052`) - table `CallLogs`, FK
+  `AspNetUsers` en `Restrict` (pas de suppression en cascade des journaux d'appel).
+- `CallService` : `StartCallAsync` (interdit a soi-meme ; destinataire existant et actif ; destinataire
+  **en ligne** sinon `BadRequestException` « Le destinataire est hors ligne. » ; ni appelant ni
+  destinataire deja en appel actif sinon `ConflictException`) ; `AcceptCallAsync` (callee,
+  Ringing->Accepted) ; `RejectCallAsync` (callee, ->Rejected + `EndedAt`) ; `EndCallAsync`
+  (participant ; Ringing->Missed, Accepted->Ended) ; expiration des sonneries (`ExpireStaleCallsAsync`,
+  Ringing->Missed apres delai) ; `EndCallForDisconnectedUserAsync` (deconnexion) ;
+  `AuthorizeRelayAsync` (seul caller/callee, appel Accepted, retourne le peer -> **un tiers ne peut pas
+  relayer la signalisation**). `GetIceServersAsync` et `GetHistoryAsync` (limite 1-100, defaut 50).
+- Messages **systeme** (`MessageType.System=4`) postes via `IConversationQueries.AddSystemMessageAsync`
+  dans la conversation directe : « {Appel audio|video} {manque|refuse|termine (duree X)} »,
+  `SenderId` = `CallerId`, diffuses au groupe conversation (`ReceiveMessage`).
+- `IChatClient` : `IncomingCall(CallSessionDto)`, `CallAccepted(CallSessionDto)`,
+  `CallEnded(callId, status)`, `ReceiveOffer`, `ReceiveAnswer`, `ReceiveIceCandidate` (pas de
+  `CallRejected` separe : le refus passe par `CallEnded(Rejected)`).
+- `ChatHub` : `CallUser` (retourne `CallSessionDto`), `AcceptCall`, `RejectCall`, `EndCall`,
+  `SendOffer`, `SendAnswer`, `SendIceCandidate` ; relais via `Clients.Group(ChatGroups.User(peerId))`.
+  Helpers `CallAsync<T>` (`AppException` -> `HubException`, messages clairs cote client) et
+  `NotifyCallEndedAsync` (2 groupes user + message systeme). `CallUser` ajoute aussi les connexions des
+  deux participants au groupe conversation (conversation directe creee a la volee).
+- `CallTimeoutService : BackgroundService` (Api) : `PeriodicTimer(SweepSeconds)`, expire les sonneries
+  au-dela de `RingingTimeoutSeconds`, diffuse `CallEnded` + message systeme.
+- `CallsController` : `GET /api/calls/ice-servers` (STUN public + TURN configurable) ;
+  `GET /api/calls/history`.
+- ICE : STUN public (`TurnOptions.StunUrls`, defaut `stun:stun.l.google.com:19302`) + TURN optionnel.
+  Identifiants **TURN REST API** coturn (username = expiry Unix, credential =
+  base64(HMAC-SHA1(secret, username))), generes par requete (`IIceServerProvider`/`TurnIceServerProvider`,
+  `TimeProvider`). `TurnOptions.Secret` jamais committe (`Turn__Secret`).
+- Options : `CallOptions` (SectionName `Calls`, `RingingTimeoutSeconds=30`, `SweepSeconds=5`),
+  `TurnOptions` (SectionName `Turn`).
+- `docker-compose.yml` : service `coturn` (profil `turn`, `--use-auth-secret`, ports 3478 + plage
+  UDP 49160-49200) ; `.env.example` : `Turn__*`, `Calls__*`.
+- Tests `CallTests` (5) : flux complet (offre/reponse/ICE/raccrochage) + journal + message systeme ;
+  relais par un tiers **refuse** ; appel vers utilisateur **hors ligne** refuse ;
+  `GET /api/calls/ice-servers` ; `GET /api/calls/history`. Helper `WaitUntilOnlineAsync` (poll
+  `IPresenceTracker`) pour rendre le test d'historique deterministe.
+
+**Frontend** (Angular 21, standalone + signals)
+- `core/models/call.models.ts` : `CallType`, `CallStatus`, `CallSessionDto`, `IceServerDto`,
+  `CallHistoryItemDto`, `IceCandidatePayload`, `CallEndedPayload`, `SdpPayload`.
+- `ChatService` etendu : subjects `incomingCall$`, `callAccepted$`, `callEnded$`, `receiveOffer$`,
+  `receiveAnswer$`, `receiveIceCandidate$` ; enregistrement des 6 handlers hub ; methodes `callUser`,
+  `acceptCall`, `rejectCall`, `endCall`, `sendOffer`, `sendAnswer`, `sendIceCandidate` (helper
+  `invoke<T>`).
+- `core/calls/call.service.ts` : machine d'etat (`phase` idle/outgoing/incoming/active/ended),
+  WebRTC (`RTCPeerConnection`, `getUserMedia`, `getDisplayMedia`), buffers ICE, renegociation,
+  `replaceTrack` pour camera/partage d'ecran ; `hangup`, `rejectIncoming`, `acceptIncoming`,
+  `startCall`, `toggleMute`, `toggleCamera`, `toggleScreenShare` ; ICE chargees via
+  `GET /api/calls/ice-servers` (fallback STUN) ; nettoyage des medias + message d'erreur epure.
+- Overlay d'appel global `layout/shell/call-overlay.{ts,html,scss}` (branche dans `shell` via
+  `<app-call-overlay />`) : etat entrant (accepter/refuser), sortant/en communication
+  (video distante + apercu local mute, micro, camera, partage d'ecran, raccrocher), etat termine.
+- `thread.{ts,html,scss}` : boutons **Audio**/**Video** dans l'en-tete (conversation directe
+  uniquement) ; rendu des messages **systeme** (`type === 4`) sur une ligne centree, sans bulle ni
+  actions.
+
+### En cours
+
+- Aucun.
+
+### Decisions
+
+| # | Decision | Raison |
+|---|---|---|
+| D34 | Appels **1-a-1 uniquement** (audio/video), restriction aux conversations directes | Perimetre des sections 10-12 ; pas d'appel de groupe dans ce sprint. |
+| D35 | Signalisation (offre/reponse/ICE) relayee **via le hub** `ChatGroups.User(peer)` ; le serveur ne voit pas les media | Un seul canal temps reel ; le serveur reste un simple relais de signalisation, sans SFU. |
+| D36 | Un **tiers** ne peut pas relayer la signalisation (`AuthorizeRelayAsync` : caller/callee + `Accepted`) | Empeche l'injection d'offre/ICE dans un appel d'autrui. |
+| D37 | Expiration des sonneries cote serveur (`CallTimeoutService`) apres `Calls:RingingTimeoutSeconds` (30 s) | L'appelant ne doit pas rester bloque si le client ne rappelle pas ; trace `Missed` fiable. |
+| D38 | Messages systeme (`MessageType.System`) postes dans la conversation directe avec `SenderId = CallerId` | Trace persistante et visible dans l'historique (« appel manque/refuse/termine »). |
+| D39 | Etat d'appel tient compte de la **presence** (`IPresenceTracker`) : appel refuse si le destinataire est hors ligne | Evite une sonnerie fantome vers un utilisateur deconnecte. |
+| D40 | TURN via **TURN REST API** (identifiants temporaires HMAC), secret cote env (`Turn__Secret`) | Identifiants ephemères, aucun secret statique dans le bundle client. |
+| D41 | `AppException` -> `HubException(message)` (`CallAsync<T>`) plutot que `EnableDetailedErrors` | Messages d'erreur clairs cote client sans activer le mode verbeux global. |
+
+### Problemes connus / non verifie
+
+- [ ] **Flux media WebRTC non verifiable en environnement automatise** : offre/reponse/ICE, bascule
+      camera et **partage d'ecran** (avec renegociation) reposent sur un **test manuel navigateur
+      (2 onglets)**, non realisable ici. Le resultat n'est **pas** garanti par les tests d'integration
+      (qui ne couvrent que la signalisation et les regles metier serveur).
+- [ ] La migration `AddCallLog` doit etre verifiee appliquee en dev (`database update`) puis
+      confirmee par un smoke test runtime.
+- [ ] TURN (`coturn`) ajoute au `docker-compose` avec profil `turn` **non demarre/teste** ici ; en
+      l'absence de TURN, seuls les profils reseau permissifs passent (STUN seul).
+- [ ] Le partage d'ecran sur mobile et le changement de source pendant un partage ne sont pas geres.
+- [ ] Google login toujours non teste de bout en bout (pas de Client ID).
+- [ ] `S3FileStorage` toujours non teste contre un vrai S3 (prexistant, hors perimetre Sprint 5).
+
+### Resultats de verification (reels, executes le 2026-10-12)
+
+Environnement : identique aux sprints precedents (SDK .NET 10.0.401, Node v20.20.2, PostgreSQL conteneur).
+
+| Verification | Commande | Resultat |
+|---|---|---|
+| Build backend | `dotnet build backend/TeamChat.sln` | OK, **0 erreur / 0 avertissement** |
+| Tests backend | `dotnet test backend/TeamChat.sln` | OK, **48/48** (4 unitaires + 44 integration) |
+| Build frontend | `npm run build` (dans `frontend/`) | OK, **0 erreur / 0 avertissement**, chunks `shell`/`thread` generes |
+| Migration | `dotnet ef migrations add AddCallLog` | OK (table `CallLogs`) - `database update` **a confirmer en dev** |
+
