@@ -10,6 +10,7 @@ using TeamChat.Infrastructure.Identity;
 using TeamChat.Infrastructure.Persistence;
 using TeamChat.Infrastructure.Realtime;
 using TeamChat.Infrastructure.Security;
+using TeamChat.Infrastructure.Storage;
 using TeamChat.Domain.Entities;
 
 namespace TeamChat.Infrastructure;
@@ -23,9 +24,11 @@ public static class DependencyInjection
         services.Configure<CacheOptions>(configuration.GetSection(CacheOptions.SectionName));
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<GoogleOptions>(configuration.GetSection(GoogleOptions.SectionName));
+        services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
 
         AddCache(services, configuration);
         AddDatabase(services, configuration);
+        AddStorage(services, configuration);
         AddIdentity(services);
         AddServices(services);
 
@@ -52,6 +55,21 @@ public static class DependencyInjection
                 ?? throw new InvalidOperationException("La chaine de connexion 'Default' est requise.");
             options.UseNpgsql(connectionString);
         });
+    }
+
+    private static void AddStorage(IServiceCollection services, IConfiguration configuration)
+    {
+        var provider = configuration["Storage:Provider"];
+        if (string.Equals(provider, "S3", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddSingleton<IFileStorage, S3FileStorage>();
+        }
+        else
+        {
+            services.AddSingleton<IFileStorage, LocalFileStorage>();
+        }
+
+        services.AddScoped<IAttachmentQueries, AttachmentQueries>();
     }
 
     private static void AddIdentity(IServiceCollection services)

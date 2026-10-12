@@ -19,6 +19,8 @@ public sealed class TeamChatDbContext : IdentityDbContext<AppUser, IdentityRole<
 
     public DbSet<Message> Messages => Set<Message>();
 
+    public DbSet<Attachment> Attachments => Set<Attachment>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -86,6 +88,24 @@ public sealed class TeamChatDbContext : IdentityDbContext<AppUser, IdentityRole<
             entity.HasOne<AppUser>()
                 .WithMany()
                 .HasForeignKey(m => m.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Attachment>()
+                .WithMany()
+                .HasForeignKey(m => m.AttachmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<Attachment>(entity =>
+        {
+            entity.ToTable("Attachments");
+            entity.HasKey(a => a.Id);
+            entity.Property(a => a.StorageKey).HasMaxLength(400).IsRequired();
+            entity.Property(a => a.OriginalFileName).HasMaxLength(260).IsRequired();
+            entity.Property(a => a.ContentType).HasMaxLength(128).IsRequired();
+            entity.HasIndex(a => a.StorageKey).IsUnique();
+            entity.HasOne<AppUser>()
+                .WithMany()
+                .HasForeignKey(a => a.UploadedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

@@ -237,6 +237,49 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("TeamChat.Domain.Entities.Attachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DurationSec")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique();
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.ToTable("Attachments", (string)null);
+                });
+
             modelBuilder.Entity("TeamChat.Domain.Entities.Conversation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -333,6 +376,8 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AttachmentId");
+
                     b.HasIndex("SenderId");
 
                     b.HasIndex("ConversationId", "Sequence");
@@ -428,6 +473,15 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TeamChat.Domain.Entities.Attachment", b =>
+                {
+                    b.HasOne("TeamChat.Domain.Entities.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TeamChat.Domain.Entities.Conversation", b =>
                 {
                     b.HasOne("TeamChat.Domain.Entities.AppUser", null)
@@ -454,6 +508,11 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("TeamChat.Domain.Entities.Message", b =>
                 {
+                    b.HasOne("TeamChat.Domain.Entities.Attachment", null)
+                        .WithMany()
+                        .HasForeignKey("AttachmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("TeamChat.Domain.Entities.Conversation", null)
                         .WithMany()
                         .HasForeignKey("ConversationId")

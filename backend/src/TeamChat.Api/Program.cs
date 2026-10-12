@@ -1,6 +1,7 @@
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using TeamChat.Api.Infrastructure;
@@ -11,7 +12,13 @@ using TeamChat.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var maxUploadBytes = builder.Configuration.GetValue<long>("Storage:MaxFileSizeBytes", 25 * 1024 * 1024);
+var maxRequestBodyBytes = maxUploadBytes + (1024 * 1024);
+
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = maxRequestBodyBytes);
+
 builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>());
+builder.Services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = maxRequestBodyBytes);
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddSignalR();

@@ -8,6 +8,7 @@ namespace TeamChat.IntegrationTests.Support;
 public sealed class TeamChatApiFactory : WebApplicationFactory<Program>
 {
     private readonly string _connectionString;
+    private readonly string _uploadsPath = Path.Combine(Path.GetTempPath(), "teamchat-test-uploads", Guid.NewGuid().ToString("N"));
 
     public TeamChatApiFactory(string connectionString)
     {
@@ -31,6 +32,10 @@ public sealed class TeamChatApiFactory : WebApplicationFactory<Program>
                 ["Cors:AllowedOrigins"] = "http://localhost:4200",
                 ["RateLimiting:LoginPermitLimit"] = "100",
                 ["RateLimiting:ChatPermitLimit"] = "1000",
+                ["Storage:Provider"] = "Local",
+                ["Storage:LocalPath"] = _uploadsPath,
+                ["Storage:MaxFileSizeBytes"] = "4096",
+                ["Storage:MaxVoiceSizeBytes"] = "4096",
             });
         });
     }

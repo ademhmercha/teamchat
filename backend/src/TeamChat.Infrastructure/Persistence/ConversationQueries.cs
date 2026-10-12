@@ -135,8 +135,16 @@ public sealed class ConversationQueries : IConversationQueries
         var rows = await (from m in query
                           join u in _db.Users.AsNoTracking() on m.SenderId equals u.Id into members
                           from u in members.DefaultIfEmpty()
+                          join a in _db.Attachments.AsNoTracking() on m.AttachmentId equals a.Id into attachments
+                          from a in attachments.DefaultIfEmpty()
                           orderby m.Sequence descending
-                          select new { Message = m, SenderName = u == null ? string.Empty : u.DisplayName, SenderAvatar = u == null ? null : u.AvatarUrl })
+                          select new
+                          {
+                              Message = m,
+                              SenderName = u == null ? string.Empty : u.DisplayName,
+                              SenderAvatar = u == null ? null : u.AvatarUrl,
+                              Attachment = a,
+                          })
             .Take(limit + 1)
             .ToListAsync(cancellationToken);
 
@@ -159,7 +167,8 @@ public sealed class ConversationQueries : IConversationQueries
                 r.Message.AttachmentId,
                 r.Message.CreatedAt,
                 Edited: r.Message.EditedAt is not null,
-                Deleted: r.Message.DeletedAt is not null))
+                Deleted: r.Message.DeletedAt is not null,
+                Attachment: r.Message.DeletedAt is null ? ToAttachmentDto(r.Attachment) : null))
             .ToList();
 
         MessageCursor? nextCursor = items.Count == 0
@@ -204,7 +213,7 @@ public sealed class ConversationQueries : IConversationQueries
 
         var messageRows = await _db.Messages.AsNoTracking()
             .Where(m => conversationIds.Contains(m.ConversationId))
-            .Select(m => new MessageRow(m.Id, m.ConversationId, m.Sequence, m.SenderId, m.CreatedAt, m.Content, m.DeletedAt))
+            .Select(m => new MessageRow(m.Id, m.ConversationId, m.Sequence, m.SenderId, m.CreatedAt, m.Type, m.Content, m.DeletedAt))
             .ToListAsync(cancellationToken);
 
         var sequenceById = messageRows.ToDictionary(m => m.Id, m => m.Sequence);
@@ -256,11 +265,19 @@ public sealed class ConversationQueries : IConversationQueries
         var row = await (from m in _db.Messages.AsNoTracking()
                          join u in _db.Users.AsNoTracking() on m.SenderId equals u.Id into members
                          from u in members.DefaultIfEmpty()
+                         join a in _db.Attachments.AsNoTracking() on m.AttachmentId equals a.Id into attachments
+                         from a in attachments.DefaultIfEmpty()
                          where m.Id == messageId
-                         select new { Message = m, SenderName = u == null ? string.Empty : u.DisplayName, SenderAvatar = u == null ? null : u.AvatarUrl })
+                         select new
+                         {
+                             Message = m,
+                             SenderName = u == null ? string.Empty : u.DisplayName,
+                             SenderAvatar = u == null ? null : u.AvatarUrl,
+                             Attachment = a,
+                         })
             .FirstOrDefaultAsync(cancellationToken);
 
-        return row is null ? null : ToMessageDto(row.Message, row.SenderName, row.SenderAvatar);
+        return row is null ? null : ToMessageDto(row.Message, row.SenderName, row.SenderAvatar, row.Attachment);
     }
 
     public async Task<MessageDto> UpdateMessageAsync(
@@ -349,7 +366,7 @@ public sealed class ConversationQueries : IConversationQueries
     private static long ResolveSequence(Guid? messageId, IReadOnlyDictionary<Guid, long> sequenceById)
         => messageId is { } id && sequenceById.TryGetValue(id, out var sequence) ? sequence : 0;
 
-    private static MessageDto ToMessageDto(Message message, string senderName, string? senderAvatar)
+    private static MessageDto ToMessageDto(Message message, string senderName, string? senderAvatar, TeamChat.Domain.Entities.Attachment? attachment = null)
         => new(
             message.Sequence,
             message.Id,
@@ -362,7 +379,18 @@ public sealed class ConversationQueries : IConversationQueries
             message.AttachmentId,
             message.CreatedAt,
             Edited: message.EditedAt is not null,
-            Deleted: message.DeletedAt is not null);
+            Deleted: message.DeletedAt is not null,
+            Attachment: message.DeletedAt is null ? ToAttachmentDto(attachment) : null);
+
+    private static MessageAttachmentDto? ToAttachmentDto(TeamChat.Domain.Entities.Attachment? attachment)
+        => attachment is null
+            ? null
+            : new MessageAttachmentDto(
+                attachment.Id,
+                attachment.OriginalFileName,
+                attachment.ContentType,
+                attachment.SizeBytes,
+                attachment.DurationSec);
 
     private sealed record MessageRow(
         Guid Id,
@@ -370,25 +398,33 @@ public sealed class ConversationQueries : IConversationQueries
         long Sequence,
         Guid SenderId,
         DateTimeOffset CreatedAt,
+        MessageType Type,
         string? Content,
         DateTimeOffset? DeletedAt);
 
     private static string? BuildPreview(object? message)
         => message switch
         {
-            MessageRow row => BuildPreview(row.Content, row.DeletedAt),
-            Message msg => BuildPreview(msg.Content, msg.DeletedAt),
+            MessageRow row => BuildPreview(row.Type, row.Content, row.DeletedAt),
+            Message msg => BuildPreview(msg.Type, msg.Content, msg.DeletedAt),
             _ => null,
         };
 
-    private static string? BuildPreview(string? content, DateTimeOffset? deletedAt)
+    private static string? BuildPreview(MessageType type, string? content, DateTimeOffset? deletedAt)
     {
         if (deletedAt is not null)
         {
             return "Message supprime";
         }
 
-        var text = content ?? string.Empty;
+        var text = type switch
+        {
+            MessageType.Voice => "Message vocal",
+            MessageType.Image => "Image",
+            MessageType.File => "Fichier",
+            _ => content ?? string.Empty,
+        };
+
         return text.Length <= 60 ? text : text[..60] + "...";
     }
 

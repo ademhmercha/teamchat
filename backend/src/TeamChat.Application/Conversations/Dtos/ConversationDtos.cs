@@ -26,6 +26,13 @@ public sealed record ConversationListItemDto(
     int ParticipantCount,
     int UnreadCount);
 
+public sealed record MessageAttachmentDto(
+    Guid Id,
+    string FileName,
+    string ContentType,
+    long SizeBytes,
+    int? DurationSec);
+
 public sealed record MessageDto(
     long Sequence,
     Guid Id,
@@ -38,7 +45,8 @@ public sealed record MessageDto(
     Guid? AttachmentId,
     DateTimeOffset CreatedAt,
     bool Edited,
-    bool Deleted);
+    bool Deleted,
+    MessageAttachmentDto? Attachment = null);
 
 /// <summary>Curseur de pagination : ordre global des messages (Sequence).</summary>
 public sealed record MessageCursor(long Sequence);
