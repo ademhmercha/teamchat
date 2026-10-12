@@ -7,9 +7,9 @@
 
 - [x] **Sprint 0 : Initialisation** - termine
 - [x] **Sprint 1 : Authentification, roles, annuaire** - termine et pousse sur `sprint-1-auth` (PR manuelle a creer)
-- [x] **Sprint 2 : Conversations privees et temps reel** - termine (en attente de validation utilisateur)
-- [~] **Sprint 3 : Groupes, modification, suppression, non lus** - en cours (backend + frontend realises, en attente de validation)
-- [ ] Sprint 4 : Fichiers et messages vocaux
+- [x] **Sprint 2 : Conversations privees et temps reel** - termine et valide
+- [x] **Sprint 3 : Groupes, modification, suppression, non lus** - termine, valide et pousse sur `sprint-3-groups` (PR manuelle a creer)
+- [~] **Sprint 4 : Fichiers et messages vocaux** - en cours (backend + frontend realises, en attente de validation)
 - [ ] Sprint 5 : Appels audio, video et partage d'ecran
 - [ ] Sprint 6 : Dashboard admin, qualite, deploiement
 
@@ -337,3 +337,91 @@ Environnement : identique aux sprints precedents (SDK .NET 10.0.401, Node v20.20
 | Migration | `dotnet ef migrations add AddGroupsAndUnread` + `database update` | OK (colonne `ArchivedAt`), base de dev a jour |
 | Tests backend | `dotnet test backend/TeamChat.sln -c Debug` | OK, **38/38** (4 unitaires + 34 integration) |
 | Build frontend | `npm run build` (dans `frontend/`) | OK, chunks `admin-groups` + `thread` + `conversations-list` generes |
+
+---
+
+## Sprint 4 : Fichiers et messages vocaux
+
+### Fait
+
+**Backend**
+- Entite `Attachment` (Id, `StorageKey` GUID aleatoire **jamais** derive du nom d'origine,
+  `OriginalFileName`, `ContentType`, `SizeBytes`, `DurationSec?`, `UploadedByUserId`, `CreatedAt`) ;
+  `Message.AttachmentId` (nullable) ; index unique sur `StorageKey`. Migration `AddAttachments`
+  (`20261011192107`) appliquee sur la base de dev.
+- Detection du **type reel par signature binaire** (`FileSignatureDetector`, magic bytes) : images
+  (png/jpeg/gif/webp), PDF, ZIP/OOXML, audio (webm/ogg/mp4/mpeg), texte brut ; **rejet explicite**
+  des executables (`MZ`) et binaires ELF ; tout type inconnu -> `BadRequestException`
+  « Type de fichier non autorise. »
+- Abstraction `IFileStorage` (`SaveAsync`, `OpenReadAsync`, `DeleteAsync`) : `LocalFileStorage`
+  (dev, ecriture fichier temporaire + move atomique, garde-fou de chemin) ; `S3FileStorage`
+  (stockage objet, `AmazonS3Config` `ServiceURL`/`ForcePathStyle` + `BasicAWSCredentials`), selection
+  par `Storage:Provider`. Lib `AWSSDK.S3` 4.0.104.2.
+- `AttachmentService` : controle de taille sur les **octets reels** (`Storage:MaxFileSizeBytes`,
+  `Storage:MaxVoiceSizeBytes`), persistance de la piece jointe + du message (`MessageType`
+  Image/Voice/File) avec `Sequence`, visibilite verifiee via `MembershipService`.
+- `ConversationQueries.Full` projette la piece jointe ; `MessageDto` expose `Attachment`
+  (`MessageAttachmentDto` : Id, FileName, ContentType, SizeBytes, DurationSec).
+- API : `POST /api/conversations/{id}/attachments` (multipart `file`, `isVoice`, `durationSec` ;
+  retourne le `MessageDto` et **diffuse `ReceiveMessage`** au groupe via `IHubContext`) ;
+  `GET /api/attachments/{id}` (`FileStreamResult`, `EnableRangeProcessing`, `Content-Disposition`
+  `inline` pour image/audio sinon `attachment`, `Cache-Control: private, max-age=300`, ETag).
+  Limites Kestrel/`FormOptions` relevees a la taille max d'upload + 1 Mo.
+- Tests `AttachmentTests` (5) : edition/visibilite, image OK, vocal OK, exe refuse, type inconnu
+  refuse, nom d'origine conserve / cle non devinable ; **4 unitaires + 39 integration = 43/43 verts**.
+
+**Frontend** (Angular 21, standalone + signals)
+- `AttachmentsService` : upload multipart avec **progression** (`HttpRequest` +
+  `HttpEventType.UploadProgress`), recuperation des pieces jointes privees via **HttpClient (blob)**
+  puis URL d'objet mise en cache (`getBlobUrl`), telechargement, `releaseAll` a la destruction.
+- `Conversation`/`MessageDto` etendus (`attachment`) ; `display.ts` : `formatFileSize`,
+  `formatDuration`.
+- Fil de discussion : bouton **Fichier** (input file cache) et bouton **Vocal**
+  (`MediaRecorder`, chronometre, limite `MAX_VOICE_SECONDS`, envoi/annulation) ; barre de progression
+  d'upload ; rendu des bulles **image** (`<img>`), **vocal** (`<audio controls>` + duree) et
+  **fichier** (carte + taille + telechargement ; telechargement force via blob).
+- `thread.scss` : styles image/vocal/fichier + composer (boutons, recorder, progression) ; budget de
+  style de composant releve (`angular.json` : avertissement 4->6 kB, erreur 8->10 kB).
+
+### En cours
+
+- Aucun.
+
+### Decisions
+
+| # | Decision | Raison |
+|---|---|---|
+| D28 | Detection du type **par magic bytes**, jamais par extension ni Content-Type client | Section 8 (analyse du type reel) ; empeche le contournement par renommage. |
+| D29 | `StorageKey` = GUID aleatoire, nom d'origine stocke separement | Empeche la traversee de chemin et la devination d'URL. |
+| D30 | Pieces jointes **privees** : recuperation via HttpClient (blob) + URL d'objet cote client | `<img src>`/`<audio src>` n'envoient pas le Bearer ; le token transite par l'intercepteur. |
+| D31 | Abstraction `IFileStorage` avec implementations Local (dev) et S3 (via `Storage:Provider`) | Portabilite sans changer le code applicatif (section 2.1). |
+| D32 | `Content-Disposition: inline` pour image/audio, `attachment` sinon | Affichage direct des medias, telechargement force des fichiers. |
+| D33 | Limite de taille verifiee sur les octets reels + `MaxRequestBodySize` Kestrel | Coherence entre limite logique et limite de transport. |
+
+### Problemes connus / non verifie
+
+- [ ] **Enregistrement vocal** (`MediaRecorder`) et rendu image/audio non valides en navigateur ici
+      (pas de navigateur automatise) : le **flux API** a ete valide de bout en bout (upload image +
+      vocal, telechargement, refus exe/inconnu). A tester visuellement par l'utilisateur.
+- [ ] `S3FileStorage` compile mais **non teste contre un vrai S3** (non configure en dev ; Local par
+      defaut).
+- [ ] Detection `text/plain` : pas de signature fiable, repose sur le Content-Type declare.
+- [ ] Le frontend supprime les URL d'objet a la destruction du composant mais garde un cache par
+      piece jointe tant que la page vit (pas d'eviction LRU).
+- [ ] Google login toujours non teste de bout en bout (pas de Client ID).
+
+### Resultats de verification (reels, executes le 2026-10-12)
+
+Environnement : identique aux sprints precedents (SDK .NET 10.0.401, Node v20.20.2, PostgreSQL conteneur).
+
+| Verification | Commande | Resultat |
+|---|---|---|
+| Build backend | `dotnet build backend/TeamChat.sln -c Debug` | OK, **0 erreur / 0 avertissement** |
+| Migration | `dotnet ef migrations add AddAttachments` + `database update` | OK (table `Attachments`), base de dev a jour |
+| Tests backend | `dotnet test backend/TeamChat.sln --nologo` | OK, **43/43** (4 unitaires + 39 integration) |
+| Build frontend | `npm run build` (dans `frontend/`) | OK, **0 erreur / 0 avertissement**, chunk `thread` genere |
+| Upload image (runtime) | `POST /api/conversations/{id}/attachments` (png) | 200, `type=3`, piece jointe (fileName/size/contentType) |
+| Upload vocal (runtime) | idem (`audio/webm`, `isVoice=true`, `durationSec=3`) | 200, `type=1`, `durationSec=3` |
+| Telechargement (runtime) | `GET /api/attachments/{id}` | 200, `Content-Type=image/png`, `inline`, octets **identiques** a l'upload |
+| Refus executable | upload `MZ` (`evil.exe`) | **400** « Type de fichier non autorise. » |
+| Refus type inconnu | upload binaire sans signature | **400** |
