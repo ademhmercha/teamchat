@@ -3,6 +3,12 @@ import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } fro
 import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../auth/auth.service';
+import {
+  CallEndedPayload,
+  CallSessionDto,
+  IceCandidatePayload,
+  SdpPayload,
+} from '../models/call.models';
 import { MessageDto } from '../models/conversation.models';
 
 type TypingKey = string;
@@ -44,6 +50,24 @@ export class ChatService {
 
   private readonly _conversationUpdated = new Subject<string>();
   readonly conversationUpdated$ = this._conversationUpdated.asObservable();
+
+  private readonly _incomingCall = new Subject<CallSessionDto>();
+  readonly incomingCall$ = this._incomingCall.asObservable();
+
+  private readonly _callAccepted = new Subject<CallSessionDto>();
+  readonly callAccepted$ = this._callAccepted.asObservable();
+
+  private readonly _callEnded = new Subject<CallEndedPayload>();
+  readonly callEnded$ = this._callEnded.asObservable();
+
+  private readonly _receiveOffer = new Subject<SdpPayload>();
+  readonly receiveOffer$ = this._receiveOffer.asObservable();
+
+  private readonly _receiveAnswer = new Subject<SdpPayload>();
+  readonly receiveAnswer$ = this._receiveAnswer.asObservable();
+
+  private readonly _receiveIceCandidate = new Subject<IceCandidatePayload>();
+  readonly receiveIceCandidate$ = this._receiveIceCandidate.asObservable();
 
   isConnected(): boolean {
     return this.connection?.state === HubConnectionState.Connected;
@@ -89,6 +113,16 @@ export class ChatService {
     );
     hub.on('UserStoppedTyping', (conversationId: string, userId: string) =>
       this.clearTyping(conversationId, userId),
+    );
+    hub.on('IncomingCall', (call: CallSessionDto) => this._incomingCall.next(call));
+    hub.on('CallAccepted', (call: CallSessionDto) => this._callAccepted.next(call));
+    hub.on('CallEnded', (callId: string, status: number) => this._callEnded.next({ callId, status }));
+    hub.on('ReceiveOffer', (callId: string, sdp: string) => this._receiveOffer.next({ callId, sdp }));
+    hub.on('ReceiveAnswer', (callId: string, sdp: string) => this._receiveAnswer.next({ callId, sdp }));
+    hub.on(
+      'ReceiveIceCandidate',
+      (callId: string, candidate: string, sdpMid: string | null, sdpMLineIndex: number | null) =>
+        this._receiveIceCandidate.next({ callId, candidate, sdpMid, sdpMLineIndex }),
     );
 
     this.state.set(HubConnectionState.Connecting);
@@ -155,12 +189,53 @@ export class ChatService {
     void this.connection?.invoke('StopTyping', conversationId);
   }
 
+  callUser(calleeId: string, type: number): Promise<CallSessionDto> {
+    return this.invoke<CallSessionDto>('CallUser', calleeId, type);
+  }
+
+  acceptCall(callId: string): Promise<void> {
+    return this.invoke<void>('AcceptCall', callId);
+  }
+
+  rejectCall(callId: string): Promise<void> {
+    return this.invoke<void>('RejectCall', callId);
+  }
+
+  endCall(callId: string): Promise<void> {
+    return this.invoke<void>('EndCall', callId);
+  }
+
+  sendOffer(callId: string, sdp: string): Promise<void> {
+    return this.invoke<void>('SendOffer', callId, sdp);
+  }
+
+  sendAnswer(callId: string, sdp: string): Promise<void> {
+    return this.invoke<void>('SendAnswer', callId, sdp);
+  }
+
+  sendIceCandidate(
+    callId: string,
+    candidate: string,
+    sdpMid: string | null,
+    sdpMLineIndex: number | null,
+  ): Promise<void> {
+    return this.invoke<void>('SendIceCandidate', callId, candidate, sdpMid, sdpMLineIndex);
+  }
+
   isOnline(userId: string): boolean {
     return this.presenceMap.get(userId) === true;
   }
 
   typingDisplayName(conversationId: string, userId: string): string | undefined {
     return this.typing()[`${conversationId}:${userId}`];
+  }
+
+  private invoke<T>(method: string, ...args: unknown[]): Promise<T> {
+    if (!this.isConnected()) {
+      return Promise.reject(new Error('Connexion temps reel indisponible.'));
+    }
+
+    return this.connection!.invoke<T>(method, ...args);
   }
 
   private applySnapshot(onlineIds: readonly string[]): void {

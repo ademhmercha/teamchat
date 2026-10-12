@@ -1,0 +1,69 @@
+@if (call.visible()) {
+  <div class="call-overlay" role="dialog" aria-modal="true">
+    <div class="call-card" [class.video]="call.isVideo() && call.phase() === 'active'">
+      @if (call.phase() === 'incoming') {
+        <div class="avatar">{{ initials() }}</div>
+        <div class="call-name">{{ call.incoming()?.callerDisplayName }}</div>
+        <div class="call-subtitle">Appel {{ call.isVideo() ? 'vidéo' : 'audio' }} entrant…</div>
+        <div class="call-actions">
+          <button type="button" class="btn accept" (click)="call.acceptIncoming()">Accepter</button>
+          <button type="button" class="btn reject" (click)="call.rejectIncoming()">Refuser</button>
+        </div>
+      } @else if (call.phase() === 'ended') {
+        <div class="call-name">{{ call.statusText() }}</div>
+      } @else {
+        <div class="video-area" [class.audio-only]="!call.isVideo()">
+          <video #remoteVideo class="remote-video" autoplay playsinline></video>
+          <video #localVideo class="local-video" autoplay playsinline muted></video>
+          <div class="call-info">
+            <span class="call-name">{{ call.peerName() }}</span>
+            <span class="call-subtitle">{{ call.statusText() }}</span>
+          </div>
+        </div>
+
+        <div class="call-controls">
+          <button
+            type="button"
+            class="control"
+            [class.active]="call.muted()"
+            (click)="call.toggleMute()"
+            [title]="call.muted() ? 'Rétablir le micro' : 'Couper le micro'"
+          >
+            {{ call.muted() ? 'Micro coupé' : 'Micro' }}
+          </button>
+
+          @if (call.isVideo()) {
+            <button
+              type="button"
+              class="control"
+              [class.active]="call.cameraOn()"
+              (click)="call.toggleCamera()"
+              [title]="call.cameraOn() ? 'Couper la caméra' : 'Activer la caméra'"
+            >
+              {{ call.cameraOn() ? 'Caméra on' : 'Caméra off' }}
+            </button>
+          }
+
+          <button
+            type="button"
+            class="control"
+            [class.active]="call.screenSharing()"
+            (click)="call.toggleScreenShare()"
+            [title]="call.screenSharing() ? 'Arrêter le partage' : 'Partager l\'écran'"
+          >
+            {{ call.screenSharing() ? 'Partage on' : 'Partager' }}
+          </button>
+
+          <button type="button" class="control hangup" (click)="call.hangup()">Raccrocher</button>
+        </div>
+      }
+
+      @if (call.error(); as message) {
+        <div class="call-error" role="alert">
+          {{ message }}
+          <button type="button" class="link" (click)="call.dismissError()">Fermer</button>
+        </div>
+      }
+    </div>
+  </div>
+}

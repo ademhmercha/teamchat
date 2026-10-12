@@ -8,7 +8,9 @@ import { debounceTime } from 'rxjs/operators';
 import { AttachmentsService } from '../../core/api/attachments.service';
 import { ConversationsService } from '../../core/api/conversations.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { CallService } from '../../core/calls/call.service';
 import { ChatService } from '../../core/chat/chat.service';
+import { CallType } from '../../core/models/call.models';
 import { ConversationListItemDto, MessageDto } from '../../core/models/conversation.models';
 import { formatDuration, formatFileSize, initialsOf, shortTime } from '../../core/utils/display';
 
@@ -27,6 +29,7 @@ export class ThreadComponent {
   private readonly conversations = inject(ConversationsService);
   private readonly attachments = inject(AttachmentsService);
   private readonly chat = inject(ChatService);
+  private readonly calls = inject(CallService);
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -326,6 +329,28 @@ export class ThreadComponent {
   peerOnline(): boolean {
     const otherUserId = this.conversation()?.otherUserId;
     return otherUserId !== null && otherUserId !== undefined && this.chat.isOnline(otherUserId);
+  }
+
+  canCall(): boolean {
+    return !this.isGroup() && !!this.conversation()?.otherUserId;
+  }
+
+  startAudioCall(): void {
+    this.startCall(CallType.Audio);
+  }
+
+  startVideoCall(): void {
+    this.startCall(CallType.Video);
+  }
+
+  private startCall(type: number): void {
+    const conversation = this.conversation();
+    const otherUserId = conversation?.otherUserId;
+    if (!otherUserId) {
+      return;
+    }
+
+    void this.calls.startCall(otherUserId, conversation?.otherDisplayName ?? 'Contact', type);
   }
 
   time(message: MessageDto): string {

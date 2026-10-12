@@ -19,6 +19,12 @@
           }
         </div>
       </div>
+      @if (canCall()) {
+        <div class="call-buttons">
+          <button type="button" class="call-button" title="Appel audio" (click)="startAudioCall()">Audio</button>
+          <button type="button" class="call-button" title="Appel vidéo" (click)="startVideoCall()">Vidéo</button>
+        </div>
+      }
     }
   </header>
 
@@ -37,6 +43,9 @@
       <div class="state">Aucun message pour l'instant.</div>
     } @else {
       @for (message of messages(); track message.id) {
+        @if (message.type === 4) {
+          <div class="system-message">{{ message.content }}</div>
+        } @else {
         <div class="message" [class.own]="message.senderId === currentUserId">
           @if (message.deleted) {
             <div class="bubble deleted">Ce message a été supprimé</div>
@@ -95,6 +104,7 @@
             </div>
           }
         </div>
+        }
       }
     }
   </div>
