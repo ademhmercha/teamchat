@@ -21,6 +21,36 @@ services:
       retries: 10
       start_period: 10s
 
+  # API dans un conteneur (optionnel) : `docker compose --profile app up -d --build`.
+  # Reutilise l'image PostgreSQL ci-dessus ; renseigner les secrets via .env.
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: teamchat-api
+    profiles: ["app"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:-teamchat};Username=${POSTGRES_USER:-teamchat};Password=${POSTGRES_PASSWORD:-teamchat_dev_only}
+      Jwt__Issuer: ${Jwt__Issuer:-teamchat}
+      Jwt__Audience: ${Jwt__Audience:-teamchat}
+      Jwt__Secret: ${Jwt__Secret:-change-me-please-use-a-long-random-secret-min-32-chars}
+      Cors__AllowedOrigins: ${Cors__AllowedOrigins:-http://localhost:4200}
+      Redis__ConnectionString: ${Redis__ConnectionString:-}
+      Admin__SeedEmail: ${Admin__SeedEmail:-}
+      Admin__SeedPassword: ${Admin__SeedPassword:-}
+      Storage__Provider: ${Storage__Provider:-Local}
+      Storage__LocalPath: /app/uploads
+    ports:
+      - "${API_PORT:-8080}:8080"
+    volumes:
+      - api-uploads:/app/uploads
+
   # Cache distribue L2 optionnel : demarrer avec `docker compose --profile redis up -d`.
   redis:
     image: redis:7-alpine
@@ -65,3 +95,4 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  api-uploads:

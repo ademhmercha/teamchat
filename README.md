@@ -13,7 +13,7 @@ L'avancement est suivi dans [`PROGRESS.md`](./PROGRESS.md).
 - **Auth** : ASP.NET Core Identity + JWT (access + refresh avec rotation) + Google
 - **Frontend** : Angular 21 (composants standalone, signals)
 - **Appels** : WebRTC (signalisation via SignalR), STUN/TURN
-- **Cache** : HybridCache (memoire L1 par defaut, Redis L2 optionnel)
+- **Cache** : HybridCache (memoire L1 par defaut, Redis L2 optionnel). Redis active aussi le backplane SignalR (multi-instances)
 - **Tests** : xUnit, Moq, FluentAssertions, Testcontainers ; Jasmine/Jest cote frontend
 - **DevOps** : Docker, docker-compose, GitHub Actions
 
@@ -66,3 +66,26 @@ cd frontend && npm run build
 
 Voir [`.env.example`](./.env.example). Aucun secret ne doit etre committe :
 utiliser `.env` (ignore par git) ou `dotnet user-secrets` en developpement.
+
+## Administration
+
+L'espace `/admin` (role `Admin`) propose :
+- un **tableau de bord** : utilisateurs actifs, messages sur 7 jours (graphique), groupes les plus actifs ;
+- la **gestion des utilisateurs** : creation avec invitation par email, changement de role, activation/desactivation ;
+- la **gestion des groupes** : creation, membres, archivage.
+
+La desactivation d'un compte revoque les tokens, invalide les caches (profil, annuaire, appartenances)
+et ferme les sessions temps reel (SignalR) via un evenement `ForceLogout`.
+
+## Deploiement (fichiers prepares)
+
+Aucun deploiement automatique n'est effectue par le depot ; les fichiers suivants servent de base.
+
+- **Frontend (Vercel)** : [`frontend/vercel.json`](./frontend/vercel.json) configure le build Angular
+  et la reecriture SPA vers `index.html`. Renseigner `apiBaseUrl` dans `frontend/src/environments/`.
+- **Backend (conteneur)** : [`backend/Dockerfile`](./backend/Dockerfile) construit une image runtime
+  (.NET 10, port 8080). `docker compose --profile app up -d --build` lance l'API avec PostgreSQL
+  (profil `app` dans [`docker-compose.yml`](./docker-compose.yml)).
+- **Variables requises en production** : `ConnectionStrings__Default`, `Jwt__Secret`, `Cors__AllowedOrigins`,
+  `Admin__SeedEmail`/`Admin__SeedPassword`, et optionnellement `Redis__ConnectionString` (cache L2 + backplane),
+  `Turn__*` (appels via TURN) et `Storage__*` (S3).

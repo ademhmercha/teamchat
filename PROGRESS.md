@@ -10,8 +10,8 @@
 - [x] **Sprint 2 : Conversations privees et temps reel** - termine et valide
 - [x] **Sprint 3 : Groupes, modification, suppression, non lus** - termine, valide et pousse sur `sprint-3-groups` (PR manuelle a creer)
 - [x] **Sprint 4 : Fichiers et messages vocaux** - termine, valide et fusionne sur `main` (branche `sprint-4-files`)
-- [~] **Sprint 5 : Appels audio, video et partage d'ecran** - en cours (backend + frontend realises, en attente de validation)
-- [ ] Sprint 6 : Dashboard admin, qualite, deploiement
+- [x] **Sprint 5 : Appels audio, video et partage d'ecran** - termine, valide et fusionne sur `main` (branche `sprint-5-calls`)
+- [~] **Sprint 6 : Dashboard admin, qualite, deploiement** - en cours (backend + frontend realises, en attente de validation)
 
 ---
 
@@ -533,4 +533,104 @@ Environnement : identique aux sprints precedents (SDK .NET 10.0.401, Node v20.20
 | Tests backend | `dotnet test backend/TeamChat.sln` | OK, **48/48** (4 unitaires + 44 integration) |
 | Build frontend | `npm run build` (dans `frontend/`) | OK, **0 erreur / 0 avertissement**, chunks `shell`/`thread` generes |
 | Migration | `dotnet ef migrations add AddCallLog` | OK (table `CallLogs`) - `database update` **a confirmer en dev** |
+
+---
+
+## Sprint 6 : Dashboard admin, qualite, deploiement
+
+### Fait
+
+**Lot A - Tableau de bord admin (statistiques)**
+
+- `Application/Admin/Dtos/AdminStatsDto.cs` : `AdminStatsDto` (utilisateurs actifs/total, messages,
+  conversations, groupes, fichiers) + `DailyMessageCountDto` + `ActiveGroupDto`.
+- `Application/Abstractions/IAdminStatsQueries.cs` + `Infrastructure/Persistence/AdminStatsQueries.cs`
+  (lecture en base ; group-by par jour calcule cote client sur une fenetre bornee de 7 jours).
+- `Application/Admin/AdminStatsService.cs` + `Abstractions/IAdminStatsService.cs` : mise en cache
+  (`CacheKeys.AdminStats()`, TTL 5 min).
+- `Api/Controllers/AdminStatsController.cs` : `GET /api/admin/stats` (`[Authorize(Roles=Roles.Admin)]`).
+
+**Lot B - Durcissement de la desactivation**
+
+- `CacheKeys.UserMembershipTag(userId)` + `IMembershipService.InvalidateUserAsync(userId)`.
+- `MembershipService` : verification `IsActive` (un utilisateur desactive n'est plus membre) et
+  invalidation du tag d'appartenance par utilisateur.
+- `Application/Abstractions/IUserSessionTerminator.cs` + `Api/Infrastructure/SignalRUserSessionTerminator.cs` :
+  envoi de `ForceLogout` au groupe de l'utilisateur, eviction de la presence.
+- `Api/Hubs/IChatClient.cs` : ajout de `ForceLogout()`.
+- `AdminUserService` : a la desactivation -> `RevokeAllForUserAsync` + `InvalidateUserAsync` +
+  `IUserSessionTerminator.TerminateAsync`.
+
+**Lot B bis - Backplane Redis (SignalR)**
+
+- Package `Microsoft.AspNetCore.SignalR.StackExchangeRedis` (10.0.12).
+- `Program.cs` : backplane Redis active seulement si `Redis:ConnectionString` est defini.
+
+**Lot C - Frontend admin**
+
+- Backend support : `IUserQueries.AdminSearchAsync` (inclut les comptes inactifs), `IAdminUserService.ListAsync`,
+  `GET /api/admin/users` dans `AdminUsersController`.
+- `core/models/admin.models.ts`, `core/api/admin-users.service.ts`, `core/api/admin-stats.service.ts`.
+- `features/admin/admin-users.*` (liste, creation, role, activation/desactivation) et
+  `features/admin/admin-home.ts` (metriques + graphique Chart.js + top groupes).
+- Route `admin/users` (`app.routes.ts`), lien nav dans `layout/shell/shell.html`.
+- `chat.service.ts` : `forceLogout$` (evenement `ForceLogout`) ; `layout/shell/shell.ts` : deconnexion
+  forcee (arret du hub, purge session, redirection `/login`).
+- Dependance ajoutee : `chart.js@4.5.1`.
+
+**Lot D - Qualite**
+
+- `Program.cs` : middleware `Cache-Control: no-store` sur les reponses JSON (via `Response.OnStarting`).
+- OpenAPI mappe hors production uniquement (`if (!app.Environment.IsProduction())`).
+
+**Lot D bis - Tests (Redis + cache)**
+
+- Package `Testcontainers.Redis` (4.16.0) ; `TeamChatApiFactory` accepte une chaine Redis optionnelle ;
+  overloads `ApiTestHelper` ; `Api/RedisBackplaneTests.cs` (Postgres + Redis via Testcontainers) ;
+  `Api/MembershipCacheTests.cs` (invalidation du cache d'appartenance apres desactivation).
+
+**Lot E - Deploiement (fichiers prepares, aucun deploiement reel)**
+
+- `backend/Dockerfile` (multi-stage .NET 10 -> runtime, port 8080) + `backend/.dockerignore`.
+- `docker-compose.yml` : service `api` (profil `app`) reliant PostgreSQL, avec variables d'environnement.
+- `frontend/vercel.json` (build + reecriture SPA).
+- `.github/workflows/backend-ci.yml` : job `docker` (build de l'image API).
+- `README.md` : sections Administration et Deploiement.
+
+### En cours
+
+- Validation utilisateur du sprint (resume a presenter).
+
+### Decisions
+
+| # | Decision | Raison |
+|---|---|---|
+| D42 | Statistiques admin servies par requetes dediees + cache 5 min, sans invalidation active | Donnees de supervision, faible criticite : la fraicheur a 5 min suffit et evite des invalidations couteuses. |
+| D43 | Group-by jour calcule cote client sur une fenetre bornee (7 j) | `DateTimeOffset.UtcDateTime.Date` n'est pas traduisible par EF/Npgsql (erreur de coercion `DateTimeOffset`/`DateTime`). |
+| D44 | Redis optionnel : active a la fois le cache L2 et le backplane SignalR | Un seul parametre (`Redis:ConnectionString`) ; en l'absence de Redis, fonctionne mono-instance (presence en memoire). |
+| D45 | Desactivation = revocation des tokens + invalidation des caches + `ForceLogout` SignalR | Ferme immediatement les sessions actives et evite de servir des donnees mises en cache. |
+| D46 | Presence (SignalR) en **memoire par instance** | Limite connue pour le deploiement multi-instances ; le backplane Redis synchronise les messages, pas l'etat de presence applicatif. |
+| D47 | Deploiement : fichiers de configuration seulement (pas de deploiement effectif) | Choix explicite de l'utilisateur ; les credentials des fournisseurs ne sont pas disponibles. |
+| D48 | Graphiques via `chart.js` directement (pas de `ng2-charts`) | Evite les incompatibilites de version avec Angular 21. |
+
+### Problemes connus / non verifie
+
+- [ ] **Presence multi-instances** : le backplane Redis diffuse les messages entre instances, mais la
+  presence reste en memoire par instance (D46) ; un deploiement horizontal necessiterait un store partage.
+- [ ] **Deploiement reel non effectue** : les fichiers (Dockerfile, `vercel.json`, compose) sont prepares
+  mais aucun deploiement Vercel/Render/Neon n'a ete execute (D47).
+- [ ] Verifications navigateur du dashboard admin (graphique, gestion des utilisateurs) non executees ici.
+- [ ] Google login toujours non teste de bout en bout (pas de Client ID).
+- [ ] `S3FileStorage` toujours non teste contre un vrai S3 (prexistant).
+
+### Resultats de verification (reels, executes le 2026-10-13)
+
+Environnement : identique aux sprints precedents (SDK .NET 10, Node v20.20.2, PostgreSQL + Redis conteneurs).
+
+| Verification | Commande | Resultat |
+|---|---|---|
+| Build backend | `dotnet build backend/TeamChat.sln` | OK, **0 erreur / 0 avertissement** |
+| Tests backend | `dotnet test backend/TeamChat.sln` | OK, **53/53** (4 unitaires + 49 integration, Redis via Testcontainers inclus) |
+| Build frontend (dev) | `npm run build` (dans `frontend/`) | OK |
+| Build frontend (prod) | `npm run build -- --configuration production` | OK, sortie `dist/frontend/browser` |
 

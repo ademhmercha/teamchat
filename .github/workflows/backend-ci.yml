@@ -33,3 +33,11 @@ jobs:
 
       - name: Test
         run: dotnet test TeamChat.sln -c Release --no-build --verbosity normal
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -t teamchat-api:ci ./backend
