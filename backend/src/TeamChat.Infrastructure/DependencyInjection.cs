@@ -107,6 +107,7 @@ public static class DependencyInjection
         services.AddScoped<IEmailSender, DevEmailSender>();
         services.AddScoped<IConversationQueries, ConversationQueries>();
         services.AddScoped<IAdminGroupQueries, AdminGroupQueries>();
+        services.AddScoped<IAdminStatsQueries, AdminStatsQueries>();
         services.AddScoped<IMembershipService, MembershipService>();
         services.AddScoped<ICallQueries, CallQueries>();
         services.AddScoped<IIceServerProvider, TurnIceServerProvider>();

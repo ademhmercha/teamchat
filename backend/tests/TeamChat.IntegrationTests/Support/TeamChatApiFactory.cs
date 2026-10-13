@@ -8,11 +8,13 @@ namespace TeamChat.IntegrationTests.Support;
 public sealed class TeamChatApiFactory : WebApplicationFactory<Program>
 {
     private readonly string _connectionString;
+    private readonly string? _redisConnectionString;
     private readonly string _uploadsPath = Path.Combine(Path.GetTempPath(), "teamchat-test-uploads", Guid.NewGuid().ToString("N"));
 
-    public TeamChatApiFactory(string connectionString)
+    public TeamChatApiFactory(string connectionString, string? redisConnectionString = null)
     {
         _connectionString = connectionString;
+        _redisConnectionString = redisConnectionString;
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -32,6 +34,7 @@ public sealed class TeamChatApiFactory : WebApplicationFactory<Program>
                 ["Cors:AllowedOrigins"] = "http://localhost:4200",
                 ["RateLimiting:LoginPermitLimit"] = "100",
                 ["RateLimiting:ChatPermitLimit"] = "1000",
+                ["Redis:ConnectionString"] = _redisConnectionString ?? string.Empty,
                 ["Storage:Provider"] = "Local",
                 ["Storage:LocalPath"] = _uploadsPath,
                 ["Storage:MaxFileSizeBytes"] = "4096",

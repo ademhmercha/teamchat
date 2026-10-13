@@ -15,4 +15,10 @@ public interface IMembershipService
     Task InvalidateConversationAsync(
         Guid conversationId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Invalide toutes les appartenances cachees d'un utilisateur
+    /// (a utiliser lors de la desactivation d'un compte).</summary>
+    Task InvalidateUserAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
 }

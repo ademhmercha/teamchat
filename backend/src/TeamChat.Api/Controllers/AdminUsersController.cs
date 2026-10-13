@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TeamChat.Application.Abstractions;
+using TeamChat.Application.Common;
 using TeamChat.Application.Users.Dtos;
 using TeamChat.Domain.Constants;
 
@@ -16,6 +17,18 @@ public sealed class AdminUsersController : ControllerBase
     public AdminUsersController(IAdminUserService admin)
     {
         _admin = admin;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<PagedResult<UserProfileDto>>> List(
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var safePage = Math.Max(1, page);
+        var safePageSize = Math.Clamp(pageSize, 1, 100);
+        return Ok(await _admin.ListAsync(search, safePage, safePageSize, cancellationToken));
     }
 
     [HttpPost]

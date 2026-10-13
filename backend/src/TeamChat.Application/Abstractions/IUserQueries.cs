@@ -13,4 +13,11 @@ public interface IUserQueries
         CancellationToken cancellationToken = default);
 
     Task<UserProfileDto?> GetProfileAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>Liste administrateur : inclut les comptes desactives et le role.</summary>
+    Task<PagedResult<UserProfileDto>> AdminSearchAsync(
+        string? search,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
 }

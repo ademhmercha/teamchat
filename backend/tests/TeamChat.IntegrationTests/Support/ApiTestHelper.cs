@@ -12,13 +12,19 @@ namespace TeamChat.IntegrationTests.Support;
 /// <summary>Helpers partages par les tests d'integration (comptes, connexions, requetes).</summary>
 public static class ApiTestHelper
 {
-    public static async Task<(Guid UserId, string AccessToken)> ProvisionUserAndLoginAsync(
+    public static Task<(Guid UserId, string AccessToken)> ProvisionUserAndLoginAsync(
         ApiCollectionFixture fixture,
+        HttpClient client,
+        string email)
+        => ProvisionUserAndLoginAsync(fixture.Factory, client, email);
+
+    public static async Task<(Guid UserId, string AccessToken)> ProvisionUserAndLoginAsync(
+        TeamChatApiFactory factory,
         HttpClient client,
         string email)
     {
         Guid userId;
-        using (var scope = fixture.Factory.Services.CreateAsyncScope())
+        using (var scope = factory.Services.CreateAsyncScope())
         {
             var identity = scope.ServiceProvider.GetRequiredService<IIdentityService>();
 
@@ -68,8 +74,11 @@ public static class ApiTestHelper
     }
 
     public static HubConnection CreateConnection(ApiCollectionFixture fixture, string accessToken)
+        => CreateConnection(fixture.Factory, accessToken);
+
+    public static HubConnection CreateConnection(TeamChatApiFactory factory, string accessToken)
     {
-        var handler = fixture.Factory.Server.CreateHandler();
+        var handler = factory.Server.CreateHandler();
         return new HubConnectionBuilder()
             .WithUrl(new Uri("http://localhost/hubs/chat"), options =>
             {

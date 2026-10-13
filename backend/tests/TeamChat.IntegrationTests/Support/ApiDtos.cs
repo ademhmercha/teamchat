@@ -113,3 +113,15 @@ public sealed record CallHistoryItemDto(
     DateTimeOffset StartedAt,
     int? DurationSeconds,
     bool Outgoing);
+
+public sealed record DailyMessageCountDto(DateOnly Date, int Count);
+
+public sealed record ActiveGroupDto(Guid ConversationId, string Name, int MessageCount, int MemberCount);
+
+public sealed record AdminStatsDto(
+    int ActiveUsers,
+    int TotalUsers,
+    int ActiveGroups,
+    int MessagesLast7Days,
+    IReadOnlyList<DailyMessageCountDto> MessagesPerDay,
+    IReadOnlyList<ActiveGroupDto> TopGroups);

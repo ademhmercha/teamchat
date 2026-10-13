@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using TeamChat.Application.Abstractions;
+using TeamChat.Application.Admin;
 using TeamChat.Application.Attachments;
 using TeamChat.Application.Auth;
 using TeamChat.Application.Calls;
@@ -22,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<IAdminGroupService, AdminGroupService>();
         services.AddScoped<IAttachmentService, AttachmentService>();
         services.AddScoped<ICallService, CallService>();
+        services.AddScoped<IAdminStatsService, AdminStatsService>();
 
         services.AddSingleton(TimeProvider.System);
 

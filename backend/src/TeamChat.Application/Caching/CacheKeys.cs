@@ -22,6 +22,9 @@ public static class CacheKeys
     public static string MembershipTag(Guid conversationId) =>
         $"{Root}:membership:{conversationId}";
 
+    public static string UserMembershipTag(Guid userId) =>
+        $"{Root}:membership-user:{userId}";
+
     public static string Directory(int page, int pageSize, string? search) =>
         $"{Root}:directory:{page}:{pageSize}:{Sanitize(search)}";
 

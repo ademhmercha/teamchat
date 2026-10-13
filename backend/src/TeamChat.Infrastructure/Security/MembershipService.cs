@@ -31,7 +31,7 @@ public sealed class MembershipService : IMembershipService
             CacheKeys.Membership(conversationId, userId),
             token => HasMembershipAsync(conversationId, userId, token),
             Ttl,
-            new[] { CacheKeys.MembershipTag(conversationId) },
+            new[] { CacheKeys.MembershipTag(conversationId), CacheKeys.UserMembershipTag(userId) },
             cancellationToken).AsTask();
 
     public Task InvalidateConversationAsync(
@@ -39,11 +39,17 @@ public sealed class MembershipService : IMembershipService
         CancellationToken cancellationToken = default)
         => _cache.RemoveByTagAsync(CacheKeys.MembershipTag(conversationId), cancellationToken).AsTask();
 
+    public Task InvalidateUserAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+        => _cache.RemoveByTagAsync(CacheKeys.UserMembershipTag(userId), cancellationToken).AsTask();
+
     private ValueTask<bool> HasMembershipAsync(Guid conversationId, Guid userId, CancellationToken cancellationToken)
         => new(_db.ConversationParticipants.AsNoTracking()
             .AnyAsync(
                 p => p.ConversationId == conversationId
                      && p.UserId == userId
-                     && _db.Conversations.Any(c => c.Id == p.ConversationId && c.ArchivedAt == null),
+                     && _db.Conversations.Any(c => c.Id == p.ConversationId && c.ArchivedAt == null)
+                     && _db.Users.Any(u => u.Id == userId && u.IsActive),
                 cancellationToken));
 }

@@ -4,6 +4,7 @@ using TeamChat.Application.Abstractions;
 using TeamChat.Application.Caching;
 using TeamChat.Application.Common;
 using TeamChat.Application.Users.Dtos;
+using TeamChat.Domain.Constants;
 
 namespace TeamChat.Infrastructure.Persistence;
 
@@ -75,5 +76,52 @@ public sealed class UserQueries : IUserQueries
             .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
 
         return new UserProfileDto(user.Id, user.DisplayName, user.Email ?? string.Empty, user.AvatarUrl, role, user.IsActive);
+    }
+
+    public async Task<PagedResult<UserProfileDto>> AdminSearchAsync(
+        string? search,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _db.Users.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(u =>
+                u.DisplayName.ToLower().Contains(term) ||
+                (u.Email != null && u.Email.ToLower().Contains(term)));
+        }
+
+        var total = await query.CountAsync(cancellationToken);
+        var users = await query
+            .OrderBy(u => u.DisplayName)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(u => new { u.Id, u.DisplayName, u.Email, u.AvatarUrl, u.IsActive })
+            .ToListAsync(cancellationToken);
+
+        var ids = users.Select(u => u.Id).ToList();
+        var rolePairs = await (from userRole in _db.UserRoles
+                               join r in _db.Roles on userRole.RoleId equals r.Id
+                               where ids.Contains(userRole.UserId)
+                               select new { userRole.UserId, r.Name })
+            .ToListAsync(cancellationToken);
+        var roles = rolePairs
+            .GroupBy(pair => pair.UserId)
+            .ToDictionary(group => group.Key, group => group.First().Name);
+
+        var items = users
+            .Select(u => new UserProfileDto(
+                u.Id,
+                u.DisplayName,
+                u.Email ?? string.Empty,
+                u.AvatarUrl,
+                roles.GetValueOrDefault(u.Id, Roles.User),
+                u.IsActive))
+            .ToList();
+
+        return new PagedResult<UserProfileDto>(items, page, pageSize, total);
     }
 }

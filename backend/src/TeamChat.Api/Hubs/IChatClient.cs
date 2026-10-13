@@ -26,6 +26,10 @@ public interface IChatClient
     /// <summary>La liste des conversations a change (membres, archivage, nouveau message).</summary>
     Task ConversationUpdated(Guid conversationId);
 
+    /// <summary>Le compte a ete desactive par un administrateur : le client doit
+    /// fermer la connexion et revenir a l'ecran de connexion.</summary>
+    Task ForceLogout();
+
     /// <summary>Un appel entrant sonne pour l'utilisateur.</summary>
     Task IncomingCall(CallSessionDto call);
 

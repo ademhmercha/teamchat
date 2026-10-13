@@ -13,6 +13,9 @@ public sealed class AdminUserService : IAdminUserService
     private readonly IIdentityService _identity;
     private readonly IRefreshTokenStore _refreshTokens;
     private readonly IUserProfileCache _profileCache;
+    private readonly IUserQueries _queries;
+    private readonly IMembershipService _membership;
+    private readonly IUserSessionTerminator _sessions;
     private readonly ICacheService _cache;
     private readonly IEmailSender _email;
 
@@ -20,15 +23,28 @@ public sealed class AdminUserService : IAdminUserService
         IIdentityService identity,
         IRefreshTokenStore refreshTokens,
         IUserProfileCache profileCache,
+        IUserQueries queries,
+        IMembershipService membership,
+        IUserSessionTerminator sessions,
         ICacheService cache,
         IEmailSender email)
     {
         _identity = identity;
         _refreshTokens = refreshTokens;
         _profileCache = profileCache;
+        _queries = queries;
+        _membership = membership;
+        _sessions = sessions;
         _cache = cache;
         _email = email;
     }
+
+    public Task<PagedResult<UserProfileDto>> ListAsync(
+        string? search,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+        => _queries.AdminSearchAsync(search, page, pageSize, cancellationToken);
 
     public async Task<UserProfileDto> CreateAsync(
         CreateUserRequest request,
@@ -107,6 +123,8 @@ public sealed class AdminUserService : IAdminUserService
         if (deactivated)
         {
             await _refreshTokens.RevokeAllForUserAsync(user.Id, cancellationToken);
+            await _membership.InvalidateUserAsync(user.Id, cancellationToken);
+            await _sessions.TerminateAsync(user.Id, cancellationToken);
         }
 
         await InvalidateAsync(user.Id, cancellationToken);

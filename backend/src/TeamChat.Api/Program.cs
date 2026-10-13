@@ -21,11 +21,19 @@ builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>
 builder.Services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = maxRequestBodyBytes);
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
-builder.Services.AddSignalR();
+
+var redisBackplane = builder.Configuration["Redis:ConnectionString"];
+var signalRBuilder = builder.Services.AddSignalR();
+if (!string.IsNullOrWhiteSpace(redisBackplane))
+{
+    signalRBuilder.AddStackExchangeRedis(redisBackplane);
+}
+
 builder.Services.AddExceptionHandler<AppExceptionHandler>();
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddScoped<IUserSessionTerminator, SignalRUserSessionTerminator>();
 builder.Services.AddHostedService<CallTimeoutService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -124,6 +132,24 @@ builder.Services.AddRateLimiter(options =>
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.Use(async (context, next) =>
+{
+    // Reponses JSON privees par defaut (section 8 bis) : sauf en-tete explicite.
+    context.Response.OnStarting(() =>
+    {
+        var contentType = context.Response.ContentType;
+        if (contentType is not null
+            && contentType.StartsWith("application/json", StringComparison.OrdinalIgnoreCase)
+            && !context.Response.Headers.ContainsKey("Cache-Control"))
+        {
+            context.Response.Headers.CacheControl = "no-store";
+        }
+
+        return Task.CompletedTask;
+    });
+
+    await next();
+});
 app.UseCors("frontend");
 app.UseRateLimiter();
 app.UseAuthentication();
@@ -131,6 +157,12 @@ app.UseAuthorization();
 app.UseWebSockets();
 
 app.MapControllers();
+
+if (!app.Environment.IsProduction())
+{
+    app.MapOpenApi();
+}
+
 app.MapHub<TeamChat.Api.Hubs.ChatHub>("/hubs/chat")
     .RequireAuthorization()
     .RequireRateLimiting("chat");
