@@ -33,6 +33,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/admin-home').then((m) => m.AdminHomeComponent),
       },
       {
+        path: 'admin/users',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/admin-users').then((m) => m.AdminUsersComponent),
+      },
+      {
         path: 'admin/groups',
         canActivate: [adminGuard],
         loadComponent: () => import('./features/admin/admin-groups').then((m) => m.AdminGroupsComponent),

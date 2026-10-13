@@ -69,6 +69,9 @@ export class ChatService {
   private readonly _receiveIceCandidate = new Subject<IceCandidatePayload>();
   readonly receiveIceCandidate$ = this._receiveIceCandidate.asObservable();
 
+  private readonly _forceLogout = new Subject<void>();
+  readonly forceLogout$ = this._forceLogout.asObservable();
+
   isConnected(): boolean {
     return this.connection?.state === HubConnectionState.Connected;
   }
@@ -124,6 +127,7 @@ export class ChatService {
       (callId: string, candidate: string, sdpMid: string | null, sdpMLineIndex: number | null) =>
         this._receiveIceCandidate.next({ callId, candidate, sdpMid, sdpMLineIndex }),
     );
+    hub.on('ForceLogout', () => this._forceLogout.next());
 
     this.state.set(HubConnectionState.Connecting);
     void hub.start().then(
