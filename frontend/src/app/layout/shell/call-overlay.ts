@@ -38,4 +38,18 @@ export class CallOverlayComponent {
     const incoming = this.call.incoming();
     return initialsOf(incoming?.callerDisplayName ?? this.call.peerName());
   }
+
+  toggleFullscreen(): void {
+    const element = this.remoteVideo()?.nativeElement;
+    if (!element) {
+      return;
+    }
+
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+      return;
+    }
+
+    void element.requestFullscreen().catch(() => undefined);
+  }
 }

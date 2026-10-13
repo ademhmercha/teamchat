@@ -6,6 +6,39 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
+
+  // Appel reduit : petit widget flottant, sans fond bloquant, l'app reste utilisable.
+  &.minimized {
+    background: transparent;
+    pointer-events: none;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 1rem;
+
+    .call-card {
+      pointer-events: auto;
+      width: 300px;
+      max-width: calc(100vw - 2rem);
+      padding: 0.8rem;
+
+      &.video {
+        width: 300px;
+      }
+
+      &.enlarged {
+        width: 300px;
+      }
+
+      .video-area {
+        aspect-ratio: 16 / 10;
+        height: auto;
+      }
+
+      .video-area.audio-only {
+        height: 150px;
+      }
+    }
+  }
 }
 
 .call-card {
@@ -27,6 +60,16 @@
     padding: 0;
     background: #111;
     overflow: hidden;
+  }
+
+  &.enlarged {
+    width: min(1200px, 95vw);
+    max-width: 95vw;
+
+    .video-area {
+      aspect-ratio: auto;
+      height: min(78vh, 760px);
+    }
   }
 }
 
@@ -99,6 +142,14 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  background: #000;
+}
+
+.remote-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #000;
 }
 

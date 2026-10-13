@@ -1,6 +1,16 @@
 @if (call.visible()) {
-  <div class="call-overlay" role="dialog" aria-modal="true">
-    <div class="call-card" [class.video]="call.isVideo() && call.phase() === 'active'">
+  <div
+    class="call-overlay"
+    [class.minimized]="call.minimized() && call.phase() === 'active'"
+    [class.enlarged]="call.enlarged()"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div
+      class="call-card"
+      [class.video]="call.phase() === 'active' && call.showVideo()"
+      [class.enlarged]="call.enlarged()"
+    >
       @if (call.phase() === 'incoming') {
         <div class="avatar">{{ initials() }}</div>
         <div class="call-name">{{ call.incoming()?.callerDisplayName }}</div>
@@ -12,8 +22,14 @@
       } @else if (call.phase() === 'ended') {
         <div class="call-name">{{ call.statusText() }}</div>
       } @else {
-        <div class="video-area" [class.audio-only]="!call.isVideo()">
-          <video #remoteVideo class="remote-video" autoplay playsinline></video>
+        <div class="video-area" [class.audio-only]="!call.showVideo()">
+          @if (call.remoteHasVideo()) {
+            <video #remoteVideo class="remote-video" autoplay playsinline></video>
+          } @else {
+            <div class="remote-placeholder">
+              <div class="avatar">{{ initials() }}</div>
+            </div>
+          }
           <video #localVideo class="local-video" autoplay playsinline muted></video>
           <div class="call-info">
             <span class="call-name">{{ call.peerName() }}</span>
@@ -32,26 +48,56 @@
             {{ call.muted() ? 'Micro coupé' : 'Micro' }}
           </button>
 
-          @if (call.isVideo()) {
+          <button
+            type="button"
+            class="control"
+            [class.active]="call.cameraOn()"
+            (click)="call.toggleCamera()"
+            [title]="call.cameraOn() ? 'Couper la caméra' : 'Activer la caméra'"
+          >
+            {{ call.cameraOn() ? 'Caméra on' : 'Caméra off' }}
+          </button>
+
+          @if (!call.minimized()) {
             <button
               type="button"
               class="control"
-              [class.active]="call.cameraOn()"
-              (click)="call.toggleCamera()"
-              [title]="call.cameraOn() ? 'Couper la caméra' : 'Activer la caméra'"
+              [class.active]="call.screenSharing()"
+              (click)="call.toggleScreenShare()"
+              [title]="call.screenSharing() ? 'Arrêter le partage' : 'Partager l\'écran'"
             >
-              {{ call.cameraOn() ? 'Caméra on' : 'Caméra off' }}
+              {{ call.screenSharing() ? 'Partage on' : 'Partager' }}
             </button>
+
+            @if (call.remoteHasVideo()) {
+              <button
+                type="button"
+                class="control"
+                [class.active]="call.enlarged()"
+                (click)="call.toggleEnlarge()"
+                [title]="call.enlarged() ? 'Vue normale' : 'Agrandir la vidéo'"
+              >
+                {{ call.enlarged() ? 'Vue normale' : 'Agrandir' }}
+              </button>
+
+              <button
+                type="button"
+                class="control"
+                (click)="toggleFullscreen()"
+                title="Plein écran"
+              >
+                Plein écran
+              </button>
+            }
           }
 
           <button
             type="button"
             class="control"
-            [class.active]="call.screenSharing()"
-            (click)="call.toggleScreenShare()"
-            [title]="call.screenSharing() ? 'Arrêter le partage' : 'Partager l\'écran'"
+            (click)="call.toggleMinimize()"
+            [title]="call.minimized() ? 'Rétablir l\'appel' : 'Réduire (continuer à utiliser l\'app)'"
           >
-            {{ call.screenSharing() ? 'Partage on' : 'Partager' }}
+            {{ call.minimized() ? 'Rétablir' : 'Réduire' }}
           </button>
 
           <button type="button" class="control hangup" (click)="call.hangup()">Raccrocher</button>

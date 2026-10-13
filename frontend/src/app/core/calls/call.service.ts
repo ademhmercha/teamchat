@@ -49,6 +49,17 @@ export class CallService {
   readonly screenSharing = signal(false);
   readonly localStreamSignal = signal<MediaStream | null>(null);
   readonly remoteStream = signal<MediaStream | null>(null);
+  readonly remoteHasVideo = signal(false);
+
+  /** L'appel est reduit en petit widget flottant pour laisser l'app utilisable. */
+  readonly minimized = signal(false);
+  /** La video distante (partage d'ecran ou camera) est agrandie dans la fenetre. */
+  readonly enlarged = signal(false);
+
+  /** Une piste video locale est-elle active (camera ou partage d'ecran) ? */
+  readonly localHasVideo = computed(() => this.cameraOn() || this.screenSharing());
+  /** Faut-il afficher une zone video (locale ou distante) ? */
+  readonly showVideo = computed(() => this.remoteHasVideo() || this.localHasVideo());
 
   private readonly remoteMedia = new MediaStream();
 
@@ -223,6 +234,30 @@ export class CallService {
     this.error.set(null);
   }
 
+  /** Reduit l'appel en widget flottant (ou le retablit) pour continuer a utiliser l'app. */
+  toggleMinimize(): void {
+    if (this.phase() !== 'active') {
+      return;
+    }
+
+    this.minimized.update((value) => !value);
+    if (this.minimized()) {
+      this.enlarged.set(false);
+    }
+  }
+
+  /** Agrandit la video distante (partage d'ecran) dans la fenetre. */
+  toggleEnlarge(): void {
+    if (!this.remoteHasVideo()) {
+      return;
+    }
+
+    this.enlarged.update((value) => !value);
+    if (this.enlarged()) {
+      this.minimized.set(false);
+    }
+  }
+
   private stopScreenShare(): void {
     this.screenTrack?.stop();
     this.screenTrack = null;
@@ -391,6 +426,17 @@ export class CallService {
     }
   }
 
+  /** Recalcule la presence de video distante (une piste coupee/remplacee passe en "muted"). */
+  private refreshRemoteVideo(): void {
+    const hasLiveVideo = this.remoteMedia
+      .getVideoTracks()
+      .some((track) => track.readyState !== 'ended' && !track.muted);
+    this.remoteHasVideo.set(hasLiveVideo);
+    if (!hasLiveVideo) {
+      this.enlarged.set(false);
+    }
+  }
+
   private onCallEnded(callId: string, status: number): void {
     const session = this.session();
     const incoming = this.incoming();
@@ -426,9 +472,15 @@ export class CallService {
       event.streams[0]?.getTracks().forEach((track) => {
         if (!this.remoteMedia.getTracks().includes(track)) {
           this.remoteMedia.addTrack(track);
+          if (track.kind === 'video') {
+            track.onmute = () => this.refreshRemoteVideo();
+            track.onunmute = () => this.refreshRemoteVideo();
+            track.onended = () => this.refreshRemoteVideo();
+          }
         }
       });
       this.remoteStream.set(this.remoteMedia);
+      this.refreshRemoteVideo();
     };
 
     peer.onicecandidate = (event) => {
@@ -525,6 +577,9 @@ export class CallService {
     this.muted.set(false);
     this.cameraOn.set(false);
     this.screenSharing.set(false);
+    this.remoteHasVideo.set(false);
+    this.minimized.set(false);
+    this.enlarged.set(false);
     this.localStreamSignal.set(null);
     this.remoteStream.set(null);
   }
