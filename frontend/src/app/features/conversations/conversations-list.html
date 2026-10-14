@@ -1,7 +1,12 @@
 <div class="conversations">
   <header class="conv-head">
     <div class="conv-head-row">
-      <h1>Messages</h1>
+      <h1>
+        Messages
+        @if (unreadTotal() > 0) {
+          <span class="head-unread">{{ unreadTotal() }}</span>
+        }
+      </h1>
       <button type="button" class="new-button" tcTooltip="Nouvelle conversation" (click)="openPicker()">
         <app-icon name="plus" [size]="18" />
       </button>
@@ -16,6 +21,41 @@
         aria-label="Rechercher une conversation"
       />
     </label>
+    <div class="filters" role="tablist" aria-label="Filtrer les conversations">
+      <button
+        type="button"
+        role="tab"
+        class="filter-chip"
+        [class.active]="filter() === 'all'"
+        [attr.aria-selected]="filter() === 'all'"
+        (click)="setFilter('all')"
+      >
+        Tout
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="filter-chip"
+        [class.active]="filter() === 'unread'"
+        [attr.aria-selected]="filter() === 'unread'"
+        (click)="setFilter('unread')"
+      >
+        Non lus
+        @if (unreadTotal() > 0) {
+          <span class="chip-count">{{ unreadTotal() }}</span>
+        }
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="filter-chip"
+        [class.active]="filter() === 'groups'"
+        [attr.aria-selected]="filter() === 'groups'"
+        (click)="setFilter('groups')"
+      >
+        Groupes
+      </button>
+    </div>
   </header>
 
   @if (error(); as message) {
@@ -24,13 +64,25 @@
 
   <div class="conv-scroll">
     @if (loading()) {
-      <div class="state">Chargement…</div>
+      <ul class="conversation-list" aria-hidden="true">
+        @for (row of [1, 2, 3, 4, 5, 6]; track row) {
+          <li class="skeleton-row">
+            <span class="skeleton skeleton-avatar"></span>
+            <span class="skeleton-lines">
+              <span class="skeleton skeleton-line wide"></span>
+              <span class="skeleton skeleton-line"></span>
+            </span>
+          </li>
+        }
+      </ul>
     } @else if (isEmpty()) {
-      <div class="state empty">
-        <app-icon name="conversations" [size]="26" />
-        <p>Aucune conversation</p>
-        <button type="button" class="ghost" (click)="openPicker()">Démarrer un échange</button>
-      </div>
+      <tc-empty-state
+        icon="conversations"
+        title="Aucune conversation"
+        message="Démarrez un échange avec un collègue pour commencer."
+      >
+        <button type="button" class="ghost" (click)="openPicker()">Nouvelle conversation</button>
+      </tc-empty-state>
     } @else if (filteredItems().length === 0) {
       <div class="state">Aucun résultat.</div>
     } @else {
@@ -39,8 +91,11 @@
           <li>
             <a
               class="conversation-row"
+              [class.unread]="item.unreadCount > 0"
               [routerLink]="['/conversations', item.id]"
               routerLinkActive="active"
+              #rla="routerLinkActive"
+              [attr.aria-current]="rla.isActive ? 'page' : null"
               (click)="ui.closeNav()"
             >
               <tc-avatar
@@ -52,7 +107,7 @@
                 <div class="conversation-line">
                   <span class="conversation-name">{{ title(item) }}</span>
                   @if (item.lastMessageAt) {
-                    <span class="conversation-time">{{ shortTime(item.lastMessageAt) }}</span>
+                    <span class="conversation-time">{{ listTime(item.lastMessageAt) }}</span>
                   }
                 </div>
                 <span class="conversation-preview">
@@ -60,7 +115,12 @@
                 </span>
               </div>
               @if (item.unreadCount > 0) {
-                <span class="unread-badge">{{ item.unreadCount }}</span>
+                <span
+                  class="unread-badge"
+                  [attr.aria-label]="item.unreadCount + ' message(s) non lu(s)'"
+                >
+                  {{ item.unreadCount }}
+                </span>
               }
             </a>
           </li>

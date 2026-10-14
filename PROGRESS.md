@@ -810,6 +810,37 @@ separees, sans casser l'existant. Travail par sprints, valides un a un.
 - [ ] Non implemente (necessite backend, non simule) : repondre/citer, reactions, epinglage,
   transfert. Non presentes comme fonctionnels.
 - [ ] Validation visuelle manuelle a faire cote utilisateur (fil, separateurs, bouton bas).
+
+---
+
+## Refonte UX/UI majeure — Sprint 4 : liste de conversations (colonne gauche)
+
+### Fait
+
+- **Filtres segmentes** : Tout / Non lus / Groupes, avec compteur sur « Non lus ». Filtrage local
+  (les donnees viennent du DTO), cumulable avec la recherche texte.
+- **Horodatage intelligent** de la liste : heure (aujourd'hui), « Hier », jour abrege (cette semaine),
+  puis date jj/mm/aa — au lieu de toujours afficher l'heure.
+- **Emphase des non lus** : nom en gras, apercu assombri, heure en bleu ; badges deja existants.
+- **Compteur global de non lus** dans l'en-tete de la liste.
+- **Squelette de chargement** (6 lignes animees) a la place du simple texte « Chargement… ».
+- **Etats vides** unifies via le composant partage `tc-empty-state`.
+- **Accessibilite** : `aria-current="page"` sur la conversation active, libelle ARIA des badges
+  de non lus, filtres en `role="tablist"`/`role="tab"` avec `aria-selected`.
+
+### Resultats de verification (reels, executes le 2026-10-14)
+
+| Verification | Commande | Resultat |
+|---|---|---|
+| Build frontend (prod) | `npm run build -- --configuration production` | OK, 0 erreur / 0 warning |
+| Dev server (HMR) | recompilation auto | OK |
+
+### Problemes connus / non verifie
+
+- [ ] Tri explicite (par nom / activite) non ajoute : l'ordre reste celui du serveur (activite).
+- [ ] Archiver une conversation non disponible : le DTO de liste n'expose pas d'etat d'archivage
+  (necessite un champ backend).
+- [ ] Validation visuelle manuelle a faire cote utilisateur (filtres, horodatage, squelette).
 - [ ] Fonctions a connecter (necessitent backend) : repondre/citer, reactions, notifications persistees,
   protection "dernier admin", journal d'activite, parametres, endpoints membres/fichiers partages.
 - [ ] Comptes de test : `admin@teamchat.local` / `Admin123!`,

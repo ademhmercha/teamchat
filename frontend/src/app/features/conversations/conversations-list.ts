@@ -10,7 +10,8 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ChatService } from '../../core/chat/chat.service';
 import { ConversationListItemDto } from '../../core/models/conversation.models';
 import { UserListItem } from '../../core/models/user.models';
-import { shortTime } from '../../core/utils/display';
+import { listTime } from '../../core/utils/display';
+import { EmptyStateComponent } from '../../shared/ui/empty-state';
 import { IconComponent } from '../../shared/icon/icon';
 import { AvatarComponent } from '../../shared/ui/avatar';
 import { ModalComponent } from '../../shared/ui/modal';
@@ -27,6 +28,7 @@ import { ConversationsUiService } from './conversations-ui.service';
     AvatarComponent,
     ModalComponent,
     TooltipDirective,
+    EmptyStateComponent,
   ],
   templateUrl: './conversations-list.html',
   styleUrl: './conversations-list.scss',
@@ -46,6 +48,7 @@ export class ConversationsListComponent {
   readonly items = signal<ConversationListItemDto[]>([]);
   readonly presence = this.chat.presence;
   readonly query = signal('');
+  readonly filter = signal<'all' | 'unread' | 'groups'>('all');
 
   readonly pickerOpen = signal(false);
   readonly pickerSearch = signal('');
@@ -54,22 +57,39 @@ export class ConversationsListComponent {
 
   readonly currentUserId = this.auth.user()?.id;
 
+  readonly unreadTotal = computed(() =>
+    this.items().reduce((total, item) => total + item.unreadCount, 0),
+  );
+
   readonly filteredItems = computed(() => {
     const term = this.query().trim().toLowerCase();
-    if (!term) {
-      return this.items();
-    }
-    return this.items().filter(
-      (item) =>
+    const filter = this.filter();
+
+    return this.items().filter((item) => {
+      if (filter === 'unread' && item.unreadCount === 0) {
+        return false;
+      }
+      if (filter === 'groups' && !this.isGroup(item)) {
+        return false;
+      }
+      if (!term) {
+        return true;
+      }
+      return (
         this.title(item).toLowerCase().includes(term) ||
-        (item.lastMessagePreview ?? '').toLowerCase().includes(term),
-    );
+        (item.lastMessagePreview ?? '').toLowerCase().includes(term)
+      );
+    });
   });
 
   readonly isEmpty = computed(() => this.items().length === 0 && !this.loading());
 
   onQueryInput(event: Event): void {
     this.query.set((event.target as HTMLInputElement).value);
+  }
+
+  setFilter(filter: 'all' | 'unread' | 'groups'): void {
+    this.filter.set(filter);
   }
 
   constructor() {
@@ -165,5 +185,5 @@ export class ConversationsListComponent {
     return problem?.detail ?? problem?.title ?? 'Erreur lors du chargement.';
   }
 
-  protected readonly shortTime = shortTime;
+  protected readonly listTime = listTime;
 }
