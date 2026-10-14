@@ -875,6 +875,14 @@ separees, sans casser l'existant. Travail par sprints, valides un a un.
   suppression d'utilisateur, pas de protection « dernier admin », pas de journal d'activite,
   pas de parametres) : a faire cote backend, non simule ici.
 - [ ] Validation visuelle manuelle a faire cote utilisateur (barre et onglets admin, modales).
+
+### Suivi des manques backend
+
+Toutes les logiques manquantes cote backend (a implementer plus tard) sont recensees dans
+`BACKEND_TODO.md` a la racine du depot : utilisateurs (suppression, dernier admin), profil
+courant, conversations/messages (reponses, reactions, epingles, fichiers partages, archivage),
+notifications, groupes (desarchivage, renommage), audit, parametres, authentification
+(mot de passe oublie, Google), appels de groupe, quotas de pieces jointes.
 - [ ] Fonctions a connecter (necessitent backend) : repondre/citer, reactions, notifications persistees,
   protection "dernier admin", journal d'activite, parametres, endpoints membres/fichiers partages.
 - [ ] Comptes de test : `admin@teamchat.local` / `Admin123!`,
