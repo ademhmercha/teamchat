@@ -1,3 +1,5 @@
+<a class="skip-link" href="#main-content">Aller au contenu</a>
+
 <div class="shell" [class.rail]="collapsed()">
   <aside class="sidebar">
     <div class="brand">
@@ -15,7 +17,7 @@
       </button>
     </div>
 
-    <nav class="nav">
+    <nav class="nav" aria-label="Navigation principale">
       <a routerLink="/conversations" routerLinkActive="active" class="nav-link" tcTooltip="Messages">
         <app-icon name="conversations" [size]="19" />
         <span class="nav-label">Messages</span>
@@ -27,7 +29,7 @@
     </nav>
 
     @if (isAdmin()) {
-      <nav class="nav nav-admin">
+      <nav class="nav nav-admin" aria-label="Administration">
         <span class="nav-title">Administration</span>
         <a
           routerLink="/admin"
@@ -98,9 +100,9 @@
       </div>
     </header>
 
-    <section class="content">
+    <main id="main-content" class="content" tabindex="-1">
       <router-outlet />
-    </section>
+    </main>
   </div>
 
   <app-call-overlay />

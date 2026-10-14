@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, HostListener, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ConversationsListComponent } from './conversations-list';
 import { ConversationsUiService } from './conversations-ui.service';
@@ -11,4 +11,11 @@ import { ConversationsUiService } from './conversations-ui.service';
 })
 export class ConversationsLayoutComponent {
   readonly ui = inject(ConversationsUiService);
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.ui.navOpen()) {
+      this.ui.closeNav();
+    }
+  }
 }

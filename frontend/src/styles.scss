@@ -145,6 +145,39 @@ a {
   outline-offset: 2px;
 }
 
+/* Lien d'evitement (navigation clavier). */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 1300;
+  transform: translateY(-160%);
+  padding: 8px 14px;
+  border-radius: var(--tc-radius);
+  background: var(--tc-primary);
+  color: var(--tc-on-accent);
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform var(--tc-fast);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Contenu reserve aux lecteurs d'ecran. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Scrollbars discretes et adaptees au theme clair. */
 * {
   scrollbar-width: thin;

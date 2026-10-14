@@ -1,4 +1,4 @@
-import { Component, HostListener, input, output } from '@angular/core';
+import { Component, ElementRef, HostListener, effect, input, output, viewChild } from '@angular/core';
 import { IconComponent } from '../icon/icon';
 
 @Component({
@@ -13,7 +13,7 @@ import { IconComponent } from '../icon/icon';
         [attr.aria-label]="alt() || 'Aperçu de l’image'"
         (click)="close()"
       >
-        <button type="button" class="tc-lightbox__close" aria-label="Fermer l’aperçu" (click)="close()">
+        <button #closeBtn type="button" class="tc-lightbox__close" aria-label="Fermer l’aperçu" (click)="close()">
           <app-icon name="close" [size]="20" />
         </button>
         <img
@@ -82,6 +82,16 @@ export class LightboxComponent {
   readonly alt = input('');
 
   readonly closed = output<void>();
+
+  private readonly closeBtn = viewChild<ElementRef<HTMLButtonElement>>('closeBtn');
+
+  constructor() {
+    effect(() => {
+      if (this.open()) {
+        queueMicrotask(() => this.closeBtn()?.nativeElement.focus());
+      }
+    });
+  }
 
   close(): void {
     this.closed.emit();

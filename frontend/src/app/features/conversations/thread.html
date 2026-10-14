@@ -6,6 +6,8 @@
         class="icon-btn nav-toggle"
         title="Conversations"
         aria-label="Ouvrir la liste des conversations"
+        aria-controls="conv-nav"
+        [attr.aria-expanded]="ui.navOpen()"
         (click)="ui.openNav()"
       >
         <app-icon name="menu" [size]="19" />

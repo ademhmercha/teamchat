@@ -959,3 +959,43 @@ notifications, groupes (desarchivage, renommage), audit, parametres, authentific
   (cote client) faute d'endpoint backend ; la liste complete necessite
   `GET /api/conversations/{id}/attachments` (voir `BACKEND_TODO.md` §3).
 - [ ] La duree reelle du vocal depend des metadonnees du blob (fallback sur `durationSec`).
+
+---
+
+## Refonte UX/UI majeure — Sprint 8 : Responsive, accessibilite & finition
+
+### Fait
+
+- **Accessibilite** :
+  - lien d'evitement « Aller au contenu » (`.skip-link`) + cible `#main-content` ;
+  - la zone de contenu devient le **repère `<main>`** ; libelles sur les `<nav>`
+    (navigation principale, administration) ; liste des conversations nommee (`id="conv-nav"`) ;
+  - bouton d'ouverture du tiroir conversations : `aria-controls` + `aria-expanded` ;
+    fermeture du tiroir par **Échap** ; scrim marque `aria-hidden` ;
+  - compteur de l'annuaire en `aria-live="polite"` ; etats de chargement admin en `role="status"` ;
+  - visionneuse d'image : le focus est place sur le bouton Fermer a l'ouverture.
+- **Responsive** :
+  - barre superieure compactee sous 640px (infos de compte masquees, espacements reduits) ;
+  - listes d'administration (utilisateurs, groupes) qui repassent en plusieurs lignes sous 560px ;
+  - carte de connexion plus compacte sous 420px.
+- **Finition** :
+  - correction de l'encodage (mojibake) du tableau de bord admin
+    (« activite », « statistiques… », « Creer/gerer/roles ») ;
+  - suppression des micro-animations decoratives (`translateY` au survol) sur le tableau de bord,
+    pour rester coherent avec le reste de la refonte ;
+  - couleurs de secours du graphique alignees sur le theme clair ; utilitaire `.sr-only` ajoute.
+
+### Resultats de verification (reels, executes le 2026-10-14)
+
+| Verification | Commande | Resultat |
+|---|---|---|
+| Build frontend (prod) | `npm run build -- --configuration production` | OK, 0 erreur / 0 warning |
+| Dev server (HMR) | recompilation auto | OK |
+| Recherche de mojibake | scan `frontend/src` | aucun reste |
+
+### Problemes connus / non verifie
+
+- [ ] Validation visuelle manuelle a faire cote utilisateur (mobile/tablette, navigation clavier,
+  lien d'evitement, tiroir conversations).
+- [ ] Le bouton « Notifications » de la barre superieure reste sans action (endpoint backend absent,
+  voir `BACKEND_TODO.md` §4).

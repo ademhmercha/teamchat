@@ -1,5 +1,5 @@
 <div class="conv-layout" [class.nav-open]="ui.navOpen()">
-  <aside class="conv-nav">
+  <aside id="conv-nav" class="conv-nav" aria-label="Liste des conversations">
     <app-conversations-list />
   </aside>
 
@@ -7,5 +7,5 @@
     <router-outlet />
   </div>
 
-  <div class="drawer-scrim" (click)="ui.closeNav()"></div>
+  <div class="drawer-scrim" aria-hidden="true" (click)="ui.closeNav()"></div>
 </div>

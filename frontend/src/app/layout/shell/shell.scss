@@ -290,6 +290,10 @@
   overflow: hidden;
 }
 
+#main-content:focus {
+  outline: none;
+}
+
 /* ---------- Rail (collapsed navigation) ---------- */
 
 @mixin rail {
@@ -350,5 +354,25 @@
     kbd {
       display: none;
     }
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    gap: 0.6rem;
+    padding: 0 0.75rem;
+  }
+
+  .account-info {
+    display: none;
+  }
+
+  .account {
+    padding-left: 0.6rem;
+  }
+
+  .topbar-icon {
+    width: 36px;
+    height: 36px;
   }
 }

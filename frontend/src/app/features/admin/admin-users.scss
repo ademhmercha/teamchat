@@ -278,3 +278,26 @@
   justify-content: flex-end;
   gap: 0.6rem;
 }
+
+@media (max-width: 560px) {
+  .admin-users {
+    padding: 1.25rem 1rem;
+  }
+
+  .search input {
+    width: 130px;
+  }
+
+  .user-row {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+
+  .user-info {
+    flex: 1 1 140px;
+  }
+
+  .role-select {
+    flex: 1;
+  }
+}

@@ -25,7 +25,7 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
       <header class="page-header">
         <div>
           <h1>Tableau de bord</h1>
-          <p>Vue d'ensemble de l'activitÃ© de votre espace.</p>
+          <p>Vue d'ensemble de l'activité de votre espace.</p>
         </div>
       </header>
 
@@ -34,7 +34,7 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
       }
 
       @if (loading()) {
-        <div class="state">Chargement des statistiquesâ€¦</div>
+        <div class="state" role="status">Chargement des statistiques…</div>
       } @else if (stats(); as data) {
         <section class="metrics">
           <div class="metric">
@@ -69,7 +69,7 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
         <section class="card">
           <h2>Groupes les plus actifs</h2>
           @if (data.topGroups.length === 0) {
-            <div class="state">Aucune activitÃ© de groupe sur la pÃ©riode.</div>
+            <div class="state">Aucune activité de groupe sur la période.</div>
           } @else {
             <ul class="group-list">
               @for (group of data.topGroups; track group.conversationId) {
@@ -92,7 +92,7 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
           <span class="card-link-icon"><app-icon name="users" [size]="22" /></span>
           <div class="card-link-body">
             <span class="card-title">Utilisateurs</span>
-            <span class="card-desc">CrÃ©er des comptes, changer les rÃ´les, activer ou dÃ©sactiver.</span>
+            <span class="card-desc">Créer des comptes, changer les rôles, activer ou désactiver.</span>
           </div>
           <span class="card-chevron"><app-icon name="chevron-right" [size]="18" /></span>
         </a>
@@ -100,7 +100,7 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
           <span class="card-link-icon"><app-icon name="conversations" [size]="22" /></span>
           <div class="card-link-body">
             <span class="card-title">Groupes</span>
-            <span class="card-desc">CrÃ©er des groupes, gÃ©rer les membres et archiver.</span>
+            <span class="card-desc">Créer des groupes, gérer les membres et archiver.</span>
           </div>
           <span class="card-chevron"><app-icon name="chevron-right" [size]="18" /></span>
         </a>
@@ -153,10 +153,9 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
       border-radius: var(--tc-radius-lg);
       background: var(--tc-surface);
       box-shadow: var(--tc-shadow-sm);
-      transition: transform 200ms var(--tc-ease), box-shadow 200ms var(--tc-ease);
+      transition: box-shadow var(--tc-slow);
 
       &:hover {
-        transform: translateY(-2px);
         box-shadow: var(--tc-shadow);
       }
     }
@@ -291,13 +290,11 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
       color: inherit;
       background: var(--tc-surface);
       box-shadow: var(--tc-shadow-sm);
-      transition: border-color 200ms var(--tc-ease), box-shadow 200ms var(--tc-ease),
-        transform 200ms var(--tc-ease);
+      transition: border-color var(--tc-slow), box-shadow var(--tc-slow);
 
       &:hover {
-        border-color: var(--tc-primary-soft);
+        border-color: var(--tc-primary);
         box-shadow: var(--tc-shadow);
-        transform: translateY(-2px);
 
         .card-chevron {
           color: var(--tc-primary);
@@ -382,9 +379,9 @@ export class AdminHomeComponent {
   private renderChart(canvas: HTMLCanvasElement, data: AdminStats): void {
     this.chart?.destroy();
     const styles = getComputedStyle(document.documentElement);
-    const accentRgb = styles.getPropertyValue('--tc-accent-rgb').trim() || '59, 130, 246';
-    const gridColor = styles.getPropertyValue('--tc-border').trim() || '#25334b';
-    const tickColor = styles.getPropertyValue('--tc-text-muted').trim() || '#6f7d97';
+    const accentRgb = styles.getPropertyValue('--tc-accent-rgb').trim() || '37, 99, 235';
+    const gridColor = styles.getPropertyValue('--tc-border').trim() || '#e2e8f0';
+    const tickColor = styles.getPropertyValue('--tc-text-muted').trim() || '#6b7688';
     this.chart = new Chart(canvas, {
       type: 'line',
       data: {
