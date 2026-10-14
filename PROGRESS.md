@@ -926,3 +926,36 @@ notifications, groupes (desarchivage, renommage), audit, parametres, authentific
   squelette, pagination, responsive).
 - [ ] Le regroupement en direct d'une conversation creee depuis l'annuaire depend du backend
   (`createDirect`) : fonctionnel via la creation idempotente existante, non reteste en e2e ici.
+
+---
+
+## Refonte UX/UI majeure — Sprint 7 : Fichiers, vocal & medias
+
+### Fait
+
+- **Apercu plein ecran des images** : nouveau composant partage `tc-lightbox` (fond assombri,
+  clic hors image / bouton / Echap pour fermer, focus visible). Les images du fil sont cliquables
+  avec un badge de zoom au survol.
+- **Lecteur de message vocal sur mesure** : nouveau composant `app-voice-player`
+  (bouton lecture/pause, barre de progression deformable **au clavier**, minuteur temps courant/
+  duree). Remplace le lecteur `<audio>` natif pour un rendu homogene au theme.
+- **Cartes de fichier ameliorees** : affichage de l'extension (PDF, DOCX, ZIP…) dans la vignette.
+- **Icones ajoutees** : `play`, `pause` (jeu d'icones partage).
+- **Tokens** : ajout de `--tc-scrim-strong` (fond de visionneuse) ; aucun couleur codee en dur
+  dans les composants (lightbox, zoom, lecteur).
+- CSS mort supprime (`.voice`, `.voice-icon`, `.voice-duration`, ancien lecteur natif).
+
+### Resultats de verification (reels, executes le 2026-10-14)
+
+| Verification | Commande | Resultat |
+|---|---|---|
+| Build frontend (prod) | `npm run build -- --configuration production` | OK, 0 erreur / 0 warning |
+| Dev server (HMR) | recompilation auto | OK |
+
+### Problemes connus / non verifie
+
+- [ ] Validation visuelle manuelle a faire cote utilisateur (apercu image, lecteur vocal, cartes fichier).
+- [ ] L'onglet « Fichiers partages » du panneau Détails est **derive des messages charges**
+  (cote client) faute d'endpoint backend ; la liste complete necessite
+  `GET /api/conversations/{id}/attachments` (voir `BACKEND_TODO.md` §3).
+- [ ] La duree reelle du vocal depend des metadonnees du blob (fallback sur `durationSec`).

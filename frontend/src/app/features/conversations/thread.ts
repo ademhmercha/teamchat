@@ -15,7 +15,9 @@ import { ConversationListItemDto, MessageDto } from '../../core/models/conversat
 import { formatDuration, formatFileSize, initialsOf, shortTime } from '../../core/utils/display';
 import { IconComponent } from '../../shared/icon/icon';
 import { EmptyStateComponent } from '../../shared/ui/empty-state';
+import { LightboxComponent } from '../../shared/ui/lightbox';
 import { ConversationsUiService } from './conversations-ui.service';
+import { VoicePlayerComponent } from './voice-player';
 
 const TYPING_SENT_INTERVAL_MS = 1500;
 const STOP_TYPING_DELAY_MS = 1000;
@@ -67,7 +69,7 @@ interface SharedFile {
 
 @Component({
   selector: 'app-thread',
-  imports: [FormsModule, IconComponent, EmptyStateComponent],
+  imports: [FormsModule, IconComponent, EmptyStateComponent, VoicePlayerComponent, LightboxComponent],
   templateUrl: './thread.html',
   styleUrl: './thread.scss',
 })
@@ -118,6 +120,10 @@ export class ThreadComponent {
   readonly detailsOpen = signal(true);
   readonly emojiOpen = signal(false);
   readonly emojis = EMOJIS;
+
+  readonly lightboxOpen = signal(false);
+  readonly lightboxSrc = signal('');
+  readonly lightboxAlt = signal('');
 
   readonly currentUserId = this.auth.user()?.id;
 
@@ -274,6 +280,11 @@ export class ThreadComponent {
     return formatFileSize(bytes);
   }
 
+  fileExt(fileName: string): string {
+    const dot = fileName.lastIndexOf('.');
+    return dot > 0 ? fileName.slice(dot + 1).toUpperCase().slice(0, 5) : '';
+  }
+
   duration(seconds: number | null | undefined): string {
     return formatDuration(seconds);
   }
@@ -281,6 +292,21 @@ export class ThreadComponent {
   mediaUrl(message: MessageDto): string {
     const attachment = message.attachment;
     return attachment ? (this.mediaUrls()[attachment.id] ?? '') : '';
+  }
+
+  openImage(message: MessageDto): void {
+    const url = this.mediaUrl(message);
+    if (!url) {
+      return;
+    }
+
+    this.lightboxSrc.set(url);
+    this.lightboxAlt.set(message.attachment?.fileName ?? '');
+    this.lightboxOpen.set(true);
+  }
+
+  closeImage(): void {
+    this.lightboxOpen.set(false);
   }
 
   onScroll(): void {
