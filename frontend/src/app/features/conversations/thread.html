@@ -61,7 +61,7 @@
       <div class="alert" role="alert">{{ message }}</div>
     }
 
-    <div class="scroll-area" #scrollArea (scroll)="onScroll()">
+    <div class="scroll-area" #scrollArea (scroll)="onScroll()" role="log" aria-label="Messages">
       @if (loadingOlder()) {
         <div class="state state-small">Chargement des messages précédents…</div>
       } @else if (hasMore()) {
@@ -69,13 +69,16 @@
       }
 
       @if (messages().length === 0) {
-        <div class="empty-state">
-          <div class="empty-badge"><app-icon name="conversations" [size]="26" /></div>
-          <p>Aucun message pour l'instant.</p>
-          <span>Envoyez le premier message pour démarrer la discussion.</span>
-        </div>
+        <tc-empty-state
+          icon="conversations"
+          title="Aucun message pour l'instant."
+          message="Envoyez le premier message pour démarrer la discussion."
+        />
       } @else {
         @for (row of displayMessages(); track row.message.id) {
+          @if (row.dateLabel; as label) {
+            <div class="day-separator" role="separator"><span>{{ label }}</span></div>
+          }
           @if (row.isSystem) {
             <div class="system-message">{{ row.message.content }}</div>
           } @else {
@@ -160,20 +163,33 @@
 
                   <div class="msg-meta">
                     <span class="time">{{ time(row.message) }}</span>
-                    @if (canEdit(row.message)) {
+                    @if (canEdit(row.message) || (row.message.type === 0 && row.message.content)) {
                       <span class="actions">
-                        <button type="button" class="link" title="Modifier" aria-label="Modifier" (click)="startEdit(row.message)">
-                          <app-icon name="edit" [size]="15" />
-                        </button>
-                        <button
-                          type="button"
-                          class="link danger"
-                          title="Supprimer"
-                          aria-label="Supprimer"
-                          (click)="deleteMessage(row.message)"
-                        >
-                          <app-icon name="trash" [size]="15" />
-                        </button>
+                        @if (row.message.type === 0 && row.message.content) {
+                          <button
+                            type="button"
+                            class="link"
+                            title="Copier le texte"
+                            aria-label="Copier le texte"
+                            (click)="copyMessage(row.message)"
+                          >
+                            <app-icon [name]="copiedId() === row.message.id ? 'check' : 'copy'" [size]="15" />
+                          </button>
+                        }
+                        @if (canEdit(row.message)) {
+                          <button type="button" class="link" title="Modifier" aria-label="Modifier" (click)="startEdit(row.message)">
+                            <app-icon name="edit" [size]="15" />
+                          </button>
+                          <button
+                            type="button"
+                            class="link danger"
+                            title="Supprimer"
+                            aria-label="Supprimer"
+                            (click)="deleteMessage(row.message)"
+                          >
+                            <app-icon name="trash" [size]="15" />
+                          </button>
+                        }
                       </span>
                     }
                   </div>
@@ -191,6 +207,17 @@
         </div>
       }
     </div>
+
+    @if (!atBottom()) {
+      <button type="button" class="jump-latest" (click)="jumpToLatest()">
+        <app-icon name="arrow-down" [size]="16" />
+        @if (newCount() > 0) {
+          <span>{{ newCount() }} nouveau{{ newCount() > 1 ? 'x' : '' }} message{{ newCount() > 1 ? 's' : '' }}</span>
+        } @else {
+          <span>Revenir en bas</span>
+        }
+      </button>
+    }
 
     <footer class="composer">
       @if (uploading()) {
@@ -249,6 +276,7 @@
             type="text"
             class="composer-input"
             placeholder="Écrire un message…"
+            aria-label="Écrire un message"
             [value]="input()"
             (input)="onInputEvent($event)"
             autocomplete="off"

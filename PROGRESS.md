@@ -779,6 +779,37 @@ separees, sans casser l'existant. Travail par sprints, valides un a un.
 
 - [ ] Rendu navigateur non verifie automatise (pas de test e2e) : validation visuelle a faire cote utilisateur.
 - [ ] Regressions residuelles possibles liees au passage clair ; serons traitees sprint par sprint.
+
+---
+
+## Refonte UX/UI majeure — Sprint 3 : centre de conversation (messagerie)
+
+### Fait
+
+- **Separateurs de jour** dans le fil : « Aujourd'hui », « Hier » ou date longue francaise
+  (annee affichee seulement si differente), places au changement de jour et a chaque systeme.
+- **Bouton « Revenir en bas » / nouveaux messages** : apparait des que l'on remonte le fil,
+  affiche le nombre de nouveaux messages recus hors du bas, redefile et remet le compteur a zero.
+- **Action « Copier le texte »** sur les messages texte, avec retour visuel (icone coche ~1,4 s).
+  Action locale (presse-papiers), ne necessite aucune API.
+- **Etat vide de conversation** unifie via le composant partage `tc-empty-state`.
+- **Accessibilite** : fil en `role="log"` avec libelle, actions de message visibles au survol,
+  **au focus clavier** et **en permanence sur ecrans tactiles** (`@media (hover: none)`),
+  libelle sur le champ de saisie.
+- Ajout des icones `copy` et `arrow-down` au jeu d'icones partage.
+
+### Resultats de verification (reels, executes le 2026-10-14)
+
+| Verification | Commande | Resultat |
+|---|---|---|
+| Build frontend (prod) | `npm run build -- --configuration production` | OK, 0 erreur / 0 warning |
+| Dev server (HMR) | recompilation auto | OK |
+
+### Problemes connus / non verifie
+
+- [ ] Non implemente (necessite backend, non simule) : repondre/citer, reactions, epinglage,
+  transfert. Non presentes comme fonctionnels.
+- [ ] Validation visuelle manuelle a faire cote utilisateur (fil, separateurs, bouton bas).
 - [ ] Fonctions a connecter (necessitent backend) : repondre/citer, reactions, notifications persistees,
   protection "dernier admin", journal d'activite, parametres, endpoints membres/fichiers partages.
 - [ ] Comptes de test : `admin@teamchat.local` / `Admin123!`,

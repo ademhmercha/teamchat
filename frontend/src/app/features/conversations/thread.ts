@@ -14,6 +14,7 @@ import { CallType } from '../../core/models/call.models';
 import { ConversationListItemDto, MessageDto } from '../../core/models/conversation.models';
 import { formatDuration, formatFileSize, initialsOf, shortTime } from '../../core/utils/display';
 import { IconComponent } from '../../shared/icon/icon';
+import { EmptyStateComponent } from '../../shared/ui/empty-state';
 import { ConversationsUiService } from './conversations-ui.service';
 
 const TYPING_SENT_INTERVAL_MS = 1500;
@@ -29,6 +30,32 @@ interface DisplayRow {
   own: boolean;
   grouped: boolean;
   lastOfGroup: boolean;
+  dateLabel: string | null;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function startOfDay(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+function formatDay(iso: string): string {
+  const date = new Date(iso);
+  const today = new Date();
+  const diffDays = Math.round((startOfDay(today) - startOfDay(date)) / DAY_MS);
+  if (diffDays === 0) {
+    return "Aujourd'hui";
+  }
+  if (diffDays === 1) {
+    return 'Hier';
+  }
+  const sameYear = date.getFullYear() === today.getFullYear();
+  return new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    ...(sameYear ? {} : { year: 'numeric' as const }),
+  }).format(date);
 }
 
 interface SharedFile {
@@ -40,7 +67,7 @@ interface SharedFile {
 
 @Component({
   selector: 'app-thread',
-  imports: [FormsModule, IconComponent],
+  imports: [FormsModule, IconComponent, EmptyStateComponent],
   templateUrl: './thread.html',
   styleUrl: './thread.scss',
 })
@@ -85,6 +112,9 @@ export class ThreadComponent {
   readonly editValue = signal('');
   readonly savingEdit = signal(false);
 
+  readonly newCount = signal(0);
+  readonly copiedId = signal<string | null>(null);
+
   readonly detailsOpen = signal(true);
   readonly emojiOpen = signal(false);
   readonly emojis = EMOJIS;
@@ -112,12 +142,15 @@ export class ThreadComponent {
         !this.isDeleted(next) &&
         this.withinGroup(message, next);
 
+      const newDay = !prev || startOfDay(new Date(prev.createdAt)) !== startOfDay(new Date(message.createdAt));
+
       return {
         message,
         isSystem,
         own: message.senderId === this.currentUserId,
         grouped,
         lastOfGroup: !nextSame,
+        dateLabel: newDay ? formatDay(message.createdAt) : null,
       };
     });
   });
@@ -257,7 +290,11 @@ export class ThreadComponent {
     }
 
     const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    this.atBottom.set(fromBottom < 120);
+    const atBottom = fromBottom < 120;
+    this.atBottom.set(atBottom);
+    if (atBottom) {
+      this.newCount.set(0);
+    }
 
     if (this.hasMore() && !this.loadingOlder() && el.scrollTop < 60) {
       this.loadOlder();
@@ -554,6 +591,7 @@ export class ThreadComponent {
     this.error.set(null);
     this.messages.set([]);
     this.hasMore.set(false);
+    this.newCount.set(0);
 
     this.conversations.getMyConversations().subscribe({
       next: (list) => {
@@ -620,7 +658,33 @@ export class ThreadComponent {
     this.ensureMedia(message);
     if (this.atBottom()) {
       this.scrollToBottom();
+    } else if (message.senderId !== this.currentUserId) {
+      this.newCount.update((value) => value + 1);
     }
+  }
+
+  jumpToLatest(): void {
+    this.newCount.set(0);
+    this.scrollToBottom();
+  }
+
+  copyMessage(message: MessageDto): void {
+    const text = message.content ?? '';
+    if (!text || !navigator.clipboard) {
+      return;
+    }
+
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        this.copiedId.set(message.id);
+        window.setTimeout(() => {
+          if (this.copiedId() === message.id) {
+            this.copiedId.set(null);
+          }
+        }, 1400);
+      })
+      .catch(() => undefined);
   }
 
   private markRead(): void {
