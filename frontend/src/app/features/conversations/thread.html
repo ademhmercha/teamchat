@@ -1,162 +1,344 @@
-<div class="thread">
-  <header class="thread-header">
-    <a class="back" routerLink="/conversations">← Conversations</a>
-    @if (conversation()) {
-      <div class="peer">
-        <div class="avatar">
-          {{ headerInitials() }}
-          @if (!isGroup() && peerOnline()) {
-            <span class="presence-dot" aria-label="En ligne"></span>
+<div class="thread" [class.details-shown]="detailsOpen()">
+  <div class="thread-center">
+    <header class="thread-header">
+      <button
+        type="button"
+        class="icon-btn nav-toggle"
+        title="Conversations"
+        aria-label="Ouvrir la liste des conversations"
+        (click)="ui.openNav()"
+      >
+        <app-icon name="menu" [size]="19" />
+      </button>
+
+      @if (conversation()) {
+        <button type="button" class="peer" (click)="toggleDetails()" title="Afficher les détails">
+          <div class="avatar">
+            {{ headerInitials() }}
+            @if (!isGroup() && peerOnline()) {
+              <span class="presence-dot" aria-label="En ligne"></span>
+            }
+          </div>
+          <div class="peer-info">
+            <span class="peer-name">{{ conversationTitle() }}</span>
+            @if (isGroup()) {
+              <span class="group-meta">{{ participantCount() }} membre(s)</span>
+            } @else if (peerOnline()) {
+              <span class="group-meta online">En ligne</span>
+            } @else {
+              <span class="group-meta">Hors ligne</span>
+            }
+            @if (otherTypingName(); as typingName) {
+              <span class="typing-banner">{{ typingName }} écrit…</span>
+            }
+          </div>
+        </button>
+
+        <div class="header-actions">
+          @if (canCall()) {
+            <button type="button" class="icon-btn" title="Appel audio" aria-label="Appel audio" (click)="startAudioCall()">
+              <app-icon name="phone" [size]="18" />
+            </button>
+            <button type="button" class="icon-btn" title="Appel vidéo" aria-label="Appel vidéo" (click)="startVideoCall()">
+              <app-icon name="video" [size]="18" />
+            </button>
           }
-        </div>
-        <div class="peer-info">
-          <span class="peer-name">{{ conversationTitle() }}</span>
-          @if (isGroup()) {
-            <span class="group-meta">{{ participantCount() }} membre(s)</span>
-          }
-          @if (otherTypingName(); as typingName) {
-            <span class="typing-banner">{{ typingName }} écrit…</span>
-          }
-        </div>
-      </div>
-      @if (canCall()) {
-        <div class="call-buttons">
-          <button type="button" class="call-button" title="Appel audio" (click)="startAudioCall()">Audio</button>
-          <button type="button" class="call-button" title="Appel vidéo" (click)="startVideoCall()">Vidéo</button>
+          <button
+            type="button"
+            class="icon-btn"
+            [class.active]="detailsOpen()"
+            title="Détails de la conversation"
+            aria-label="Détails de la conversation"
+            (click)="toggleDetails()"
+          >
+            <app-icon name="info" [size]="18" />
+          </button>
         </div>
       }
-    }
-  </header>
+    </header>
 
-  @if (error(); as message) {
-    <div class="alert" role="alert">{{ message }}</div>
-  }
-
-  <div class="scroll-area" #scrollArea (scroll)="onScroll()">
-    @if (loadingOlder()) {
-      <div class="state state-small">Chargement des messages précédents…</div>
-    } @else if (hasMore()) {
-      <div class="state state-small">Faites défiler pour plus de messages</div>
+    @if (error(); as message) {
+      <div class="alert" role="alert">{{ message }}</div>
     }
 
-    @if (messages().length === 0) {
-      <div class="state">Aucun message pour l'instant.</div>
-    } @else {
-      @for (message of messages(); track message.id) {
-        @if (message.type === 4) {
-          <div class="system-message">{{ message.content }}</div>
-        } @else {
-        <div class="message" [class.own]="message.senderId === currentUserId">
-          @if (message.deleted) {
-            <div class="bubble deleted">Ce message a été supprimé</div>
-          } @else if (editingId() === message.id) {
-            <div class="bubble edit-bubble">
-              <input
-                type="text"
-                class="edit-input"
-                [value]="editValue()"
-                (input)="onEditInputEvent($event)"
-                autofocus
-              />
-              <div class="edit-actions">
-                <button type="submit" (click)="saveEdit()" [disabled]="savingEdit() || !editValue().trim()">
-                  Enregistrer
-                </button>
-                <button type="button" class="ghost" (click)="cancelEdit()">Annuler</button>
+    <div class="scroll-area" #scrollArea (scroll)="onScroll()">
+      @if (loadingOlder()) {
+        <div class="state state-small">Chargement des messages précédents…</div>
+      } @else if (hasMore()) {
+        <div class="state state-small">Faites défiler pour plus de messages</div>
+      }
+
+      @if (messages().length === 0) {
+        <div class="empty-state">
+          <div class="empty-badge"><app-icon name="conversations" [size]="26" /></div>
+          <p>Aucun message pour l'instant.</p>
+          <span>Envoyez le premier message pour démarrer la discussion.</span>
+        </div>
+      } @else {
+        @for (row of displayMessages(); track row.message.id) {
+          @if (row.isSystem) {
+            <div class="system-message">{{ row.message.content }}</div>
+          } @else {
+            <div class="message" [class.own]="row.own" [class.grouped]="row.grouped" [class.last]="row.lastOfGroup">
+              @if (!row.own) {
+                <div class="avatar-slot">
+                  @if (!row.grouped) {
+                    <div class="msg-avatar">{{ initialsOfName(row.message.senderDisplayName) }}</div>
+                  }
+                </div>
+              }
+
+              <div class="msg-body">
+                @if (!row.own && !row.grouped) {
+                  <div class="msg-head">
+                    <span class="sender">{{ row.message.senderDisplayName }}</span>
+                  </div>
+                }
+
+                @if (row.message.deleted) {
+                  <div class="bubble deleted">Ce message a été supprimé</div>
+                } @else if (editingId() === row.message.id) {
+                  <div class="bubble edit-bubble">
+                    <input
+                      type="text"
+                      class="edit-input"
+                      [value]="editValue()"
+                      (input)="onEditInputEvent($event)"
+                      autofocus
+                    />
+                    <div class="edit-actions">
+                      <button type="button" class="chip ghost" (click)="cancelEdit()">
+                        <app-icon name="close" [size]="15" /> Annuler
+                      </button>
+                      <button
+                        type="button"
+                        class="chip"
+                        (click)="saveEdit()"
+                        [disabled]="savingEdit() || !editValue().trim()"
+                      >
+                        <app-icon name="check" [size]="15" /> Enregistrer
+                      </button>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="bubble" [class.bubble-media]="row.message.type === 1 || row.message.type === 3">
+                    @if (row.message.type === 0) {
+                      <div class="text">{{ row.message.content }}</div>
+                      @if (row.message.edited) {
+                        <span class="edited">modifié</span>
+                      }
+                    } @else if (row.message.type === 3 && row.message.attachment) {
+                      <img
+                        class="msg-image"
+                        [src]="mediaUrl(row.message)"
+                        [alt]="row.message.attachment!.fileName"
+                        loading="lazy"
+                      />
+                    } @else if (row.message.type === 1 && row.message.attachment) {
+                      <div class="voice">
+                        <span class="voice-icon"><app-icon name="mic" [size]="16" /></span>
+                        <audio controls preload="metadata" [src]="mediaUrl(row.message)"></audio>
+                        <span class="voice-duration">{{ duration(row.message.attachment!.durationSec) }}</span>
+                      </div>
+                    } @else if (row.message.type === 2 && row.message.attachment) {
+                      <button
+                        type="button"
+                        class="file-card"
+                        (click)="downloadAttachment(row.message.attachment!.id, row.message.attachment!.fileName)"
+                      >
+                        <span class="file-icon"><app-icon name="file" [size]="18" /></span>
+                        <span class="file-meta">
+                          <span class="file-name">{{ row.message.attachment!.fileName }}</span>
+                          <span class="file-size">{{ size(row.message.attachment!.sizeBytes) }}</span>
+                        </span>
+                        <app-icon name="download" [size]="16" />
+                      </button>
+                    } @else {
+                      <div class="unsupported">Contenu non pris en charge</div>
+                    }
+                  </div>
+
+                  <div class="msg-meta">
+                    <span class="time">{{ time(row.message) }}</span>
+                    @if (canEdit(row.message)) {
+                      <span class="actions">
+                        <button type="button" class="link" title="Modifier" aria-label="Modifier" (click)="startEdit(row.message)">
+                          <app-icon name="edit" [size]="15" />
+                        </button>
+                        <button
+                          type="button"
+                          class="link danger"
+                          title="Supprimer"
+                          aria-label="Supprimer"
+                          (click)="deleteMessage(row.message)"
+                        >
+                          <app-icon name="trash" [size]="15" />
+                        </button>
+                      </span>
+                    }
+                  </div>
+                }
               </div>
             </div>
-          } @else {
-            <div class="bubble" [class.bubble-media]="message.type === 1 || message.type === 3">
-              @if (message.type === 0) {
-                <div class="text">{{ message.content }}</div>
-                @if (message.edited) {
-                  <span class="edited">modifié</span>
+          }
+        }
+      }
+
+      @if (otherTypingName(); as typingName) {
+        <div class="typing-row">
+          <div class="typing-dots"><span></span><span></span><span></span></div>
+          <span class="typing-text">{{ typingName }} écrit…</span>
+        </div>
+      }
+    </div>
+
+    <footer class="composer">
+      @if (uploading()) {
+        <div class="upload">
+          <div class="upload-bar"><div class="upload-fill" [style.width.%]="uploadProgress()"></div></div>
+          <span class="upload-label">Envoi… {{ uploadProgress() }}%</span>
+        </div>
+      }
+
+      @if (recording()) {
+        <div class="recorder">
+          <span class="rec-dot"></span>
+          <span class="rec-time">{{ duration(recordSeconds()) }}</span>
+          <span class="rec-hint">Enregistrement…</span>
+          <button type="button" class="circle-action ghost" title="Annuler" aria-label="Annuler" (click)="cancelRecording()">
+            <app-icon name="close" [size]="18" />
+          </button>
+          <button type="button" class="circle-action send" title="Envoyer le vocal" aria-label="Envoyer le vocal" (click)="stopRecordingAndSend()">
+            <app-icon name="check" [size]="18" />
+          </button>
+        </div>
+      } @else {
+        <form (ngSubmit)="send()">
+          <input #fileInput type="file" hidden (change)="onFileSelected($event)" />
+          <button
+            type="button"
+            class="composer-action"
+            title="Joindre un fichier ou une image"
+            aria-label="Joindre un fichier"
+            (click)="pickFile()"
+            [disabled]="uploading()"
+          >
+            <app-icon name="paperclip" [size]="20" />
+          </button>
+
+          <div class="emoji-wrap">
+            <button
+              type="button"
+              class="composer-action"
+              title="Emoji"
+              aria-label="Insérer un emoji"
+              (click)="toggleEmoji()"
+            >
+              <app-icon name="emoji" [size]="20" />
+            </button>
+            @if (emojiOpen()) {
+              <div class="emoji-pop" role="menu">
+                @for (emoji of emojis; track emoji) {
+                  <button type="button" (click)="insertEmoji(emoji)">{{ emoji }}</button>
                 }
-              } @else if (message.type === 3 && message.attachment) {
-                <img class="msg-image" [src]="mediaUrl(message)" [alt]="message.attachment!.fileName" loading="lazy" />
-              } @else if (message.type === 1 && message.attachment) {
-                <div class="voice">
-                  <audio controls preload="metadata" [src]="mediaUrl(message)"></audio>
-                  <span class="voice-duration">{{ duration(message.attachment!.durationSec) }}</span>
-                </div>
-              } @else if (message.type === 2 && message.attachment) {
-                <button
-                  type="button"
-                  class="file-card"
-                  (click)="downloadAttachment(message.attachment!.id, message.attachment!.fileName)"
-                >
-                  <span class="file-name">{{ message.attachment!.fileName }}</span>
-                  <span class="file-size">{{ size(message.attachment!.sizeBytes) }}</span>
-                  <span class="file-download">Télécharger</span>
-                </button>
-              } @else {
-                <div class="unsupported">Contenu non pris en charge</div>
-              }
+              </div>
+            }
+          </div>
+
+          <input
+            type="text"
+            class="composer-input"
+            placeholder="Écrire un message…"
+            [value]="input()"
+            (input)="onInputEvent($event)"
+            autocomplete="off"
+          />
+
+          <button
+            type="button"
+            class="composer-action mic"
+            title="Enregistrer un message vocal"
+            aria-label="Enregistrer un message vocal"
+            (click)="startRecording()"
+            [disabled]="uploading()"
+          >
+            <app-icon name="mic" [size]="20" />
+          </button>
+          <button type="submit" class="send-action" title="Envoyer" aria-label="Envoyer" [disabled]="sending() || !input().trim()">
+            <app-icon name="send" [size]="19" />
+          </button>
+        </form>
+      }
+    </footer>
+  </div>
+
+  <aside class="thread-details" [class.open]="detailsOpen()">
+    @if (conversation(); as conv) {
+      <header class="details-head">
+        <span class="details-title">Détails</span>
+        <button type="button" class="icon-btn" title="Fermer" aria-label="Fermer les détails" (click)="closeDetails()">
+          <app-icon name="close" [size]="18" />
+        </button>
+      </header>
+
+      <div class="details-body">
+        <div class="details-profile">
+          <div class="avatar avatar-lg">
+            {{ headerInitials() }}
+            @if (!isGroup() && peerOnline()) {
+              <span class="presence-dot" aria-label="En ligne"></span>
+            }
+          </div>
+          <span class="details-name">{{ conversationTitle() }}</span>
+          <span class="details-sub">
+            @if (isGroup()) {
+              Groupe · {{ participantCount() }} membre(s)
+            } @else if (peerOnline()) {
+              En ligne
+            } @else {
+              Hors ligne
+            }
+          </span>
+        </div>
+
+        <section class="details-section">
+          <span class="section-label">À propos</span>
+          <div class="info-row">
+            <span class="info-key">Type</span>
+            <span class="info-val">{{ isGroup() ? 'Groupe' : 'Discussion directe' }}</span>
+          </div>
+          @if (isGroup()) {
+            <div class="info-row">
+              <span class="info-key">Membres</span>
+              <span class="info-val">{{ participantCount() }}</span>
             </div>
-            <div class="meta">
-              <span>{{ message.senderDisplayName }} · {{ time(message) }}</span>
-              @if (canEdit(message)) {
-                <span class="actions">
-                  <button type="button" class="link" (click)="startEdit(message)">Modifier</button>
-                  <button type="button" class="link danger" (click)="deleteMessage(message)">Supprimer</button>
-                </span>
+          }
+        </section>
+
+        <section class="details-section">
+          <span class="section-label">Fichiers partagés ({{ sharedFiles().length }})</span>
+          @if (sharedFiles().length === 0) {
+            <p class="muted">Aucun fichier partagé pour le moment.</p>
+          } @else {
+            <div class="file-list">
+              @for (file of sharedFiles(); track file.id) {
+                <button type="button" class="shared-file" (click)="downloadAttachment(file.id, file.fileName)">
+                  <span class="sf-icon">
+                    <app-icon [name]="file.isImage ? 'image' : 'file'" [size]="16" />
+                  </span>
+                  <span class="sf-meta">
+                    <span class="sf-name">{{ file.fileName }}</span>
+                    <span class="sf-size">{{ size(file.sizeBytes) }}</span>
+                  </span>
+                  <app-icon name="download" [size]="15" />
+                </button>
               }
             </div>
           }
-        </div>
-        }
-      }
-    }
-  </div>
-
-  <footer class="composer">
-    @if (uploading()) {
-      <div class="upload">
-        <div class="upload-bar"><div class="upload-fill" [style.width.%]="uploadProgress()"></div></div>
-        <span class="upload-label">Envoi… {{ uploadProgress() }}%</span>
+        </section>
       </div>
     }
+  </aside>
 
-    @if (recording()) {
-      <div class="recorder">
-        <span class="rec-dot"></span>
-        <span class="rec-time">{{ duration(recordSeconds()) }}</span>
-        <button type="button" class="send-button" (click)="stopRecordingAndSend()">Envoyer</button>
-        <button type="button" class="ghost" (click)="cancelRecording()">Annuler</button>
-      </div>
-    } @else {
-      <form (ngSubmit)="send()">
-        <input #fileInput type="file" hidden (change)="onFileSelected($event)" />
-        <button
-          type="button"
-          class="composer-action"
-          title="Joindre un fichier ou une image"
-          (click)="pickFile()"
-          [disabled]="uploading()"
-        >
-          Fichier
-        </button>
-        <button
-          type="button"
-          class="composer-action"
-          title="Enregistrer un message vocal"
-          (click)="startRecording()"
-          [disabled]="uploading()"
-        >
-          Vocal
-        </button>
-        <input
-          type="text"
-          class="composer-input"
-          placeholder="Écrire un message…"
-          [value]="input()"
-          (input)="onInputEvent($event)"
-          autocomplete="off"
-        />
-        <button type="submit" class="send-button" [disabled]="sending() || !input().trim()">
-          Envoyer
-        </button>
-      </form>
-    }
-  </footer>
+  <div class="details-scrim" (click)="closeDetails()"></div>
 </div>

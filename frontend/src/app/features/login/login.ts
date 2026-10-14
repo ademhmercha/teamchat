@@ -4,6 +4,8 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth/auth.service';
+import { IconComponent } from '../../shared/icon/icon';
+import { ButtonComponent } from '../../shared/ui/button';
 
 declare const google: {
   accounts: {
@@ -16,7 +18,7 @@ declare const google: {
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, IconComponent, ButtonComponent],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
@@ -71,7 +73,7 @@ export class LoginComponent implements OnInit {
         callback: (response) => this.onGoogleCredential(response.credential),
       });
       google.accounts.id.renderButton(document.getElementById('google-button'), {
-        theme: 'outline',
+        theme: 'filled_black',
         size: 'large',
         width: 320,
       });

@@ -1,4 +1,4 @@
-import { HttpErrorResponse } from '@angular/common/http';
+﻿import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, ElementRef, effect, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
@@ -13,37 +13,47 @@ import {
 } from 'chart.js';
 import { AdminStatsService } from '../../core/api/admin-stats.service';
 import { AdminStats } from '../../core/models/admin.models';
+import { IconComponent } from '../../shared/icon/icon';
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip);
 
 @Component({
   selector: 'app-admin-home',
-  imports: [RouterLink],
+  imports: [RouterLink, IconComponent],
   template: `
     <div class="admin-home">
-      <h1>Tableau de bord</h1>
+      <header class="page-header">
+        <div>
+          <h1>Tableau de bord</h1>
+          <p>Vue d'ensemble de l'activitÃ© de votre espace.</p>
+        </div>
+      </header>
 
       @if (error(); as message) {
         <div class="alert" role="alert">{{ message }}</div>
       }
 
       @if (loading()) {
-        <div class="state">Chargement des statistiques…</div>
+        <div class="state">Chargement des statistiquesâ€¦</div>
       } @else if (stats(); as data) {
         <section class="metrics">
           <div class="metric">
+            <span class="metric-icon"><app-icon name="users" [size]="20" /></span>
             <span class="metric-value">{{ data.activeUsers }}</span>
             <span class="metric-label">Utilisateurs actifs</span>
           </div>
           <div class="metric">
+            <span class="metric-icon"><app-icon name="user" [size]="20" /></span>
             <span class="metric-value">{{ data.totalUsers }}</span>
             <span class="metric-label">Comptes au total</span>
           </div>
           <div class="metric">
+            <span class="metric-icon"><app-icon name="conversations" [size]="20" /></span>
             <span class="metric-value">{{ data.activeGroups }}</span>
             <span class="metric-label">Groupes actifs</span>
           </div>
           <div class="metric">
+            <span class="metric-icon"><app-icon name="send" [size]="20" /></span>
             <span class="metric-value">{{ data.messagesLast7Days }}</span>
             <span class="metric-label">Messages (7 jours)</span>
           </div>
@@ -59,11 +69,14 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
         <section class="card">
           <h2>Groupes les plus actifs</h2>
           @if (data.topGroups.length === 0) {
-            <div class="state">Aucune activité de groupe sur la période.</div>
+            <div class="state">Aucune activitÃ© de groupe sur la pÃ©riode.</div>
           } @else {
             <ul class="group-list">
               @for (group of data.topGroups; track group.conversationId) {
                 <li class="group-row">
+                  <span class="group-avatar">
+                    <app-icon name="conversations" [size]="18" />
+                  </span>
                   <span class="group-name">{{ group.name }}</span>
                   <span class="group-tag">{{ group.memberCount }} membre(s)</span>
                   <span class="group-count">{{ group.messageCount }} msg</span>
@@ -76,67 +89,112 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
 
       <section class="cards">
         <a class="card-link" routerLink="/admin/users">
-          <span class="card-title">Utilisateurs</span>
-          <span class="card-desc">Créer des comptes, changer les rôles, activer ou désactiver.</span>
+          <span class="card-link-icon"><app-icon name="users" [size]="22" /></span>
+          <div class="card-link-body">
+            <span class="card-title">Utilisateurs</span>
+            <span class="card-desc">CrÃ©er des comptes, changer les rÃ´les, activer ou dÃ©sactiver.</span>
+          </div>
+          <span class="card-chevron"><app-icon name="chevron-right" [size]="18" /></span>
         </a>
         <a class="card-link" routerLink="/admin/groups">
-          <span class="card-title">Groupes</span>
-          <span class="card-desc">Créer des groupes, gérer les membres et archiver.</span>
+          <span class="card-link-icon"><app-icon name="conversations" [size]="22" /></span>
+          <div class="card-link-body">
+            <span class="card-title">Groupes</span>
+            <span class="card-desc">CrÃ©er des groupes, gÃ©rer les membres et archiver.</span>
+          </div>
+          <span class="card-chevron"><app-icon name="chevron-right" [size]="18" /></span>
         </a>
       </section>
     </div>
   `,
   styles: `
     .admin-home {
-      max-width: 880px;
+      width: 100%;
+      max-width: 1100px;
       margin: 0 auto;
+      height: 100%;
+      overflow-y: auto;
+      padding: 1.75rem 2rem;
       display: flex;
       flex-direction: column;
       gap: 1.25rem;
-      color: #2c2f42;
+      color: var(--tc-text);
     }
 
-    h1 {
-      margin: 0;
-      font-size: 1.5rem;
+    .page-header {
+      h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        letter-spacing: -0.01em;
+      }
+
+      p {
+        margin: 0.3rem 0 0;
+        font-size: 0.87rem;
+        color: var(--tc-text-muted);
+      }
     }
 
     .metrics {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
       gap: 0.9rem;
     }
 
     .metric {
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      grid-template-rows: auto auto;
+      column-gap: 0.85rem;
+      row-gap: 0.1rem;
+      align-items: center;
       padding: 1rem 1.1rem;
-      border: 1px solid #e6e7f1;
+      border: 1px solid var(--tc-border);
+      border-radius: var(--tc-radius-lg);
+      background: var(--tc-surface);
+      box-shadow: var(--tc-shadow-sm);
+      transition: transform 200ms var(--tc-ease), box-shadow 200ms var(--tc-ease);
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--tc-shadow);
+      }
+    }
+
+    .metric-icon {
+      grid-row: 1 / span 2;
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
       border-radius: 12px;
-      background: #fff;
+      background: var(--tc-gradient-soft);
+      color: var(--tc-primary);
     }
 
     .metric-value {
-      font-size: 1.7rem;
+      font-size: 1.6rem;
       font-weight: 700;
-      color: #5b4bd6;
+      line-height: 1.1;
+      color: var(--tc-text);
     }
 
     .metric-label {
-      font-size: 0.82rem;
-      color: #7a8095;
+      font-size: 0.8rem;
+      color: var(--tc-text-muted);
     }
 
     .card {
-      padding: 1rem 1.1rem;
-      border: 1px solid #e6e7f1;
-      border-radius: 14px;
-      background: #fff;
+      padding: 1.1rem 1.2rem;
+      border: 1px solid var(--tc-border);
+      border-radius: var(--tc-radius-lg);
+      background: var(--tc-surface);
+      box-shadow: var(--tc-shadow-sm);
 
       h2 {
-        margin: 0 0 0.75rem;
-        font-size: 1rem;
+        margin: 0 0 0.85rem;
+        font-size: 0.98rem;
+        font-weight: 650;
       }
     }
 
@@ -148,17 +206,34 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
       list-style: none;
       margin: 0;
       padding: 0;
-
-      li + li {
-        border-top: 1px solid #f0f1f7;
-      }
     }
 
     .group-row {
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      padding: 0.55rem 0;
+      padding: 0.6rem 0.4rem;
+      border-radius: 10px;
+      transition: background 180ms var(--tc-ease);
+
+      &:hover {
+        background: var(--tc-surface-2);
+      }
+
+      & + .group-row {
+        border-top: 1px solid var(--tc-border);
+      }
+    }
+
+    .group-avatar {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: var(--tc-primary-soft);
+      color: var(--tc-primary);
+      flex-shrink: 0;
     }
 
     .group-name {
@@ -172,59 +247,96 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
 
     .group-tag {
       font-size: 0.78rem;
-      color: #7a8095;
+      color: var(--tc-text-muted);
     }
 
     .group-count {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: #5b4bd6;
+      font-size: 0.8rem;
+      font-weight: 650;
+      color: var(--tc-primary);
+      background: var(--tc-primary-soft);
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      white-space: nowrap;
     }
 
     .state {
       padding: 1.5rem;
       text-align: center;
-      color: #7a8095;
+      color: var(--tc-text-muted);
     }
 
     .alert {
-      padding: 0.6rem 0.75rem;
-      border-radius: 9px;
-      background: #fdecea;
-      color: #b3261e;
+      padding: 0.65rem 0.8rem;
+      border-radius: 10px;
+      background: var(--tc-danger-soft);
+      color: var(--tc-danger);
       font-size: 0.85rem;
     }
 
     .cards {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 0.9rem;
     }
 
     .card-link {
       display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
+      align-items: center;
+      gap: 0.9rem;
       padding: 1rem 1.1rem;
-      border: 1px solid #e6e7f1;
-      border-radius: 12px;
+      border: 1px solid var(--tc-border);
+      border-radius: var(--tc-radius-lg);
       text-decoration: none;
       color: inherit;
-      background: #fff;
+      background: var(--tc-surface);
+      box-shadow: var(--tc-shadow-sm);
+      transition: border-color 200ms var(--tc-ease), box-shadow 200ms var(--tc-ease),
+        transform 200ms var(--tc-ease);
 
       &:hover {
-        border-color: #c9c2f2;
-        background: #f8f7ff;
+        border-color: var(--tc-primary-soft);
+        box-shadow: var(--tc-shadow);
+        transform: translateY(-2px);
+
+        .card-chevron {
+          color: var(--tc-primary);
+          transform: translateX(2px);
+        }
       }
     }
 
+    .card-link-icon {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--tc-gradient-soft);
+      color: var(--tc-primary);
+      flex-shrink: 0;
+    }
+
+    .card-link-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      flex: 1;
+      min-width: 0;
+    }
+
     .card-title {
-      font-weight: 600;
+      font-weight: 650;
     }
 
     .card-desc {
-      font-size: 0.85rem;
-      color: #7a8095;
+      font-size: 0.83rem;
+      color: var(--tc-text-muted);
+    }
+
+    .card-chevron {
+      color: var(--tc-text-muted);
+      transition: color 200ms var(--tc-ease), transform 200ms var(--tc-ease);
     }
   `,
 })
@@ -269,6 +381,10 @@ export class AdminHomeComponent {
 
   private renderChart(canvas: HTMLCanvasElement, data: AdminStats): void {
     this.chart?.destroy();
+    const styles = getComputedStyle(document.documentElement);
+    const accentRgb = styles.getPropertyValue('--tc-accent-rgb').trim() || '59, 130, 246';
+    const gridColor = styles.getPropertyValue('--tc-border').trim() || '#25334b';
+    const tickColor = styles.getPropertyValue('--tc-text-muted').trim() || '#6f7d97';
     this.chart = new Chart(canvas, {
       type: 'line',
       data: {
@@ -277,8 +393,8 @@ export class AdminHomeComponent {
           {
             label: 'Messages',
             data: data.messagesPerDay.map((day) => day.count),
-            borderColor: '#5b4bd6',
-            backgroundColor: 'rgba(91, 75, 214, 0.15)',
+            borderColor: `rgb(${accentRgb})`,
+            backgroundColor: `rgba(${accentRgb}, 0.15)`,
             fill: true,
             tension: 0.3,
             pointRadius: 3,
@@ -292,7 +408,15 @@ export class AdminHomeComponent {
           legend: { display: false },
         },
         scales: {
-          y: { beginAtZero: true, ticks: { precision: 0 } },
+          x: {
+            grid: { color: gridColor, display: false },
+            ticks: { color: tickColor },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { precision: 0, color: tickColor },
+            grid: { color: gridColor },
+          },
         },
       },
     });

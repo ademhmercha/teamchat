@@ -20,12 +20,23 @@ export const routes: Routes = [
       {
         path: 'conversations',
         loadComponent: () =>
-          import('./features/conversations/conversations-list').then((m) => m.ConversationsListComponent),
-      },
-      {
-        path: 'conversations/:id',
-        loadComponent: () =>
-          import('./features/conversations/thread').then((m) => m.ThreadComponent),
+          import('./features/conversations/conversations-layout').then(
+            (m) => m.ConversationsLayoutComponent,
+          ),
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./features/conversations/conversations-empty').then(
+                (m) => m.ConversationsEmptyComponent,
+              ),
+          },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./features/conversations/thread').then((m) => m.ThreadComponent),
+          },
+        ],
       },
       {
         path: 'admin',

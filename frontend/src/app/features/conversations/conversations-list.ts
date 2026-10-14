@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { ConversationsService } from '../../core/api/conversations.service';
@@ -10,11 +10,24 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ChatService } from '../../core/chat/chat.service';
 import { ConversationListItemDto } from '../../core/models/conversation.models';
 import { UserListItem } from '../../core/models/user.models';
-import { initialsOf, shortTime } from '../../core/utils/display';
+import { shortTime } from '../../core/utils/display';
+import { IconComponent } from '../../shared/icon/icon';
+import { AvatarComponent } from '../../shared/ui/avatar';
+import { ModalComponent } from '../../shared/ui/modal';
+import { TooltipDirective } from '../../shared/ui/tooltip';
+import { ConversationsUiService } from './conversations-ui.service';
 
 @Component({
   selector: 'app-conversations-list',
-  imports: [RouterLink, FormsModule],
+  imports: [
+    RouterLink,
+    RouterLinkActive,
+    FormsModule,
+    IconComponent,
+    AvatarComponent,
+    ModalComponent,
+    TooltipDirective,
+  ],
   templateUrl: './conversations-list.html',
   styleUrl: './conversations-list.scss',
 })
@@ -24,6 +37,7 @@ export class ConversationsListComponent {
   private readonly chat = inject(ChatService);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  readonly ui = inject(ConversationsUiService);
 
   private readonly refresh$ = new Subject<void>();
 
@@ -31,6 +45,7 @@ export class ConversationsListComponent {
   readonly error = signal<string | null>(null);
   readonly items = signal<ConversationListItemDto[]>([]);
   readonly presence = this.chat.presence;
+  readonly query = signal('');
 
   readonly pickerOpen = signal(false);
   readonly pickerSearch = signal('');
@@ -39,7 +54,23 @@ export class ConversationsListComponent {
 
   readonly currentUserId = this.auth.user()?.id;
 
+  readonly filteredItems = computed(() => {
+    const term = this.query().trim().toLowerCase();
+    if (!term) {
+      return this.items();
+    }
+    return this.items().filter(
+      (item) =>
+        this.title(item).toLowerCase().includes(term) ||
+        (item.lastMessagePreview ?? '').toLowerCase().includes(term),
+    );
+  });
+
   readonly isEmpty = computed(() => this.items().length === 0 && !this.loading());
+
+  onQueryInput(event: Event): void {
+    this.query.set((event.target as HTMLInputElement).value);
+  }
 
   constructor() {
     this.refresh$
@@ -70,10 +101,6 @@ export class ConversationsListComponent {
     return !this.isGroup(item) && item.otherUserId !== null && this.chat.isOnline(item.otherUserId);
   }
 
-  initials(item: ConversationListItemDto): string {
-    return initialsOf(item.type === 1 ? (item.name ?? 'Groupe') : (item.otherDisplayName ?? '?'));
-  }
-
   openPicker(): void {
     this.pickerOpen.set(true);
     this.pickerSearch.set('');
@@ -95,10 +122,6 @@ export class ConversationsListComponent {
     this.conversations.createDirect(user.id).subscribe((conversation) => {
       void this.router.navigate(['/conversations', conversation.id]);
     });
-  }
-
-  initialsOfUser(user: UserListItem): string {
-    return initialsOf(user.displayName);
   }
 
   private load(): void {

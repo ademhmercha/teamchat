@@ -9,18 +9,31 @@
     <div
       class="call-card"
       [class.video]="call.phase() === 'active' && call.showVideo()"
+      [class.audio]="call.phase() === 'active' && !call.showVideo()"
       [class.enlarged]="call.enlarged()"
+      [class.incoming]="call.phase() === 'incoming'"
     >
       @if (call.phase() === 'incoming') {
-        <div class="avatar">{{ initials() }}</div>
-        <div class="call-name">{{ call.incoming()?.callerDisplayName }}</div>
-        <div class="call-subtitle">Appel {{ call.isVideo() ? 'vidéo' : 'audio' }} entrant…</div>
-        <div class="call-actions">
-          <button type="button" class="btn accept" (click)="call.acceptIncoming()">Accepter</button>
-          <button type="button" class="btn reject" (click)="call.rejectIncoming()">Refuser</button>
+        <div class="incoming-body">
+          <div class="avatar-ring">
+            <div class="avatar">{{ initials() }}</div>
+          </div>
+          <div class="call-name">{{ call.incoming()?.callerDisplayName }}</div>
+          <div class="call-subtitle">Appel {{ call.isVideo() ? 'vidéo' : 'audio' }} entrant…</div>
+          <div class="call-actions">
+            <button type="button" class="circle-btn reject" title="Refuser" (click)="call.rejectIncoming()">
+              <app-icon name="phone-off" [size]="24" />
+            </button>
+            <button type="button" class="circle-btn accept" title="Accepter" (click)="call.acceptIncoming()">
+              <app-icon name="phone" [size]="24" />
+            </button>
+          </div>
         </div>
       } @else if (call.phase() === 'ended') {
-        <div class="call-name">{{ call.statusText() }}</div>
+        <div class="ended-body">
+          <app-icon name="phone-off" [size]="28" />
+          <div class="call-name">{{ call.statusText() }}</div>
+        </div>
       } @else {
         <div class="video-area" [class.audio-only]="!call.showVideo()">
           @if (call.remoteHasVideo()) {
@@ -40,73 +53,70 @@
         <div class="call-controls">
           <button
             type="button"
-            class="control"
+            class="circle-btn"
             [class.active]="call.muted()"
             (click)="call.toggleMute()"
             [title]="call.muted() ? 'Rétablir le micro' : 'Couper le micro'"
           >
-            {{ call.muted() ? 'Micro coupé' : 'Micro' }}
+            <app-icon [name]="call.muted() ? 'mic-off' : 'mic'" [size]="20" />
           </button>
 
           <button
             type="button"
-            class="control"
-            [class.active]="call.cameraOn()"
+            class="circle-btn"
+            [class.active]="!call.cameraOn()"
             (click)="call.toggleCamera()"
             [title]="call.cameraOn() ? 'Couper la caméra' : 'Activer la caméra'"
           >
-            {{ call.cameraOn() ? 'Caméra on' : 'Caméra off' }}
+            <app-icon [name]="call.cameraOn() ? 'video' : 'video-off'" [size]="20" />
           </button>
 
           @if (!call.minimized()) {
             <button
               type="button"
-              class="control"
+              class="circle-btn"
               [class.active]="call.screenSharing()"
               (click)="call.toggleScreenShare()"
               [title]="call.screenSharing() ? 'Arrêter le partage' : 'Partager l\'écran'"
             >
-              {{ call.screenSharing() ? 'Partage on' : 'Partager' }}
+              <app-icon name="screen-share" [size]="20" />
             </button>
 
             @if (call.remoteHasVideo()) {
               <button
                 type="button"
-                class="control"
+                class="circle-btn"
                 [class.active]="call.enlarged()"
                 (click)="call.toggleEnlarge()"
                 [title]="call.enlarged() ? 'Vue normale' : 'Agrandir la vidéo'"
               >
-                {{ call.enlarged() ? 'Vue normale' : 'Agrandir' }}
+                <app-icon name="maximize" [size]="20" />
               </button>
 
-              <button
-                type="button"
-                class="control"
-                (click)="toggleFullscreen()"
-                title="Plein écran"
-              >
-                Plein écran
+              <button type="button" class="circle-btn" (click)="toggleFullscreen()" title="Plein écran">
+                <app-icon name="fullscreen" [size]="20" />
               </button>
             }
           }
 
           <button
             type="button"
-            class="control"
+            class="circle-btn"
             (click)="call.toggleMinimize()"
             [title]="call.minimized() ? 'Rétablir l\'appel' : 'Réduire (continuer à utiliser l\'app)'"
           >
-            {{ call.minimized() ? 'Rétablir' : 'Réduire' }}
+            <app-icon name="pip" [size]="20" />
           </button>
 
-          <button type="button" class="control hangup" (click)="call.hangup()">Raccrocher</button>
+          <button type="button" class="circle-btn hangup" title="Raccrocher" (click)="call.hangup()">
+            <app-icon name="phone-off" [size]="20" />
+          </button>
         </div>
       }
 
       @if (call.error(); as message) {
         <div class="call-error" role="alert">
-          {{ message }}
+          <span>{{ message }}</span>
           <button type="button" class="link" (click)="call.dismissError()">Fermer</button>
         </div>
       }

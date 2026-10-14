@@ -6,10 +6,11 @@ import { UsersService } from '../../core/api/users.service';
 import { GroupDto } from '../../core/models/conversation.models';
 import { UserListItem } from '../../core/models/user.models';
 import { initialsOf } from '../../core/utils/display';
+import { IconComponent } from '../../shared/icon/icon';
 
 @Component({
   selector: 'app-admin-groups',
-  imports: [FormsModule],
+  imports: [FormsModule, IconComponent],
   templateUrl: './admin-groups.html',
   styleUrl: './admin-groups.scss',
 })

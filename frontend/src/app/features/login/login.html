@@ -1,6 +1,7 @@
 <div class="login-page">
   <form class="login-card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
     <header class="login-header">
+      <div class="brand-mark"><app-icon name="conversations" [size]="26" /></div>
       <h1>TeamChat</h1>
       <p>Connectez-vous a votre espace de travail.</p>
     </header>
@@ -25,9 +26,14 @@
       }
     </label>
 
-    <button type="submit" class="submit" [disabled]="loading()">
+    <tc-button
+      variant="primary"
+      type="submit"
+      [block]="true"
+      [loading]="loading()"
+    >
       {{ loading() ? 'Connexion…' : 'Se connecter' }}
-    </button>
+    </tc-button>
 
     @if (googleEnabled) {
       <div class="divider"><span>ou</span></div>

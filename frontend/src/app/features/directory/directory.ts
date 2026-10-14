@@ -2,20 +2,23 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { of, Subject } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, map, startWith, switchMap } from 'rxjs/operators';
 import { UsersService } from '../../core/api/users.service';
 import { PagedResult, UserListItem } from '../../core/models/user.models';
+import { IconComponent } from '../../shared/icon/icon';
 
 @Component({
   selector: 'app-directory',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, IconComponent],
   templateUrl: './directory.html',
   styleUrl: './directory.scss',
 })
 export class DirectoryComponent {
   private readonly users = inject(UsersService);
   private readonly formBuilder = inject(NonNullableFormBuilder);
+  private readonly route = inject(ActivatedRoute);
 
   private readonly reload$ = new Subject<void>();
 
@@ -33,6 +36,12 @@ export class DirectoryComponent {
   });
 
   constructor() {
+    const initialQuery = this.route.snapshot.queryParamMap.get('q');
+    if (initialQuery) {
+      this.searchInput.setValue(initialQuery, { emitEvent: false });
+      this.search.set(initialQuery.trim());
+    }
+
     this.searchInput.valueChanges
       .pipe(
         debounceTime(300),

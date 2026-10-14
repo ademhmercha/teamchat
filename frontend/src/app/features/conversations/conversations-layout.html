@@ -1,0 +1,11 @@
+<div class="conv-layout" [class.nav-open]="ui.navOpen()">
+  <aside class="conv-nav">
+    <app-conversations-list />
+  </aside>
+
+  <div class="conv-main">
+    <router-outlet />
+  </div>
+
+  <div class="drawer-scrim" (click)="ui.closeNav()"></div>
+</div>

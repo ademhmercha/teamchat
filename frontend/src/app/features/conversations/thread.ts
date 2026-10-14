@@ -1,8 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { AttachmentsService } from '../../core/api/attachments.service';
@@ -13,14 +13,34 @@ import { ChatService } from '../../core/chat/chat.service';
 import { CallType } from '../../core/models/call.models';
 import { ConversationListItemDto, MessageDto } from '../../core/models/conversation.models';
 import { formatDuration, formatFileSize, initialsOf, shortTime } from '../../core/utils/display';
+import { IconComponent } from '../../shared/icon/icon';
+import { ConversationsUiService } from './conversations-ui.service';
 
 const TYPING_SENT_INTERVAL_MS = 1500;
 const STOP_TYPING_DELAY_MS = 1000;
 const MAX_VOICE_SECONDS = 120;
+const GROUP_WINDOW_MS = 5 * 60 * 1000;
+
+const EMOJIS = ['😀', '😄', '😉', '👍', '🙏', '🎉', '❤️', '🔥', '😅', '🤔', '👏', '✅'];
+
+interface DisplayRow {
+  message: MessageDto;
+  isSystem: boolean;
+  own: boolean;
+  grouped: boolean;
+  lastOfGroup: boolean;
+}
+
+interface SharedFile {
+  id: string;
+  fileName: string;
+  sizeBytes: number;
+  isImage: boolean;
+}
 
 @Component({
   selector: 'app-thread',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, IconComponent],
   templateUrl: './thread.html',
   styleUrl: './thread.scss',
 })
@@ -32,6 +52,7 @@ export class ThreadComponent {
   private readonly calls = inject(CallService);
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly ui = inject(ConversationsUiService);
 
   private readonly scrollArea = viewChild<ElementRef<HTMLDivElement>>('scrollArea');
   private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
@@ -64,7 +85,53 @@ export class ThreadComponent {
   readonly editValue = signal('');
   readonly savingEdit = signal(false);
 
+  readonly detailsOpen = signal(true);
+  readonly emojiOpen = signal(false);
+  readonly emojis = EMOJIS;
+
   readonly currentUserId = this.auth.user()?.id;
+
+  readonly displayMessages = computed<DisplayRow[]>(() => {
+    const list = this.messages();
+    return list.map((message, index) => {
+      const prev = list[index - 1];
+      const next = list[index + 1];
+      const isSystem = message.type === 4;
+      const grouped =
+        !isSystem &&
+        !!prev &&
+        prev.type !== 4 &&
+        prev.senderId === message.senderId &&
+        !this.isDeleted(message) &&
+        this.withinGroup(prev, message);
+      const nextSame =
+        !isSystem &&
+        !!next &&
+        next.type !== 4 &&
+        next.senderId === message.senderId &&
+        !this.isDeleted(next) &&
+        this.withinGroup(message, next);
+
+      return {
+        message,
+        isSystem,
+        own: message.senderId === this.currentUserId,
+        grouped,
+        lastOfGroup: !nextSame,
+      };
+    });
+  });
+
+  readonly sharedFiles = computed<SharedFile[]>(() =>
+    this.messages()
+      .filter((message) => !!message.attachment && (message.type === 2 || message.type === 3))
+      .map((message) => ({
+        id: message.attachment!.id,
+        fileName: message.attachment!.fileName,
+        sizeBytes: message.attachment!.sizeBytes,
+        isImage: message.type === 3,
+      })),
+  );
 
   constructor() {
     this.stopTyping$
@@ -355,6 +422,37 @@ export class ThreadComponent {
 
   time(message: MessageDto): string {
     return shortTime(message.createdAt);
+  }
+
+  initialsOfName(name: string | null | undefined): string {
+    return initialsOf(name ?? '?');
+  }
+
+  toggleDetails(): void {
+    this.detailsOpen.update((open) => !open);
+  }
+
+  closeDetails(): void {
+    this.detailsOpen.set(false);
+  }
+
+  toggleEmoji(): void {
+    this.emojiOpen.update((open) => !open);
+  }
+
+  insertEmoji(emoji: string): void {
+    this.input.update((value) => value + emoji);
+    this.emojiOpen.set(false);
+  }
+
+  private isDeleted(message: MessageDto): boolean {
+    return message.deleted;
+  }
+
+  private withinGroup(previous: MessageDto, current: MessageDto): boolean {
+    const prevTime = new Date(previous.createdAt).getTime();
+    const currTime = new Date(current.createdAt).getTime();
+    return Math.abs(currTime - prevTime) <= GROUP_WINDOW_MS;
   }
 
   private uploadFile(file: File, fileName: string): void {

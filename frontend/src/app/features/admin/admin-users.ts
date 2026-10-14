@@ -4,10 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { AdminUsersService } from '../../core/api/admin-users.service';
 import { UserProfile } from '../../core/models/user.models';
 import { initialsOf } from '../../core/utils/display';
+import { IconComponent } from '../../shared/icon/icon';
 
 @Component({
   selector: 'app-admin-users',
-  imports: [FormsModule],
+  imports: [FormsModule, IconComponent],
   templateUrl: './admin-users.html',
   styleUrl: './admin-users.scss',
 })

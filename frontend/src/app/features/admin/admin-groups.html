@@ -4,7 +4,10 @@
       <h1>Groupes</h1>
       <p>{{ items().length }} groupe(s)</p>
     </div>
-    <button type="button" class="primary" (click)="openCreate()">Nouveau groupe</button>
+    <button type="button" class="primary" (click)="openCreate()">
+      <app-icon name="plus" [size]="17" />
+      <span>Nouveau groupe</span>
+    </button>
   </header>
 
   @if (error(); as message) {
@@ -15,7 +18,10 @@
     @if (loading()) {
       <div class="state">Chargement…</div>
     } @else if (items().length === 0) {
-      <div class="state">Aucun groupe. Créez le premier.</div>
+      <div class="state">
+        <app-icon name="conversations" [size]="28" />
+        <span>Aucun groupe. Créez le premier.</span>
+      </div>
     } @else {
       <ul class="group-list">
         @for (group of items(); track group.id) {
@@ -34,8 +40,14 @@
             </div>
             @if (!group.isArchived) {
               <div class="row-actions">
-                <button type="button" class="ghost" (click)="openEdit(group)">Membres</button>
-                <button type="button" class="ghost danger" (click)="archive(group)">Archiver</button>
+                <button type="button" class="ghost" (click)="openEdit(group)">
+                  <app-icon name="users" [size]="16" />
+                  <span>Membres</span>
+                </button>
+                <button type="button" class="ghost danger" (click)="archive(group)">
+                  <app-icon name="archive" [size]="16" />
+                  <span>Archiver</span>
+                </button>
               </div>
             }
           </li>
@@ -48,7 +60,12 @@
 @if (editorOpen()) {
   <div class="modal-backdrop" (click)="closeEditor()">
     <div class="modal" (click)="$event.stopPropagation()">
-      <h2>{{ editorTitle() }}</h2>
+      <header class="modal-header">
+        <h2>{{ editorTitle() }}</h2>
+        <button type="button" class="icon-btn" aria-label="Fermer" (click)="closeEditor()">
+          <app-icon name="close" [size]="18" />
+        </button>
+      </header>
 
       @if (formError(); as message) {
         <div class="alert" role="alert">{{ message }}</div>
@@ -85,7 +102,11 @@
                   <span class="user-name">{{ user.displayName }}</span>
                   <span class="user-email">{{ user.email }}</span>
                 </div>
-                <span class="check">{{ isSelected(user.id) ? '✓' : '' }}</span>
+                <span class="check" [class.on]="isSelected(user.id)">
+                  @if (isSelected(user.id)) {
+                    <app-icon name="check" [size]="16" />
+                  }
+                </span>
               </button>
             }
           </div>

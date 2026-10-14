@@ -634,3 +634,121 @@ Environnement : identique aux sprints precedents (SDK .NET 10, Node v20.20.2, Po
 | Build frontend (dev) | `npm run build` (dans `frontend/`) | OK |
 | Build frontend (prod) | `npm run build -- --configuration production` | OK, sortie `dist/frontend/browser` |
 
+
+---
+
+## Refonte UI/UX (post-Sprint 7, interface chat/appels)
+
+Base : etat Sprint 7 (`730ea6f`) restaure sur `main`. Objectif : rendre le chat, l'annuaire et
+les appels plus professionnels et "smooth".
+
+### Fait
+
+- Composant d'icones SVG inline `app-icon` (`frontend/src/app/shared/icon/icon.ts`), style lignes,
+  sans dependance externe.
+- Jetons de design CSS (`:root` dans `styles.scss`) : palette, rayons, ombres, transitions
+  (`cubic-bezier`), scrollbars fines, animations partagees (`tc-fade-up`, `tc-pop`, `tc-fade-in`).
+- **Chat (thread)** : passage en pleine largeur (plus de conteneur centre a 720px), bulles avec
+  gradient pour les messages envoyes, animations d'apparition, meta/actions au survol.
+  Compositeur : icones trombone (fichier), micro (vocal), et bouton d'envoi en icone (avion en papier)
+  a la place du bouton texte "Envoyer" ; enregistrement vocal avec boutons valider/annuler en icones.
+- **Appels** : boutons de controle en icones rondes (micro, camera, partage d'ecran, agrandir,
+  plein ecran, reduire, raccrocher), ecran d'appel entrant avec anneau anime, carte plus soignee.
+  Le widget minimise et les modes agrandi/plein ecran existants sont conserves.
+- **Conversations** : liste en cartes arrondies avec survol "lift", avatars gradients, badge non-lus,
+  etat vide, modale de nouvelle conversation retravaillee.
+- **Annuaire** : grille de cartes responsives, pastille de presence, badge actif/inactif,
+  recherche arrondie, pagination en boutons icones.
+- Coquille (shell) : sidebar avec icones de navigation, bloc compte en bas, topbar translucide.
+- **Admin** : tableau de bord (metriques avec icones, courbe `chart.js` aux couleurs de la charte,
+  groupes les plus actifs, raccourcis), Utilisateurs (recherche arrondie, bouton "Nouvel utilisateur"
+  en icone, roles, badges actif/inactif, actions activer/desactiver en icones, modale), Groupes
+  (actions Membres/Archiver en icones, modale avec case a cocher en icone). Nouvelles icones
+  `user-check`, `user-x`, `archive`.
+
+### Budget de style
+
+- `anyComponentStyle` releve (warning 20 kB / error 26 kB) car `thread.scss` depasse l'ancien seuil.
+
+### Theme sombre + disposition 3 colonnes (suite, meme session)
+
+Direction design validee : theme **sombre par defaut**, accent bleu electrique `#3B82F6`, typo Inter,
+et disposition type Outlook/Slack en 3 colonnes (navigation | liste | fil + panneau de details).
+Regle : aucune couleur en dur dans les composants, tout passe par des jetons `--tc-*`.
+
+- `styles.scss` reecrit : `color-scheme: dark`, jetons surfaces/texte/bordure/accent/etats/ombres/motion,
+  et helpers (`--tc-accent-rgb`, `--tc-danger-rgb`, `--tc-success-rgb`, `--tc-scrim`, `--tc-glass*`,
+  `--tc-on-accent`, `--tc-group-avatar*`) pour supprimer les couleurs en dur.
+- **Layout conversations 3 colonnes** : nouveaux `ConversationsLayoutComponent` (nav + `router-outlet`),
+  `ConversationsEmptyComponent` (etat vide central), `ConversationsUiService` (drawer mobile).
+  Routes `conversations` restructurees en enfants `''` et `':id'`.
+- **Liste de conversations** (`conversations-list`) : colonne de navigation, filtrage cote client,
+  lien actif surligne, fermeture du drawer mobile au clic, modale de nouvelle conversation.
+- **Fil** (`thread`) : en-tete avec action Infos, messages groupes (avatars, bulles), panneau de details
+  a droite (profil, "A propos", "Fichiers partages" derives des pieces jointes) masquable, popover emoji,
+  responsive (details/nav en tiroirs).
+- **Coquille (shell)** : sidebar rail sombre (icones + libelles), topbar avec **recherche globale**
+  connectee a l'annuaire (`/directory?q=`) et raccourci `Cmd/Ctrl+K`, bascule des libelles en mobile.
+- **Annuaire** : lit le parametre `q` pour pre-remplir la recherche ; racine scrollable avec padding.
+- **Login** : carte sombre, marque, bouton Google en theme `filled_black`, messages d'erreur tokenises.
+- **Appels** : couleurs du `call-overlay` migrees vers les jetons.
+- **Admin** : racines scrollables/paddees (le `.content` de la coquille ne pad plus les pages) ;
+  couleurs de la courbe `chart.js` lues depuis les jetons CSS ; couleurs en dur remplacees.
+
+---
+
+## Refonte UX/UI majeure — Sprint 1 : theme clair + composants partages
+
+Base : `730ea6f` (Sprint 7) + refonte sombre (annulee/remplacee par le theme clair demande).
+Objectif global : interface claire et professionnelle type Outlook, messagerie et administration
+separees, sans casser l'existant. Travail par sprints, valides un a un.
+
+### Inspection prealable (faits verifies)
+
+- Frontend : Angular 21 standalone + signals (zoneless), SCSS a jetons `--tc-*`, aucune lib UI.
+- Backend : ASP.NET Core 10, EF/Postgres, Identity (roles en base), JWT + refresh cookie, SignalR.
+- Reellement connecte : chat temps reel, presence, saisie, appels WebRTC (audio/video/ecran),
+  fichiers (upload 25 Mo / vocal 10 Mo, detection magic-bytes), images, vocaux, emoji, edition/
+  suppression, pagination, dashboard admin, gestion users/groupes.
+- Non implemente (a ne pas presenter comme fonctionnel) : notifications (bouton cloche sans handler),
+  repondre/citer, reactions, epinglage, transfert, accusés de lecture visibles (auto seulement),
+  Google sign-in (inert), endpoints membres/fichiers partages, cote admin : pas de suppression
+  d'utilisateur, pas de protection "dernier admin", pas de journal d'activite, pas de parametres.
+
+### Fait (Sprint 1)
+
+- `styles.scss` reecrit en **theme clair** : palette demandee (`#F6F8FB`, `#FFFFFF`, `#F1F5F9`,
+  texte `#172033`/`#526176`, bordures `#E2E8F0`, bleu `#2563EB`/`#1D4ED8`, selection `#EFF6FF`,
+  succes `#15803D`, alerte `#B45309`, erreur `#B91C1C`), base 14 px, rayons 6-8 px, ombres discretes,
+  transitions 120-220 ms, `color-scheme: light`. Tous les jetons restent centralises.
+- Gradients decoratifs neutralises au niveau des jetons (`--tc-gradient` = aplat bleu).
+- **Coquille** : navigation claire 220 px, selection fond bleu tres clair + texte/icone bleus,
+  suppression du glow et des barres d'accent decoratives ; avatars/badge via composants partages ;
+  infobulles sur les elements sans libelle.
+- **Login** : theme clair, marque, bouton via composant partage.
+- **Appels** : `call-overlay` adapte au theme clair (texte lisible, plus de gradient decoratif).
+- **Composants partages** crees (`frontend/src/app/shared/ui/`) : `tc-avatar`, `tc-button`,
+  `tc-badge`, `tc-modal` (focus trap + Echap), `tc-empty-state`, `tc-spinner`, directive `tcTooltip`
+  (nom accessible + infobulle).
+- Integration validee de ces composants : coquille (avatar/badge/tooltip), login (bouton),
+  liste de conversations (avatars, infobulle, modale nouvelle conversation via `tc-modal`),
+  etat vide (`tc-empty-state`).
+- Nettoyage : code mort (`initials` dupliques, CSS `.avatar`/`.presence-dot`/modale locale).
+
+### Resultats de verification (reels, executes le 2026-10-14)
+
+| Verification | Commande | Resultat |
+|---|---|---|
+| Build frontend (prod) | `npm run build -- --configuration production` | OK, 0 erreur / 0 warning |
+| Dev server (HMR) | recompilation auto | OK, composant mis a jour |
+| Backend (deja en cours) | `dotnet run --project backend/src/TeamChat.Api --launch-profile http` | OK, port 5285 |
+
+### Problemes connus / non verifie
+
+- [ ] Rendu navigateur non verifie automatise (pas de test e2e) : validation visuelle a faire cote utilisateur.
+- [ ] Regressions residuelles possibles liees au passage clair ; serons traitees sprint par sprint
+  (repartition de l'espace, details, fichiers/vocaux, admin).
+- [ ] Fonctions a connecter (necessitent backend) : repondre/citer, reactions, notifications persistees,
+  protection "dernier admin", journal d'activite, parametres, endpoints membres/fichiers partages.
+- [ ] Comptes de test : `admin@teamchat.local` / `Admin123!`,
+  `demo.alpha@teamchat.local` et `demo.beta@teamchat.local` / `Demo123!`.
