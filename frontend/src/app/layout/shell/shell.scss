@@ -44,6 +44,27 @@
   letter-spacing: -0.01em;
 }
 
+.rail-toggle {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--tc-radius-sm);
+  background: transparent;
+  color: var(--tc-sidebar-text);
+  cursor: pointer;
+  transition: background var(--tc-fast), color var(--tc-fast);
+
+  &:hover {
+    background: var(--tc-sidebar-hover);
+    color: var(--tc-text);
+  }
+}
+
 .nav {
   display: flex;
   flex-direction: column;
@@ -269,13 +290,20 @@
   overflow: hidden;
 }
 
-/* ---------- Responsive ---------- */
+/* ---------- Rail (collapsed navigation) ---------- */
 
-@media (max-width: 860px) {
+@mixin rail {
   .sidebar {
     width: 72px;
     padding: 1rem 0.55rem;
     align-items: center;
+  }
+
+  .brand {
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    padding: 0;
   }
 
   .brand-name,
@@ -286,17 +314,12 @@
     display: none;
   }
 
-  .brand {
-    justify-content: center;
-    padding: 0;
+  .rail-toggle {
+    margin-left: 0;
   }
 
   .nav-link {
     justify-content: center;
-
-    &.active::before {
-      left: -0.55rem;
-    }
   }
 
   .me {
@@ -307,6 +330,18 @@
 
   .icon-btn {
     margin: 0;
+  }
+}
+
+.shell.rail {
+  @include rail;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 860px) {
+  .shell {
+    @include rail;
   }
 
   .global-search {

@@ -76,21 +76,17 @@
   padding: 0.55rem 1rem;
   border: none;
   border-radius: var(--tc-radius-pill);
-  background: var(--tc-gradient);
-  color: var(--tc-primary-contrast);
+  background: var(--tc-primary);
+  color: var(--tc-on-accent);
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(var(--tc-accent-rgb), 0.28);
-  transition: transform var(--tc-fast), box-shadow var(--tc-fast), filter var(--tc-fast);
+  box-shadow: var(--tc-shadow-sm);
+  transition: background var(--tc-fast), box-shadow var(--tc-fast);
 
   &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 22px rgba(var(--tc-accent-rgb), 0.34);
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(0);
+    background: var(--tc-primary-strong);
+    box-shadow: var(--tc-shadow);
   }
 
   &:disabled {

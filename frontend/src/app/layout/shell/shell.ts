@@ -33,11 +33,32 @@ export class ShellComponent {
   readonly isAdmin = this.auth.isAdmin;
   readonly searchTerm = signal('');
 
+  private static readonly RAIL_KEY = 'tc.sidebar-collapsed';
+  readonly collapsed = signal(this.readRail());
+
   private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
 
   constructor() {
     this.chat.start();
     this.chat.forceLogout$.pipe(takeUntilDestroyed()).subscribe(() => this.forceLogout());
+  }
+
+  toggleRail(): void {
+    const next = !this.collapsed();
+    this.collapsed.set(next);
+    try {
+      localStorage.setItem(ShellComponent.RAIL_KEY, next ? '1' : '0');
+    } catch {
+      /* storage unavailable */
+    }
+  }
+
+  private readRail(): boolean {
+    try {
+      return localStorage.getItem(ShellComponent.RAIL_KEY) === '1';
+    } catch {
+      return false;
+    }
   }
 
   onSearchInput(event: Event): void {

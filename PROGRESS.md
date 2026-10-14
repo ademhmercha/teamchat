@@ -743,11 +743,42 @@ separees, sans casser l'existant. Travail par sprints, valides un a un.
 | Dev server (HMR) | recompilation auto | OK, composant mis a jour |
 | Backend (deja en cours) | `dotnet run --project backend/src/TeamChat.Api --launch-profile http` | OK, port 5285 |
 
+---
+
+## Refonte UX/UI majeure — Sprint 2 : repartition de l'espace et panneaux
+
+### Pre-requis verifies
+
+- Structure 3 colonnes deja en place (Sprint precedent) : navigation 220 px, liste de conversations
+  320 px, conversation flexible, panneau de details 300 px.
+- En-tete de conversation et zone de saisie deja hors de la zone de defilement (donc persistants).
+- Chaque zone possede son propre defilement (`.conv-scroll`, `.scroll-area`, `.details-body`).
+
+### Fait
+
+- **Rail de navigation repliable et persistant** : bouton dans la barre de titre de la sidebar,
+  etat memorise dans `localStorage` (`tc.sidebar-collapsed`), repli en rail d'icones de 72 px,
+  infobulles sur les liens. La reouverture est toujours possible (bouton present en rail).
+- **Panneau de details en surcouche des qu'il n'y a pas assez de place** : bascule en panneau
+  fixe (avec voile cliquable) sous 1024 px au lieu de comprimer la conversation ; largeur inline
+  264 px sous 1180 px ; restauration de l'espace a la fermeture (panneau masque si ferme).
+- **Barre de saisie / en-tete persistants** et defilement independant confirmes.
+- **Couleurs** : suppression des halos bleus decoratifs residuels (bouton nouvelle conversation,
+  bouton envoyer, boutons primaires admin) remplaces par des ombres de jeton (`--tc-shadow-sm`/
+  `--tc-shadow`) et des transitions de couleur courtes, conformement aux regles de design.
+- Mise en page responsive ajustee (padding messages sous 640 px).
+
+### Resultats de verification (reels, executes le 2026-10-14)
+
+| Verification | Commande | Resultat |
+|---|---|---|
+| Build frontend (prod) | `npm run build -- --configuration production` | OK, 0 erreur / 0 warning |
+| Dev server (HMR) | recompilation auto | OK |
+
 ### Problemes connus / non verifie
 
 - [ ] Rendu navigateur non verifie automatise (pas de test e2e) : validation visuelle a faire cote utilisateur.
-- [ ] Regressions residuelles possibles liees au passage clair ; serons traitees sprint par sprint
-  (repartition de l'espace, details, fichiers/vocaux, admin).
+- [ ] Regressions residuelles possibles liees au passage clair ; serons traitees sprint par sprint.
 - [ ] Fonctions a connecter (necessitent backend) : repondre/citer, reactions, notifications persistees,
   protection "dernier admin", journal d'activite, parametres, endpoints membres/fichiers partages.
 - [ ] Comptes de test : `admin@teamchat.local` / `Admin123!`,

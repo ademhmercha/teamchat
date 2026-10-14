@@ -717,15 +717,15 @@
   justify-content: center;
   border: none;
   border-radius: var(--tc-radius-sm);
-  background: var(--tc-gradient);
-  color: var(--tc-primary-contrast);
+  background: var(--tc-primary);
+  color: var(--tc-on-accent);
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(var(--tc-accent-rgb), 0.35);
-  transition: transform var(--tc-fast), box-shadow var(--tc-fast), opacity var(--tc-fast);
+  box-shadow: var(--tc-shadow-sm);
+  transition: background var(--tc-fast), box-shadow var(--tc-fast), opacity var(--tc-fast);
 
   &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 22px rgba(var(--tc-accent-rgb), 0.45);
+    background: var(--tc-primary-strong);
+    box-shadow: var(--tc-shadow);
   }
 
   &:disabled {
@@ -993,32 +993,21 @@
 
 /* ---------- Responsive ---------- */
 
-@media (max-width: 1100px) {
+@media (max-width: 1180px) {
   .thread-details {
     width: 264px;
   }
 }
 
-@media (max-width: 900px) {
-  .nav-toggle {
-    display: inline-flex;
-  }
-
-  .scroll-area {
-    padding: 1rem;
-  }
-
-  .msg-body {
-    max-width: 86%;
-  }
-
+/* Details as an overlay when width is insufficient (avoids squeezing the conversation). */
+@media (max-width: 1024px) {
   .thread-details {
     position: fixed;
-    top: 0;
+    top: 64px;
     right: 0;
     bottom: 0;
     z-index: 70;
-    width: min(320px, 88vw);
+    width: min(340px, 90vw);
     transform: translateX(100%);
     transition: transform var(--tc-normal);
     box-shadow: var(--tc-shadow-lg);
@@ -1034,10 +1023,33 @@
   .thread.details-shown .details-scrim {
     display: block;
     position: fixed;
-    inset: 0;
+    inset: 64px 0 0 0;
     z-index: 60;
     background: var(--tc-scrim);
-    backdrop-filter: blur(2px);
     animation: tc-fade-in var(--tc-fast);
+  }
+}
+
+@media (max-width: 900px) {
+  .nav-toggle {
+    display: inline-flex;
+  }
+
+  .scroll-area {
+    padding: 1rem;
+  }
+
+  .msg-body {
+    max-width: 86%;
+  }
+}
+
+@media (max-width: 640px) {
+  .scroll-area {
+    padding: 0.75rem;
+  }
+
+  .msg-body {
+    max-width: 92%;
   }
 }
