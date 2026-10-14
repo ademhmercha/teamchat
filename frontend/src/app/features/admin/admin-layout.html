@@ -1,0 +1,25 @@
+<div class="admin-space">
+  <header class="admin-bar">
+    <div class="admin-brand">
+      <span class="admin-mark"><app-icon name="dashboard" [size]="18" /></span>
+      <span class="admin-title">Administration</span>
+    </div>
+
+    <nav class="admin-tabs" aria-label="Sections d'administration">
+      <a
+        routerLink="/admin"
+        [routerLinkActiveOptions]="{ exact: true }"
+        routerLinkActive="active"
+        class="admin-tab"
+      >
+        Tableau de bord
+      </a>
+      <a routerLink="/admin/users" routerLinkActive="active" class="admin-tab">Utilisateurs</a>
+      <a routerLink="/admin/groups" routerLinkActive="active" class="admin-tab">Groupes</a>
+    </nav>
+  </header>
+
+  <div class="admin-content">
+    <router-outlet />
+  </div>
+</div>

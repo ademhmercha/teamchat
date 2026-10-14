@@ -41,17 +41,25 @@ export const routes: Routes = [
       {
         path: 'admin',
         canActivate: [adminGuard],
-        loadComponent: () => import('./features/admin/admin-home').then((m) => m.AdminHomeComponent),
-      },
-      {
-        path: 'admin/users',
-        canActivate: [adminGuard],
-        loadComponent: () => import('./features/admin/admin-users').then((m) => m.AdminUsersComponent),
-      },
-      {
-        path: 'admin/groups',
-        canActivate: [adminGuard],
-        loadComponent: () => import('./features/admin/admin-groups').then((m) => m.AdminGroupsComponent),
+        loadComponent: () =>
+          import('./features/admin/admin-layout').then((m) => m.AdminLayoutComponent),
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./features/admin/admin-home').then((m) => m.AdminHomeComponent),
+          },
+          {
+            path: 'users',
+            loadComponent: () =>
+              import('./features/admin/admin-users').then((m) => m.AdminUsersComponent),
+          },
+          {
+            path: 'groups',
+            loadComponent: () =>
+              import('./features/admin/admin-groups').then((m) => m.AdminGroupsComponent),
+          },
+        ],
       },
     ],
   },

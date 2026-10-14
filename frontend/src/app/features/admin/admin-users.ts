@@ -3,12 +3,22 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminUsersService } from '../../core/api/admin-users.service';
 import { UserProfile } from '../../core/models/user.models';
-import { initialsOf } from '../../core/utils/display';
 import { IconComponent } from '../../shared/icon/icon';
+import { AvatarComponent } from '../../shared/ui/avatar';
+import { BadgeComponent } from '../../shared/ui/badge';
+import { EmptyStateComponent } from '../../shared/ui/empty-state';
+import { ModalComponent } from '../../shared/ui/modal';
 
 @Component({
   selector: 'app-admin-users',
-  imports: [FormsModule, IconComponent],
+  imports: [
+    FormsModule,
+    IconComponent,
+    AvatarComponent,
+    BadgeComponent,
+    EmptyStateComponent,
+    ModalComponent,
+  ],
   templateUrl: './admin-users.html',
   styleUrl: './admin-users.scss',
 })
@@ -114,10 +124,6 @@ export class AdminUsersComponent {
         this.error.set(this.readErrorMessage(error));
       },
     });
-  }
-
-  initials(user: UserProfile): string {
-    return initialsOf(user.displayName);
   }
 
   private replace(updated: UserProfile): void {

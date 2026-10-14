@@ -841,6 +841,40 @@ separees, sans casser l'existant. Travail par sprints, valides un a un.
 - [ ] Archiver une conversation non disponible : le DTO de liste n'expose pas d'etat d'archivage
   (necessite un champ backend).
 - [ ] Validation visuelle manuelle a faire cote utilisateur (filtres, horodatage, squelette).
+
+---
+
+## Refonte UX/UI majeure — Sprint 5 : espace Administration + coherence
+
+### Fait
+
+- **Espace d'administration distinct** : nouveau composant de mise en page `admin-layout`
+  (barre « Administration » + onglets Tableau de bord / Utilisateurs / Groupes + `router-outlet`),
+  avec son propre en-tete et une navigation interne. Les routes `admin`, `admin/users`,
+  `admin/groups` deviennent des enfants d'une route parent protegee (`adminGuard` conserve).
+- **Coherence des pages admin** avec la bibliotheque de composants partagee :
+  - avatars via `tc-avatar` (fini les `.avatar` en dur + initiales calculees) ;
+  - statuts et tags via `tc-badge` (Actif/Desactive, Archivé, nombre de membres) ;
+  - modales via `tc-modal` (piege de focus, Echap, clic dehors, restauration du focus) ;
+  - etats vides via `tc-empty-state`.
+- Suppression du code et du CSS morts (`.avatar`, `.status`, `.tag`, `.modal-backdrop`,
+  `.modal`, `.modal-header`, methodes `initials`/`initialsOfUser`).
+- Ameliorations d'accessibilite : libelles ARIA sur la recherche et les selects de role,
+  `aria-pressed` sur la selection de membres, `data-autofocus` dans les modales.
+
+### Resultats de verification (reels, executes le 2026-10-14)
+
+| Verification | Commande | Resultat |
+|---|---|---|
+| Build frontend (prod) | `npm run build -- --configuration production` | OK, 0 erreur / 0 warning |
+| Dev server (HMR) | recompilation auto | OK |
+
+### Problemes connus / non verifie
+
+- [ ] Les fonctions d'administration absentes du backend restent absentes de l'UI (pas de
+  suppression d'utilisateur, pas de protection « dernier admin », pas de journal d'activite,
+  pas de parametres) : a faire cote backend, non simule ici.
+- [ ] Validation visuelle manuelle a faire cote utilisateur (barre et onglets admin, modales).
 - [ ] Fonctions a connecter (necessitent backend) : repondre/citer, reactions, notifications persistees,
   protection "dernier admin", journal d'activite, parametres, endpoints membres/fichiers partages.
 - [ ] Comptes de test : `admin@teamchat.local` / `Admin123!`,

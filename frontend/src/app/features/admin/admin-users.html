@@ -12,6 +12,7 @@
           placeholder="Rechercher…"
           [value]="search()"
           (input)="onSearchInput($event)"
+          aria-label="Rechercher un utilisateur"
         />
       </label>
       <button type="button" class="primary" (click)="openCreate()">
@@ -29,15 +30,16 @@
     @if (loading()) {
       <div class="state">Chargement…</div>
     } @else if (items().length === 0) {
-      <div class="state">
-        <app-icon name="users" [size]="28" />
-        <span>Aucun utilisateur.</span>
-      </div>
+      <tc-empty-state
+        icon="users"
+        title="Aucun utilisateur"
+        message="Créez le premier compte pour inviter un collègue."
+      />
     } @else {
       <ul class="user-list">
         @for (user of items(); track user.id) {
           <li class="user-row" [class.inactive]="!user.isActive">
-            <div class="avatar">{{ initials(user) }}</div>
+            <tc-avatar [name]="user.displayName" size="md" />
             <div class="user-info">
               <span class="user-name">{{ user.displayName }}</span>
               <span class="user-email">{{ user.email }}</span>
@@ -45,6 +47,7 @@
             <select
               class="role-select"
               [value]="user.role"
+              [attr.aria-label]="'Rôle de ' + user.displayName"
               [disabled]="busyId() === user.id"
               (change)="changeRole(user, $any($event.target).value)"
             >
@@ -52,9 +55,9 @@
                 <option [value]="role">{{ role }}</option>
               }
             </select>
-            <span class="status" [class.on]="user.isActive">
+            <tc-badge [variant]="user.isActive ? 'success' : 'neutral'">
               {{ user.isActive ? 'Actif' : 'Désactivé' }}
-            </span>
+            </tc-badge>
             <button
               type="button"
               class="icon-btn"
@@ -73,57 +76,47 @@
   </div>
 </div>
 
-@if (editorOpen()) {
-  <div class="modal-backdrop" (click)="closeEditor()">
-    <div class="modal" (click)="$event.stopPropagation()">
-      <header class="modal-header">
-        <h2>Nouvel utilisateur</h2>
-        <button type="button" class="icon-btn" aria-label="Fermer" (click)="closeEditor()">
-          <app-icon name="close" [size]="18" />
-        </button>
-      </header>
+<tc-modal [open]="editorOpen()" title="Nouvel utilisateur" (closed)="closeEditor()">
+  @if (formError(); as message) {
+    <div class="alert" role="alert">{{ message }}</div>
+  }
 
-      @if (formError(); as message) {
-        <div class="alert" role="alert">{{ message }}</div>
+  <label class="field">
+    <span>Email</span>
+    <input
+      type="email"
+      [value]="newEmail()"
+      (input)="newEmail.set($any($event.target).value)"
+      placeholder="prenom@entreprise.com"
+      data-autofocus
+    />
+  </label>
+
+  <label class="field">
+    <span>Nom affiché</span>
+    <input
+      type="text"
+      [value]="newDisplayName()"
+      (input)="newDisplayName.set($any($event.target).value)"
+      placeholder="Prénom Nom"
+    />
+  </label>
+
+  <label class="field">
+    <span>Rôle</span>
+    <select [value]="newRole()" (change)="newRole.set($any($event.target).value)">
+      @for (role of roles; track role) {
+        <option [value]="role">{{ role }}</option>
       }
+    </select>
+  </label>
 
-      <label class="field">
-        <span>Email</span>
-        <input
-          type="email"
-          [value]="newEmail()"
-          (input)="newEmail.set($any($event.target).value)"
-          placeholder="prenom@entreprise.com"
-        />
-      </label>
+  <p class="hint">Un email d'invitation sera envoyé pour définir le mot de passe.</p>
 
-      <label class="field">
-        <span>Nom affiché</span>
-        <input
-          type="text"
-          [value]="newDisplayName()"
-          (input)="newDisplayName.set($any($event.target).value)"
-          placeholder="Prénom Nom"
-        />
-      </label>
-
-      <label class="field">
-        <span>Rôle</span>
-        <select [value]="newRole()" (change)="newRole.set($any($event.target).value)">
-          @for (role of roles; track role) {
-            <option [value]="role">{{ role }}</option>
-          }
-        </select>
-      </label>
-
-      <p class="hint">Un email d'invitation sera envoyé pour définir le mot de passe.</p>
-
-      <div class="modal-actions">
-        <button type="button" class="ghost" (click)="closeEditor()">Annuler</button>
-        <button type="button" class="primary" [disabled]="saving()" (click)="save()">
-          {{ saving() ? 'Envoi…' : 'Créer et inviter' }}
-        </button>
-      </div>
-    </div>
+  <div class="modal-actions">
+    <button type="button" class="ghost" (click)="closeEditor()">Annuler</button>
+    <button type="button" class="primary" [disabled]="saving()" (click)="save()">
+      {{ saving() ? 'Envoi…' : 'Créer et inviter' }}
+    </button>
   </div>
-}
+</tc-modal>

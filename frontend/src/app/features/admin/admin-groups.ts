@@ -5,12 +5,22 @@ import { AdminGroupsService } from '../../core/api/admin-groups.service';
 import { UsersService } from '../../core/api/users.service';
 import { GroupDto } from '../../core/models/conversation.models';
 import { UserListItem } from '../../core/models/user.models';
-import { initialsOf } from '../../core/utils/display';
 import { IconComponent } from '../../shared/icon/icon';
+import { AvatarComponent } from '../../shared/ui/avatar';
+import { BadgeComponent } from '../../shared/ui/badge';
+import { EmptyStateComponent } from '../../shared/ui/empty-state';
+import { ModalComponent } from '../../shared/ui/modal';
 
 @Component({
   selector: 'app-admin-groups',
-  imports: [FormsModule, IconComponent],
+  imports: [
+    FormsModule,
+    IconComponent,
+    AvatarComponent,
+    BadgeComponent,
+    EmptyStateComponent,
+    ModalComponent,
+  ],
   templateUrl: './admin-groups.html',
   styleUrl: './admin-groups.scss',
 })
@@ -125,16 +135,8 @@ export class AdminGroupsComponent {
     });
   }
 
-  initials(group: GroupDto): string {
-    return initialsOf(group.name);
-  }
-
   memberNames(group: GroupDto): string {
     return group.members.map((member) => member.displayName).join(', ');
-  }
-
-  initialsOfUser(user: UserListItem): string {
-    return initialsOf(user.displayName);
   }
 
   private load(): void {
