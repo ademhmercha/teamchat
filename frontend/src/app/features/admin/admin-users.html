@@ -26,6 +26,10 @@
     <div class="alert" role="alert">{{ message }}</div>
   }
 
+  @if (notice(); as message) {
+    <div class="alert success" role="status">{{ message }}</div>
+  }
+
   <div class="card">
     @if (loading()) {
       <div class="state">Chargement…</div>
@@ -58,17 +62,39 @@
             <tc-badge [variant]="user.isActive ? 'success' : 'neutral'">
               {{ user.isActive ? 'Actif' : 'Désactivé' }}
             </tc-badge>
-            <button
-              type="button"
-              class="icon-btn"
-              [class.danger]="user.isActive"
-              [disabled]="busyId() === user.id"
-              [attr.aria-label]="user.isActive ? 'Désactiver' : 'Réactiver'"
-              [title]="user.isActive ? 'Désactiver' : 'Réactiver'"
-              (click)="toggleActive(user)"
-            >
-              <app-icon [name]="user.isActive ? 'user-x' : 'user-check'" [size]="18" />
-            </button>
+            <div class="row-actions">
+              <button
+                type="button"
+                class="icon-btn"
+                [disabled]="busyId() === user.id"
+                aria-label="Réinitialiser le mot de passe"
+                title="Réinitialiser le mot de passe"
+                (click)="requestReset(user)"
+              >
+                <app-icon name="key" [size]="18" />
+              </button>
+              <button
+                type="button"
+                class="icon-btn"
+                [class.danger]="user.isActive"
+                [disabled]="busyId() === user.id"
+                [attr.aria-label]="user.isActive ? 'Désactiver' : 'Réactiver'"
+                [title]="user.isActive ? 'Désactiver' : 'Réactiver'"
+                (click)="toggleActive(user)"
+              >
+                <app-icon [name]="user.isActive ? 'user-x' : 'user-check'" [size]="18" />
+              </button>
+              <button
+                type="button"
+                class="icon-btn danger"
+                [disabled]="busyId() === user.id"
+                aria-label="Supprimer le compte"
+                title="Supprimer le compte"
+                (click)="deleteUser(user)"
+              >
+                <app-icon name="trash" [size]="18" />
+              </button>
+            </div>
           </li>
         }
       </ul>

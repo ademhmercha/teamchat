@@ -183,6 +183,11 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
           <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
         }
+        @case ('key') {
+          <path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" />
+          <path d="m21 2-9.6 9.6" />
+          <circle cx="7.5" cy="15.5" r="5.5" />
+        }
         @case ('close') {
           <path d="M18 6 6 18" />
           <path d="m6 6 12 12" />

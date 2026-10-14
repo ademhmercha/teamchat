@@ -28,6 +28,7 @@ export class AdminUsersComponent {
   readonly roles = ['User', 'Admin'];
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  readonly notice = signal<string | null>(null);
   readonly items = signal<UserProfile[]>([]);
   readonly search = signal('');
   readonly saving = signal(false);
@@ -124,6 +125,54 @@ export class AdminUsersComponent {
         this.error.set(this.readErrorMessage(error));
       },
     });
+  }
+
+  requestReset(user: UserProfile): void {
+    if (!confirm(`Envoyer un nouveau lien de mot de passe à ${user.displayName} ?`)) {
+      return;
+    }
+
+    this.busyId.set(user.id);
+    this.error.set(null);
+    this.admin.resetPassword(user.id).subscribe({
+      next: () => {
+        this.busyId.set(null);
+        this.flash(`Lien de réinitialisation envoyé à ${user.email}.`);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.busyId.set(null);
+        this.error.set(this.readErrorMessage(error));
+      },
+    });
+  }
+
+  deleteUser(user: UserProfile): void {
+    if (
+      !confirm(
+        `Supprimer le compte de ${user.displayName} ?\nLes messages seront conservés (auteur « Utilisateur supprimé »).`,
+      )
+    ) {
+      return;
+    }
+
+    this.busyId.set(user.id);
+    this.error.set(null);
+    this.admin.remove(user.id).subscribe({
+      next: () => {
+        this.busyId.set(null);
+        this.items.update((users) => users.filter((item) => item.id !== user.id));
+        this.flash(`Compte de ${user.displayName} supprimé.`);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.busyId.set(null);
+        this.error.set(this.readErrorMessage(error));
+      },
+    });
+  }
+
+  private flash(message: string): void {
+    this.notice.set(message);
+    setTimeout(() => this.notice.set(null), 4000);
   }
 
   private replace(updated: UserProfile): void {

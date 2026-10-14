@@ -17,7 +17,7 @@ public sealed class AdminStatsQueries : IAdminStatsQueries
 
     public Task<int> CountUsersAsync(bool activeOnly, CancellationToken cancellationToken = default)
         => _db.Users.AsNoTracking()
-            .CountAsync(u => !activeOnly || u.IsActive, cancellationToken);
+            .CountAsync(u => u.DeletedAt == null && (!activeOnly || u.IsActive), cancellationToken);
 
     public Task<int> CountGroupsAsync(CancellationToken cancellationToken = default)
         => _db.Conversations.AsNoTracking()

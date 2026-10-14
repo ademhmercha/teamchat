@@ -175,6 +175,16 @@
   background: var(--tc-danger-soft);
   color: var(--tc-danger);
   font-size: 0.85rem;
+
+  &.success {
+    background: var(--tc-success-soft);
+    color: var(--tc-success);
+  }
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.4rem;
 }
 
 .user-list {

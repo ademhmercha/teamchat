@@ -14,6 +14,13 @@ public class AppUser : IdentityUser<Guid>
 
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// Date de suppression logique du compte. Non nul = compte anonymise
+    /// (nom, email et avatar effaces, connexion interdite) mais ses messages
+    /// sont conserves avec l'auteur « Utilisateur supprime ».
+    /// </summary>
+    public DateTimeOffset? DeletedAt { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public DateTimeOffset? LastSeenAt { get; set; }

@@ -26,4 +26,12 @@ export class AdminUsersService {
   update(id: string, request: UpdateUserRequest): Observable<UserProfile> {
     return this.http.patch<UserProfile>(`${this.baseUrl}/${id}`, request);
   }
+
+  remove(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  resetPassword(id: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${id}/reset-password`, {});
+  }
 }

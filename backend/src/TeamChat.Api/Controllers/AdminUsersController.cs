@@ -47,4 +47,19 @@ public sealed class AdminUsersController : ControllerBase
         [FromBody] UpdateUserRequest request,
         CancellationToken cancellationToken)
         => Ok(await _admin.UpdateAsync(id, request, cancellationToken));
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        await _admin.DeleteAsync(id, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("{id:guid}/reset-password")]
+    public async Task<IActionResult> ResetPassword(Guid id, CancellationToken cancellationToken)
+    {
+        var inviteBaseUrl = $"{Request.Scheme}://{Request.Host}/accept-invite";
+        await _admin.ResetPasswordAsync(id, inviteBaseUrl, cancellationToken);
+        return NoContent();
+    }
 }

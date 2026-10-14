@@ -23,4 +23,16 @@ public interface IAdminUserService
         Guid id,
         UpdateUserRequest request,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Supprime logiquement un compte : anonymise le profil, interdit la connexion,
+    /// revoque les sessions et conserve les messages (auteur « Utilisateur supprime »).
+    /// </summary>
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>Reinitialise le mot de passe d'un compte via une nouvelle invitation par email.</summary>
+    Task ResetPasswordAsync(
+        Guid id,
+        string inviteBaseUrl,
+        CancellationToken cancellationToken = default);
 }

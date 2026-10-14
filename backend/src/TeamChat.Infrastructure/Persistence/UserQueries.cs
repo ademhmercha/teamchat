@@ -63,7 +63,8 @@ public sealed class UserQueries : IUserQueries
 
     public async Task<UserProfileDto?> GetProfileAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+        var user = await _db.Users.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == id && u.DeletedAt == null, cancellationToken);
         if (user is null)
         {
             return null;
@@ -84,7 +85,7 @@ public sealed class UserQueries : IUserQueries
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        var query = _db.Users.AsNoTracking();
+        var query = _db.Users.AsNoTracking().Where(u => u.DeletedAt == null);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -124,4 +125,11 @@ public sealed class UserQueries : IUserQueries
 
         return new PagedResult<UserProfileDto>(items, page, pageSize, total);
     }
+
+    public Task<int> CountActiveAdminsAsync(CancellationToken cancellationToken = default)
+        => (from user in _db.Users.AsNoTracking()
+            join userRole in _db.UserRoles on user.Id equals userRole.UserId
+            join role in _db.Roles on userRole.RoleId equals role.Id
+            where role.Name == Roles.Admin && user.IsActive && user.DeletedAt == null
+            select user.Id).Distinct().CountAsync(cancellationToken);
 }

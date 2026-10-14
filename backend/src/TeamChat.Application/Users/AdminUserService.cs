@@ -10,6 +10,9 @@ namespace TeamChat.Application.Users;
 
 public sealed class AdminUserService : IAdminUserService
 {
+    /// <summary>Nom d'affichage des comptes supprimes (les messages sont conserves).</summary>
+    public const string DeletedDisplayName = "Utilisateur supprime";
+
     private readonly IIdentityService _identity;
     private readonly IRefreshTokenStore _refreshTokens;
     private readonly IUserProfileCache _profileCache;
@@ -94,8 +97,23 @@ public sealed class AdminUserService : IAdminUserService
         UpdateUserRequest request,
         CancellationToken cancellationToken = default)
     {
-        var user = await _identity.FindByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Utilisateur introuvable.");
+        var user = await _identity.FindByIdAsync(id, cancellationToken);
+        if (user is null || user.DeletedAt is not null)
+        {
+            throw new NotFoundException("Utilisateur introuvable.");
+        }
+
+        var currentRoles = await _identity.GetRolesAsync(user, cancellationToken);
+        var isActiveAdmin = user.IsActive && currentRoles.Contains(Roles.Admin);
+        var willDeactivate = request.IsActive is false && user.IsActive;
+        var willDemote = request.Role is { } requestedRole
+            && requestedRole != Roles.Admin
+            && currentRoles.Contains(Roles.Admin);
+
+        if (isActiveAdmin && (willDeactivate || willDemote))
+        {
+            await EnsureNotLastAdminAsync(cancellationToken);
+        }
 
         if (request.DisplayName is not null)
         {
@@ -111,7 +129,6 @@ public sealed class AdminUserService : IAdminUserService
 
         EnsureSuccess(await _identity.UpdateAsync(user, cancellationToken));
 
-        var currentRoles = await _identity.GetRolesAsync(user, cancellationToken);
         var role = currentRoles.FirstOrDefault() ?? Roles.User;
 
         if (request.Role is { } newRole && !currentRoles.Contains(newRole))
@@ -130,6 +147,73 @@ public sealed class AdminUserService : IAdminUserService
         await InvalidateAsync(user.Id, cancellationToken);
 
         return ToProfile(user, role);
+    }
+
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var user = await _identity.FindByIdAsync(id, cancellationToken);
+        if (user is null || user.DeletedAt is not null)
+        {
+            throw new NotFoundException("Utilisateur introuvable.");
+        }
+
+        var roles = await _identity.GetRolesAsync(user, cancellationToken);
+        if (user.IsActive && roles.Contains(Roles.Admin))
+        {
+            await EnsureNotLastAdminAsync(cancellationToken);
+        }
+
+        // Suppression logique : on anonymise le profil pour conserver l'historique
+        // des messages (l'auteur devient « Utilisateur supprime »).
+        user.IsActive = false;
+        user.DeletedAt = DateTimeOffset.UtcNow;
+        user.DisplayName = DeletedDisplayName;
+        user.AvatarUrl = null;
+        user.Email = $"supprime+{user.Id:N}@deleted.local";
+        user.UserName = user.Email;
+
+        EnsureSuccess(await _identity.UpdateAsync(user, cancellationToken));
+
+        if (roles.Count > 0)
+        {
+            EnsureSuccess(await _identity.SetRolesAsync(user, Array.Empty<string>(), cancellationToken));
+        }
+
+        await _refreshTokens.RevokeAllForUserAsync(user.Id, cancellationToken);
+        await _membership.InvalidateUserAsync(user.Id, cancellationToken);
+        await _sessions.TerminateAsync(user.Id, cancellationToken);
+        await InvalidateAsync(user.Id, cancellationToken);
+    }
+
+    public async Task ResetPasswordAsync(
+        Guid id,
+        string inviteBaseUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _identity.FindByIdAsync(id, cancellationToken);
+        if (user is null || user.DeletedAt is not null)
+        {
+            throw new NotFoundException("Utilisateur introuvable.");
+        }
+
+        var token = await _identity.GeneratePasswordResetTokenAsync(user, cancellationToken);
+        var link = $"{inviteBaseUrl}?userId={user.Id}&token={Uri.EscapeDataString(token)}";
+        await _email.SendAsync(
+            user.Email!,
+            "Reinitialisation de votre mot de passe TeamChat",
+            $"Bonjour {user.DisplayName}, definissez un nouveau mot de passe : {link}",
+            cancellationToken);
+    }
+
+    /// <summary>Interdit toute action qui supprimerait le dernier administrateur actif.</summary>
+    private async Task EnsureNotLastAdminAsync(CancellationToken cancellationToken)
+    {
+        var activeAdmins = await _queries.CountActiveAdminsAsync(cancellationToken);
+        if (activeAdmins <= 1)
+        {
+            throw new BadRequestException(
+                "Action impossible : ce compte est le dernier administrateur actif.");
+        }
     }
 
     private async Task InvalidateAsync(Guid userId, CancellationToken cancellationToken)
