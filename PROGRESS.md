@@ -887,3 +887,42 @@ notifications, groupes (desarchivage, renommage), audit, parametres, authentific
   protection "dernier admin", journal d'activite, parametres, endpoints membres/fichiers partages.
 - [ ] Comptes de test : `admin@teamchat.local` / `Admin123!`,
   `demo.alpha@teamchat.local` et `demo.beta@teamchat.local` / `Demo123!`.
+
+---
+
+## Refonte UX/UI majeure — Sprint 6 : Annuaire & recherche
+
+### Fait
+
+- **Annuaire redessine** avec la bibliotheque de composants partagee :
+  - avatars via `tc-avatar` (fini les `.avatar` + initiales calculees en dur) ;
+  - statut de compte via `tc-badge` (Actif/Inactif) ;
+  - etats vides via `tc-empty-state`, **distingues** selon le contexte (aucun resultat pour une
+    recherche vs annuaire vide) ;
+  - boutons de pagination via `tc-button`.
+- **Presence reelle** : la pastille en ligne utilise desormais la presence SignalR
+  (`ChatService.presence`) au lieu de confondre activite du compte et presence (bug corrige).
+- **Action « Message »** sur chaque utilisateur : cree la conversation directe
+  (`createDirect`, idempotent) puis navigue vers `/conversations/{id}`, avec etat de chargement
+  par ligne et desactivation des comptes inactifs.
+- **Chargement** : squelette anime (au lieu de « Chargement… ») coherent avec la liste des
+  conversations ; respect de `prefers-reduced-motion`.
+- **Animation decorative supprimee** (plus de `translateY` au survol) conformement aux regles UX.
+- **Accessibilite** : compteurs, `aria-label` sur la recherche et les actions, `aria-hidden`
+  sur le squelette.
+- **Responsive** : en-tete empile et grille mono-colonne sous 640px ; CSS mort supprime
+  (`.avatar`, `.presence-dot`, `.badge`, `.card`, `.state`).
+
+### Resultats de verification (reels, executes le 2026-10-14)
+
+| Verification | Commande | Resultat |
+|---|---|---|
+| Build frontend (prod) | `npm run build -- --configuration production` | OK, 0 erreur / 0 warning |
+| Dev server (HMR) | recompilation auto | OK |
+
+### Problemes connus / non verifie
+
+- [ ] Validation visuelle manuelle a faire cote utilisateur (grille, presence, action Message,
+  squelette, pagination, responsive).
+- [ ] Le regroupement en direct d'une conversation creee depuis l'annuaire depend du backend
+  (`createDirect`) : fonctionnel via la creation idempotente existante, non reteste en e2e ici.
