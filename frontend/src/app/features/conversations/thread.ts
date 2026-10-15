@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { AttachmentsService } from '../../core/api/attachments.service';
@@ -11,7 +11,12 @@ import { AuthService } from '../../core/auth/auth.service';
 import { CallService } from '../../core/calls/call.service';
 import { ChatService } from '../../core/chat/chat.service';
 import { CallType } from '../../core/models/call.models';
-import { ConversationListItemDto, MessageDto } from '../../core/models/conversation.models';
+import {
+  ConversationDetailDto,
+  ConversationListItemDto,
+  MessageDto,
+  SharedAttachmentDto,
+} from '../../core/models/conversation.models';
 import { formatDuration, formatFileSize, initialsOf, shortTime } from '../../core/utils/display';
 import { IconComponent } from '../../shared/icon/icon';
 import { EmptyStateComponent } from '../../shared/ui/empty-state';
@@ -75,6 +80,7 @@ interface SharedFile {
 })
 export class ThreadComponent {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly conversations = inject(ConversationsService);
   private readonly attachments = inject(AttachmentsService);
   private readonly chat = inject(ChatService);
@@ -85,6 +91,9 @@ export class ThreadComponent {
 
   private readonly scrollArea = viewChild<ElementRef<HTMLDivElement>>('scrollArea');
   private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
+  private readonly composerInput = viewChild<ElementRef<HTMLTextAreaElement>>('composerInput');
+  private readonly detailsButton = viewChild<ElementRef<HTMLButtonElement>>('detailsButton');
+  private readonly drafts = new Map<string, string>();
   private readonly stopTyping$ = new Subject<void>();
   private lastTypingSent = 0;
 
@@ -102,7 +111,17 @@ export class ThreadComponent {
   readonly input = signal('');
   readonly atBottom = signal(true);
   readonly conversation = signal<ConversationListItemDto | null>(null);
+  readonly detail = signal<ConversationDetailDto | null>(null);
+  readonly sharedAttachments = signal<SharedAttachmentDto[]>([]);
   readonly typing = this.chat.typing;
+
+  readonly searchOpen = signal(false);
+  readonly searchQuery = signal('');
+  readonly searchResults = signal<MessageDto[]>([]);
+  readonly searching = signal(false);
+  readonly highlightId = signal<string | null>(null);
+  readonly archiveBusy = signal(false);
+  readonly leaveBusy = signal(false);
 
   readonly uploading = signal(false);
   readonly uploadProgress = signal(0);
@@ -162,15 +181,17 @@ export class ThreadComponent {
   });
 
   readonly sharedFiles = computed<SharedFile[]>(() =>
-    this.messages()
-      .filter((message) => !!message.attachment && (message.type === 2 || message.type === 3))
-      .map((message) => ({
-        id: message.attachment!.id,
-        fileName: message.attachment!.fileName,
-        sizeBytes: message.attachment!.sizeBytes,
-        isImage: message.type === 3,
-      })),
+    this.sharedAttachments().map((attachment) => ({
+      id: attachment.attachmentId,
+      fileName: attachment.fileName,
+      sizeBytes: attachment.sizeBytes,
+      isImage: attachment.type === 3,
+    })),
   );
+
+  readonly members = computed(() => this.detail()?.participants ?? []);
+
+  readonly archived = computed(() => this.detail()?.archived ?? this.conversation()?.archived ?? false);
 
   constructor() {
     this.stopTyping$
@@ -205,9 +226,15 @@ export class ThreadComponent {
     this.route.paramMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       const id = params.get('id');
       if (id && id !== this.conversationId()) {
+        const previous = this.conversationId();
+        if (previous) {
+          this.drafts.set(previous, this.input());
+        }
         this.conversationId.set(id);
+        this.input.set(this.drafts.get(id) ?? '');
         this.cancelEdit();
         this.reload();
+        setTimeout(() => this.autoGrow());
       }
     });
 
@@ -339,13 +366,34 @@ export class ThreadComponent {
       .sendMessage(conversationId, content)
       .then(() => {
         this.stopTypingNow();
+        this.drafts.delete(conversationId);
         this.input.set('');
+        this.autoGrow();
         this.sending.set(false);
         this.scrollToBottom();
       })
       .catch(() => {
         this.sending.set(false);
+        this.error.set("Le message n'a pas pu être envoyé. Réessayez.");
       });
+  }
+
+  onComposerKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      this.send();
+    }
+  }
+
+  private autoGrow(): void {
+    const el = this.composerInput()?.nativeElement;
+    if (!el) {
+      return;
+    }
+
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+    el.style.overflowY = el.scrollHeight > 160 ? 'auto' : 'hidden';
   }
 
   onInput(): void {
@@ -363,7 +411,8 @@ export class ThreadComponent {
   }
 
   onInputEvent(event: Event): void {
-    this.input.set((event.target as HTMLInputElement).value);
+    this.input.set((event.target as HTMLTextAreaElement).value);
+    this.autoGrow();
     this.onInput();
   }
 
@@ -492,11 +541,114 @@ export class ThreadComponent {
   }
 
   toggleDetails(): void {
-    this.detailsOpen.update((open) => !open);
+    const next = !this.detailsOpen();
+    this.detailsOpen.set(next);
+    if (!next) {
+      this.focusDetailsButton();
+    }
   }
 
   closeDetails(): void {
     this.detailsOpen.set(false);
+    this.focusDetailsButton();
+  }
+
+  private focusDetailsButton(): void {
+    setTimeout(() => this.detailsButton()?.nativeElement.focus());
+  }
+
+  toggleArchive(): void {
+    const conversationId = this.conversationId();
+    if (!conversationId || this.archiveBusy()) {
+      return;
+    }
+
+    const next = !this.archived();
+    this.archiveBusy.set(true);
+    this.conversations.setArchived(conversationId, next).subscribe({
+      next: () => {
+        this.archiveBusy.set(false);
+        this.detail.update((detail) => (detail ? { ...detail, archived: next } : detail));
+        this.conversation.update((conversation) => (conversation ? { ...conversation, archived: next } : conversation));
+      },
+      error: () => this.archiveBusy.set(false),
+    });
+  }
+
+  leaveConversation(): void {
+    const conversationId = this.conversationId();
+    if (!conversationId || this.leaveBusy()) {
+      return;
+    }
+
+    if (!confirm('Quitter ce groupe ? Vous ne verrez plus ses messages.')) {
+      return;
+    }
+
+    this.leaveBusy.set(true);
+    this.conversations.leave(conversationId).subscribe({
+      next: () => {
+        this.leaveBusy.set(false);
+        void this.router.navigate(['/conversations']);
+      },
+      error: () => this.leaveBusy.set(false),
+    });
+  }
+
+  openSearch(): void {
+    this.searchOpen.set(true);
+  }
+
+  closeSearch(): void {
+    this.searchOpen.set(false);
+    this.searchQuery.set('');
+    this.searchResults.set([]);
+    this.searching.set(false);
+  }
+
+  onSearchInput(event: Event): void {
+    this.searchQuery.set((event.target as HTMLInputElement).value);
+    this.runSearch();
+  }
+
+  goToResult(message: MessageDto): void {
+    this.closeSearch();
+    const exists = this.messages().some((m) => m.id === message.id);
+    if (!exists) {
+      this.messages.update((current) => [...current, message].sort((a, b) => a.sequence - b.sequence));
+      this.ensureMedia(message);
+    }
+
+    this.highlightId.set(message.id);
+    requestAnimationFrame(() => {
+      document.getElementById(`msg-${message.id}`)?.scrollIntoView({ block: 'center' });
+    });
+    window.setTimeout(() => {
+      if (this.highlightId() === message.id) {
+        this.highlightId.set(null);
+      }
+    }, 1800);
+  }
+
+  private runSearch(): void {
+    const conversationId = this.conversationId();
+    const query = this.searchQuery().trim();
+    if (!conversationId || query.length < 2) {
+      this.searchResults.set([]);
+      return;
+    }
+
+    this.searching.set(true);
+    this.conversations.searchMessages(conversationId, query).subscribe({
+      next: (result) => {
+        this.searchResults.set(result.items);
+        this.searching.set(false);
+      },
+      error: () => {
+        this.searchResults.set([]);
+        this.searching.set(false);
+      },
+    });
   }
 
   toggleEmoji(): void {
@@ -626,6 +778,16 @@ export class ThreadComponent {
       error: () => {
         this.conversation.set(null);
       },
+    });
+
+    this.conversations.getDetail(conversationId).subscribe({
+      next: (detail) => this.detail.set(detail),
+      error: () => this.detail.set(null),
+    });
+
+    this.conversations.getSharedAttachments(conversationId).subscribe({
+      next: (files) => this.sharedAttachments.set(files),
+      error: () => this.sharedAttachments.set([]),
     });
 
     this.conversations.getMessages(conversationId).subscribe({

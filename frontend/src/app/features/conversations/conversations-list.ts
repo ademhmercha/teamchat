@@ -48,7 +48,8 @@ export class ConversationsListComponent {
   readonly items = signal<ConversationListItemDto[]>([]);
   readonly presence = this.chat.presence;
   readonly query = signal('');
-  readonly filter = signal<'all' | 'unread' | 'groups'>('all');
+  readonly filter = signal<'all' | 'unread' | 'groups' | 'archived'>('all');
+  readonly archivedCount = computed(() => this.items().filter((item) => item.archived).length);
 
   readonly pickerOpen = signal(false);
   readonly pickerSearch = signal('');
@@ -66,6 +67,14 @@ export class ConversationsListComponent {
     const filter = this.filter();
 
     return this.items().filter((item) => {
+      if (filter === 'archived') {
+        if (!item.archived) {
+          return false;
+        }
+      } else if (item.archived) {
+        return false;
+      }
+
       if (filter === 'unread' && item.unreadCount === 0) {
         return false;
       }
@@ -88,8 +97,12 @@ export class ConversationsListComponent {
     this.query.set((event.target as HTMLInputElement).value);
   }
 
-  setFilter(filter: 'all' | 'unread' | 'groups'): void {
+  setFilter(filter: 'all' | 'unread' | 'groups' | 'archived'): void {
     this.filter.set(filter);
+  }
+
+  retry(): void {
+    this.load();
   }
 
   constructor() {

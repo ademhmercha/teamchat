@@ -67,6 +67,18 @@ export class AuthService {
     );
   }
 
+  forgotPassword(email: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/forgot-password`, { email });
+  }
+
+  resetPassword(userId: string, token: string, password: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/reset-password`, { userId, token, password });
+  }
+
+  acceptInvite(userId: string, token: string, password: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/accept-invite`, { userId, token, password });
+  }
+
   logout(): Observable<void> {
     return this.http
       .post<void>(`${this.baseUrl}/logout`, {}, { withCredentials: true })
@@ -74,6 +86,39 @@ export class AuthService {
         catchError(() => of(void 0)),
         tap(() => this.clearSession()),
       );
+  }
+
+  logoutAll(): Observable<void> {
+    return this.http
+      .post<void>(`${this.baseUrl}/logout-all`, {}, { withCredentials: true })
+      .pipe(
+        catchError(() => of(void 0)),
+        tap(() => this.clearSession()),
+      );
+  }
+
+  updateProfile(displayName: string): Observable<UserProfile> {
+    return this.http
+      .patch<UserProfile>(`${environment.apiBaseUrl}/api/users/me`, { displayName })
+      .pipe(tap((user) => this._user.set(user)));
+  }
+
+  uploadAvatar(file: File): Observable<UserProfile> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http
+      .post<UserProfile>(`${environment.apiBaseUrl}/api/users/me/avatar`, form)
+      .pipe(tap((user) => this._user.set(user)));
+  }
+
+  removeAvatar(): Observable<void> {
+    return this.http
+      .delete<void>(`${environment.apiBaseUrl}/api/users/me/avatar`)
+      .pipe(tap(() => this._user.update((user) => (user ? { ...user, avatarUrl: null } : user))));
+  }
+
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/change-password`, { currentPassword, newPassword });
   }
 
   clearSession(): void {

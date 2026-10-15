@@ -118,6 +118,17 @@
   justify-content: center;
 }
 
+.forgot-link {
+  align-self: center;
+  color: var(--tc-primary);
+  font-size: 0.87rem;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 @media (max-width: 420px) {
   .login-page {
     padding: 1rem;

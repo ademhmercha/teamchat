@@ -2,7 +2,7 @@
   <header class="page-header">
     <div>
       <h1>Utilisateurs</h1>
-      <p>{{ items().length }} compte(s)</p>
+      <p>{{ filtered().length }} / {{ items().length }} compte(s)</p>
     </div>
     <div class="header-actions">
       <label class="search">
@@ -22,6 +22,39 @@
     </div>
   </header>
 
+  <div class="user-toolbar">
+    <div class="filters" role="group" aria-label="Filtrer les utilisateurs">
+      <label class="filter-field">
+        <span>Rôle</span>
+        <select [value]="roleFilter()" (change)="setRoleFilter($any($event.target).value)">
+          <option value="all">Tous</option>
+          <option value="User">Utilisateur</option>
+          <option value="Admin">Administrateur</option>
+        </select>
+      </label>
+      <label class="filter-field">
+        <span>Statut</span>
+        <select [value]="statusFilter()" (change)="setStatusFilter($any($event.target).value)">
+          <option value="all">Tous</option>
+          <option value="active">Actifs</option>
+          <option value="inactive">Désactivés</option>
+        </select>
+      </label>
+      <label class="filter-field">
+        <span>Trier par</span>
+        <select
+          [value]="sortKey() + ':' + sortDir()"
+          (change)="setSort($any($event.target).value)"
+        >
+          <option value="name:asc">Nom (A → Z)</option>
+          <option value="name:desc">Nom (Z → A)</option>
+          <option value="email:asc">Email (A → Z)</option>
+          <option value="role:asc">Rôle</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
   @if (error(); as message) {
     <div class="alert" role="alert">{{ message }}</div>
   }
@@ -39,9 +72,11 @@
         title="Aucun utilisateur"
         message="Créez le premier compte pour inviter un collègue."
       />
+    } @else if (filtered().length === 0) {
+      <div class="state">Aucun compte ne correspond à ces filtres.</div>
     } @else {
       <ul class="user-list">
-        @for (user of items(); track user.id) {
+        @for (user of paged(); track user.id) {
           <li class="user-row" [class.inactive]="!user.isActive">
             <tc-avatar [name]="user.displayName" size="md" />
             <div class="user-info">
@@ -98,6 +133,28 @@
           </li>
         }
       </ul>
+
+      @if (totalPages() > 1) {
+        <nav class="pagination" aria-label="Pagination des utilisateurs">
+          <button
+            type="button"
+            class="page-btn"
+            [disabled]="page() <= 1"
+            (click)="goToPage(page() - 1)"
+          >
+            Précédent
+          </button>
+          <span class="page-info">Page {{ page() }} / {{ totalPages() }}</span>
+          <button
+            type="button"
+            class="page-btn"
+            [disabled]="page() >= totalPages()"
+            (click)="goToPage(page() + 1)"
+          >
+            Suivant
+          </button>
+        </nav>
+      }
     }
   </div>
 </div>

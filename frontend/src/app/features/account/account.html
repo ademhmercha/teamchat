@@ -1,0 +1,120 @@
+<section class="account">
+  <header class="account-head">
+    <h1>Mon compte</h1>
+    <p>Gerez votre profil, votre mot de passe et vos sessions.</p>
+  </header>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Profil</h2>
+      <p>Votre nom et votre photo apparaissent pour vos collegues.</p>
+    </div>
+
+    <div class="profile-row">
+      <tc-avatar [name]="user()?.displayName ?? ''" [src]="avatarSrc()" size="xl" />
+
+      <div class="avatar-actions">
+        <input
+          #avatarInput
+          type="file"
+          accept="image/png,image/jpeg,image/gif,image/webp"
+          hidden
+          (change)="onAvatarSelected($event)"
+        />
+        <tc-button variant="secondary" icon="image" [loading]="avatarUploading()" (click)="pickAvatar()">
+          Changer la photo
+        </tc-button>
+        @if (avatarSrc()) {
+          <tc-button variant="ghost" icon="trash" [disabled]="avatarUploading()" (click)="removeAvatar()">
+            Retirer
+          </tc-button>
+        }
+        <small class="hint">PNG, JPEG, GIF ou WEBP — 2 Mo maximum.</small>
+        @if (avatarError(); as message) {
+          <small class="error">{{ message }}</small>
+        }
+      </div>
+    </div>
+
+    <form class="form" [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
+      <label class="field">
+        <span>Nom affiche</span>
+        <input type="text" formControlName="displayName" maxlength="100" autocomplete="name" />
+        @if (profileForm.controls.displayName.touched && profileForm.controls.displayName.invalid) {
+          <small class="error">Nom requis (100 caracteres maximum).</small>
+        }
+      </label>
+
+      <label class="field">
+        <span>Email</span>
+        <input type="email" [value]="user()?.email ?? ''" disabled />
+      </label>
+
+      <div class="form-foot">
+        @if (profileMessage(); as message) {
+          <span class="success">{{ message }}</span>
+        }
+        @if (profileError(); as message) {
+          <span class="error">{{ message }}</span>
+        }
+        <tc-button variant="primary" type="submit" [loading]="profileSaving()">Enregistrer</tc-button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Mot de passe</h2>
+      <p>Un changement de mot de passe deconnecte toutes vos sessions.</p>
+    </div>
+
+    <form class="form" [formGroup]="passwordForm" (ngSubmit)="savePassword()" novalidate>
+      <label class="field">
+        <span>Mot de passe actuel</span>
+        <input type="password" formControlName="currentPassword" autocomplete="current-password" />
+        @if (passwordForm.controls.currentPassword.touched && passwordForm.controls.currentPassword.invalid) {
+          <small class="error">Mot de passe actuel requis.</small>
+        }
+      </label>
+
+      <label class="field">
+        <span>Nouveau mot de passe</span>
+        <input type="password" formControlName="newPassword" autocomplete="new-password" />
+        @if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.invalid) {
+          <small class="error">8 caracteres minimum, avec majuscule, minuscule, chiffre et caractere special.</small>
+        }
+      </label>
+
+      <label class="field">
+        <span>Confirmation</span>
+        <input type="password" formControlName="confirmation" autocomplete="new-password" />
+        @if (passwordForm.touched && passwordForm.errors?.['mismatch']) {
+          <small class="error">Les mots de passe ne correspondent pas.</small>
+        }
+      </label>
+
+      <div class="form-foot">
+        @if (passwordMessage(); as message) {
+          <span class="success">{{ message }}</span>
+        }
+        @if (passwordError(); as message) {
+          <span class="error">{{ message }}</span>
+        }
+        <tc-button variant="primary" type="submit" [loading]="passwordSaving()">Modifier</tc-button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Sessions</h2>
+      <p>Deconnectez tous les appareils connectes a votre compte.</p>
+    </div>
+
+    <div class="form-foot">
+      <tc-button variant="danger" icon="logout" [loading]="loggingOutAll()" (click)="logoutAll()">
+        Deconnecter toutes les sessions
+      </tc-button>
+    </div>
+  </div>
+</section>

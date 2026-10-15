@@ -35,6 +35,8 @@
       {{ loading() ? 'Connexion…' : 'Se connecter' }}
     </tc-button>
 
+    <a class="forgot-link" routerLink="/forgot-password">Mot de passe oublie ?</a>
+
     @if (googleEnabled) {
       <div class="divider"><span>ou</span></div>
       <div id="google-button" class="google-button"></div>

@@ -285,3 +285,32 @@ a {
     transform: translateX(0);
   }
 }
+
+/* ============================================================
+   Composants routés
+   Les sorties de routeur (.content, .conv-main, .admin-content)
+   sont des conteneurs flex. Sans dimensionnement explicite, l'hôte
+   du composant routé reste à la largeur de son contenu : le reste
+   de la zone apparaît alors comme un grand espace vide à droite.
+   On force donc chaque page à remplir sa zone.
+   ============================================================ */
+
+app-directory,
+app-account,
+app-conversations-layout,
+app-admin-layout,
+app-conversations-empty,
+app-thread,
+app-admin-home,
+app-admin-users,
+app-admin-groups {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Racines qui s'appuient sur flex:1 : l'hôte doit être un conteneur flex. */
+app-conversations-empty,
+app-thread {
+  display: flex;
+}

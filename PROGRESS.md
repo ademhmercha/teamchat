@@ -1,4 +1,4 @@
-# PROGRESS - TeamChat
+﻿# PROGRESS - TeamChat
 
 > Journal d'avancement. Tenu a jour a la fin de chaque sprint.
 > `CLAUDE.md` est la source de verite ; ce fichier ne coche que ce qui est reellement termine.
@@ -194,7 +194,7 @@ en clair cote admin). Le fichier `backend/.config/dotnet-tools.json` (outil `dot
   (`before` / `limit` 1-100) ; hub SignalR `/hubs/chat` (`SendMessage`, `StartTyping`, `StopTyping`,
   events `ReceiveMessage`, `UserTyping`, `UserStoppedTyping`, `PresenceChanged`, `PresenceSnapshot`) ;
   `app.UseWebSockets()`, auth JWT du hub via `access_token` en query (`OnMessageReceived`), rate
-  limiting « chat » (defaut 120/min/IP).
+  limiting Â« chat Â» (defaut 120/min/IP).
 - Tests `ConversationsEndpointTests` (7) + `ChatHubTests` (4) ; **31/31 verts** (4 unitaires + 27 integration).
 
 **Frontend** (Angular 21, standalone + signals)
@@ -202,11 +202,11 @@ en clair cote admin). Le fichier `backend/.config/dotnet-tools.json` (outil `dot
   automatique**, rejoint les groupes cote serveur a chaque `OnConnected` (resubscribe implicite),
   signals de presence et de typing (expiration 2,5 s), observable `receiveMessage$`.
 - Page conversations : liste des echanges (1er message affiche + heure), pastille de presence en
-  surimpression, bouton « Nouvelle conversation » (recherche utilisateur + creation directe
+  surimpression, bouton Â« Nouvelle conversation Â» (recherche utilisateur + creation directe
   idempotente, redirection vers le fil).
 - Fil de discussion `/conversations/:id` : chargement des messages les plus recents, **scroll infini
   ascendant** (curseur `Sequence`), reception temps reel avec deduplication par `id`, envoi via le hub
-  (echo serveur), indicateur « X ecrit… », presence de l'interlocuteur, auto-scroll si l'utilisateur
+  (echo serveur), indicateur Â« X ecritâ€¦ Â», presence de l'interlocuteur, auto-scroll si l'utilisateur
   est en bas.
 
 ### En cours
@@ -222,7 +222,7 @@ en clair cote admin). Le fichier `backend/.config/dotnet-tools.json` (outil `dot
 | D17 | Curseur d'historique = **`Message.Sequence`** (bigint identity, ordre global) | Le couple `(CreatedAt, Guid.CompareTo)` est fragile (ordre .NET vs Postgres, egalites horodatees). |
 | D18 | L'envoi au groupe conversation se fait **y compris a l'expediteur** (echo serveur) | Un seul chemin de rendu ; le client deduplique par `message.id`. |
 | D19 | Membership **mis en cache 5 min** avec tags `tc:v1` et invalidation a la creation d'une conversation | Envol categorie meme si faible ; evite 1 requete/s/message. |
-| D20 | Conversation directe **idempotente** via `DirectKey` `d:{min}:{max}` + gestion de course (`DbUpdateException` -> refetch) | Deux onglets peuvent cliquer simultanement sur « Nouvelle conversation ». |
+| D20 | Conversation directe **idempotente** via `DirectKey` `d:{min}:{max}` + gestion de course (`DbUpdateException` -> refetch) | Deux onglets peuvent cliquer simultanement sur Â« Nouvelle conversation Â». |
 | D21 | Non lus (`LastReadMessageId`), groupes (`Group`) et fichiers/vocal reportes **Sprint 3 / Sprint 4** | Perimetre du Sprint 2 strict (prive + temps reel + presence). |
 
 ### Problemes connus / non verifie
@@ -234,7 +234,7 @@ en clair cote admin). Le fichier `backend/.config/dotnet-tools.json` (outil `dot
       WebSockets (equivalent fonctionnel). A re-tester visuellement par l'utilisateur.
 - [ ] Presence **par instance** : deux instances d'API = presences incoherentes (accepte en dev).
 - [ ] Les echecs d'envoi (`send()`) sont silencieux cote UI (pas encore de gestion d'erreur visible).
-- [ ] Message non-texte rendu « Contenu non texte » cote UI (pieces jointes : Sprint 4).
+- [ ] Message non-texte rendu Â« Contenu non texte Â» cote UI (pieces jointes : Sprint 4).
 
 ### Resultats de verification (reels, executes le 2026-10-10)
 
@@ -312,7 +312,7 @@ Note : le script de verification runtime est en dehors du depot
 | D24 | Edition/suppression de message **via le hub uniquement** (pas de REST) | Meme chemin temps reel que l'envoi ; broadcast garanti aux membres connectes. |
 | D25 | Groupes **crees et geres par les admins** (`Roles.Admin`) ; `PUT members` = remplacement complet | Pas de creation de groupe en libre-service dans ce sprint (section 9). |
 | D26 | Synchronisation des groupes SignalR cote **controller** (via `IHubContext`) et non dans le service | Le service reste agnostique du transport ; le controller connait presence + hub. |
-| D27 | Marquage comme lu cote front via **REST** (`POST .../read`) | Simplifie le cas « dernier message » (messageId null) ; la methode hub `MarkAsRead` existe pour les clients temps reel. |
+| D27 | Marquage comme lu cote front via **REST** (`POST .../read`) | Simplifie le cas Â« dernier message Â» (messageId null) ; la methode hub `MarkAsRead` existe pour les clients temps reel. |
 
 ### Problemes connus / non verifie
 
@@ -320,7 +320,7 @@ Note : le script de verification runtime est en dehors du depot
       d'integration (hub SignalR reel en LongPolling). A re-tester visuellement par l'utilisateur.
 - [ ] **Verification runtime API (script node)** du Sprint 3 non encore rejouee (couverture assuree par
       les tests d'integration ; un passage bout-en-bout reste souhaitable).
-- [ ] `MarkAsRead` du hub prend un `Guid messageId` non nullable (le cas « tout lire » passe par REST).
+- [ ] `MarkAsRead` du hub prend un `Guid messageId` non nullable (le cas Â« tout lire Â» passe par REST).
 - [ ] Test de presence historique rendu **deterministe** : l'assertion verifie desormais que l'appelant
       figure dans son propre snapshot (l'ancienne assertion attendait un utilisateur connecte plus tard,
       source de flakiness).
@@ -352,7 +352,7 @@ Environnement : identique aux sprints precedents (SDK .NET 10.0.401, Node v20.20
 - Detection du **type reel par signature binaire** (`FileSignatureDetector`, magic bytes) : images
   (png/jpeg/gif/webp), PDF, ZIP/OOXML, audio (webm/ogg/mp4/mpeg), texte brut ; **rejet explicite**
   des executables (`MZ`) et binaires ELF ; tout type inconnu -> `BadRequestException`
-  « Type de fichier non autorise. »
+  Â« Type de fichier non autorise. Â»
 - Abstraction `IFileStorage` (`SaveAsync`, `OpenReadAsync`, `DeleteAsync`) : `LocalFileStorage`
   (dev, ecriture fichier temporaire + move atomique, garde-fou de chemin) ; `S3FileStorage`
   (stockage objet, `AmazonS3Config` `ServiceURL`/`ForcePathStyle` + `BasicAWSCredentials`), selection
@@ -423,7 +423,7 @@ Environnement : identique aux sprints precedents (SDK .NET 10.0.401, Node v20.20
 | Upload image (runtime) | `POST /api/conversations/{id}/attachments` (png) | 200, `type=3`, piece jointe (fileName/size/contentType) |
 | Upload vocal (runtime) | idem (`audio/webm`, `isVoice=true`, `durationSec=3`) | 200, `type=1`, `durationSec=3` |
 | Telechargement (runtime) | `GET /api/attachments/{id}` | 200, `Content-Type=image/png`, `inline`, octets **identiques** a l'upload |
-| Refus executable | upload `MZ` (`evil.exe`) | **400** « Type de fichier non autorise. » |
+| Refus executable | upload `MZ` (`evil.exe`) | **400** Â« Type de fichier non autorise. Â» |
 | Refus type inconnu | upload binaire sans signature | **400** |
 
 ---
@@ -438,7 +438,7 @@ Environnement : identique aux sprints precedents (SDK .NET 10.0.401, Node v20.20
   `AnsweredAt?`, `EndedAt?`). Migration `AddCallLog` (`20261012183052`) - table `CallLogs`, FK
   `AspNetUsers` en `Restrict` (pas de suppression en cascade des journaux d'appel).
 - `CallService` : `StartCallAsync` (interdit a soi-meme ; destinataire existant et actif ; destinataire
-  **en ligne** sinon `BadRequestException` « Le destinataire est hors ligne. » ; ni appelant ni
+  **en ligne** sinon `BadRequestException` Â« Le destinataire est hors ligne. Â» ; ni appelant ni
   destinataire deja en appel actif sinon `ConflictException`) ; `AcceptCallAsync` (callee,
   Ringing->Accepted) ; `RejectCallAsync` (callee, ->Rejected + `EndedAt`) ; `EndCallAsync`
   (participant ; Ringing->Missed, Accepted->Ended) ; expiration des sonneries (`ExpireStaleCallsAsync`,
@@ -446,7 +446,7 @@ Environnement : identique aux sprints precedents (SDK .NET 10.0.401, Node v20.20
   `AuthorizeRelayAsync` (seul caller/callee, appel Accepted, retourne le peer -> **un tiers ne peut pas
   relayer la signalisation**). `GetIceServersAsync` et `GetHistoryAsync` (limite 1-100, defaut 50).
 - Messages **systeme** (`MessageType.System=4`) postes via `IConversationQueries.AddSystemMessageAsync`
-  dans la conversation directe : « {Appel audio|video} {manque|refuse|termine (duree X)} »,
+  dans la conversation directe : Â« {Appel audio|video} {manque|refuse|termine (duree X)} Â»,
   `SenderId` = `CallerId`, diffuses au groupe conversation (`ReceiveMessage`).
 - `IChatClient` : `IncomingCall(CallSessionDto)`, `CallAccepted(CallSessionDto)`,
   `CallEnded(callId, status)`, `ReceiveOffer`, `ReceiveAnswer`, `ReceiveIceCandidate` (pas de
@@ -504,9 +504,9 @@ Environnement : identique aux sprints precedents (SDK .NET 10.0.401, Node v20.20
 | D35 | Signalisation (offre/reponse/ICE) relayee **via le hub** `ChatGroups.User(peer)` ; le serveur ne voit pas les media | Un seul canal temps reel ; le serveur reste un simple relais de signalisation, sans SFU. |
 | D36 | Un **tiers** ne peut pas relayer la signalisation (`AuthorizeRelayAsync` : caller/callee + `Accepted`) | Empeche l'injection d'offre/ICE dans un appel d'autrui. |
 | D37 | Expiration des sonneries cote serveur (`CallTimeoutService`) apres `Calls:RingingTimeoutSeconds` (30 s) | L'appelant ne doit pas rester bloque si le client ne rappelle pas ; trace `Missed` fiable. |
-| D38 | Messages systeme (`MessageType.System`) postes dans la conversation directe avec `SenderId = CallerId` | Trace persistante et visible dans l'historique (« appel manque/refuse/termine »). |
+| D38 | Messages systeme (`MessageType.System`) postes dans la conversation directe avec `SenderId = CallerId` | Trace persistante et visible dans l'historique (Â« appel manque/refuse/termine Â»). |
 | D39 | Etat d'appel tient compte de la **presence** (`IPresenceTracker`) : appel refuse si le destinataire est hors ligne | Evite une sonnerie fantome vers un utilisateur deconnecte. |
-| D40 | TURN via **TURN REST API** (identifiants temporaires HMAC), secret cote env (`Turn__Secret`) | Identifiants ephemères, aucun secret statique dans le bundle client. |
+| D40 | TURN via **TURN REST API** (identifiants temporaires HMAC), secret cote env (`Turn__Secret`) | Identifiants ephemÃ¨res, aucun secret statique dans le bundle client. |
 | D41 | `AppException` -> `HubException(message)` (`CallAsync<T>`) plutot que `EnableDetailedErrors` | Messages d'erreur clairs cote client sans activer le mode verbeux global. |
 
 ### Problemes connus / non verifie
@@ -697,7 +697,7 @@ Regle : aucune couleur en dur dans les composants, tout passe par des jetons `--
 
 ---
 
-## Refonte UX/UI majeure — Sprint 1 : theme clair + composants partages
+## Refonte UX/UI majeure â€” Sprint 1 : theme clair + composants partages
 
 Base : `730ea6f` (Sprint 7) + refonte sombre (annulee/remplacee par le theme clair demande).
 Objectif global : interface claire et professionnelle type Outlook, messagerie et administration
@@ -711,7 +711,7 @@ separees, sans casser l'existant. Travail par sprints, valides un a un.
   fichiers (upload 25 Mo / vocal 10 Mo, detection magic-bytes), images, vocaux, emoji, edition/
   suppression, pagination, dashboard admin, gestion users/groupes.
 - Non implemente (a ne pas presenter comme fonctionnel) : notifications (bouton cloche sans handler),
-  repondre/citer, reactions, epinglage, transfert, accusés de lecture visibles (auto seulement),
+  repondre/citer, reactions, epinglage, transfert, accusÃ©s de lecture visibles (auto seulement),
   Google sign-in (inert), endpoints membres/fichiers partages, cote admin : pas de suppression
   d'utilisateur, pas de protection "dernier admin", pas de journal d'activite, pas de parametres.
 
@@ -745,7 +745,7 @@ separees, sans casser l'existant. Travail par sprints, valides un a un.
 
 ---
 
-## Refonte UX/UI majeure — Sprint 2 : repartition de l'espace et panneaux
+## Refonte UX/UI majeure â€” Sprint 2 : repartition de l'espace et panneaux
 
 ### Pre-requis verifies
 
@@ -782,15 +782,15 @@ separees, sans casser l'existant. Travail par sprints, valides un a un.
 
 ---
 
-## Refonte UX/UI majeure — Sprint 3 : centre de conversation (messagerie)
+## Refonte UX/UI majeure â€” Sprint 3 : centre de conversation (messagerie)
 
 ### Fait
 
-- **Separateurs de jour** dans le fil : « Aujourd'hui », « Hier » ou date longue francaise
+- **Separateurs de jour** dans le fil : Â« Aujourd'hui Â», Â« Hier Â» ou date longue francaise
   (annee affichee seulement si differente), places au changement de jour et a chaque systeme.
-- **Bouton « Revenir en bas » / nouveaux messages** : apparait des que l'on remonte le fil,
+- **Bouton Â« Revenir en bas Â» / nouveaux messages** : apparait des que l'on remonte le fil,
   affiche le nombre de nouveaux messages recus hors du bas, redefile et remet le compteur a zero.
-- **Action « Copier le texte »** sur les messages texte, avec retour visuel (icone coche ~1,4 s).
+- **Action Â« Copier le texte Â»** sur les messages texte, avec retour visuel (icone coche ~1,4 s).
   Action locale (presse-papiers), ne necessite aucune API.
 - **Etat vide de conversation** unifie via le composant partage `tc-empty-state`.
 - **Accessibilite** : fil en `role="log"` avec libelle, actions de message visibles au survol,
@@ -813,17 +813,17 @@ separees, sans casser l'existant. Travail par sprints, valides un a un.
 
 ---
 
-## Refonte UX/UI majeure — Sprint 4 : liste de conversations (colonne gauche)
+## Refonte UX/UI majeure â€” Sprint 4 : liste de conversations (colonne gauche)
 
 ### Fait
 
-- **Filtres segmentes** : Tout / Non lus / Groupes, avec compteur sur « Non lus ». Filtrage local
+- **Filtres segmentes** : Tout / Non lus / Groupes, avec compteur sur Â« Non lus Â». Filtrage local
   (les donnees viennent du DTO), cumulable avec la recherche texte.
-- **Horodatage intelligent** de la liste : heure (aujourd'hui), « Hier », jour abrege (cette semaine),
-  puis date jj/mm/aa — au lieu de toujours afficher l'heure.
+- **Horodatage intelligent** de la liste : heure (aujourd'hui), Â« Hier Â», jour abrege (cette semaine),
+  puis date jj/mm/aa â€” au lieu de toujours afficher l'heure.
 - **Emphase des non lus** : nom en gras, apercu assombri, heure en bleu ; badges deja existants.
 - **Compteur global de non lus** dans l'en-tete de la liste.
-- **Squelette de chargement** (6 lignes animees) a la place du simple texte « Chargement… ».
+- **Squelette de chargement** (6 lignes animees) a la place du simple texte Â« Chargementâ€¦ Â».
 - **Etats vides** unifies via le composant partage `tc-empty-state`.
 - **Accessibilite** : `aria-current="page"` sur la conversation active, libelle ARIA des badges
   de non lus, filtres en `role="tablist"`/`role="tab"` avec `aria-selected`.
@@ -844,17 +844,17 @@ separees, sans casser l'existant. Travail par sprints, valides un a un.
 
 ---
 
-## Refonte UX/UI majeure — Sprint 5 : espace Administration + coherence
+## Refonte UX/UI majeure â€” Sprint 5 : espace Administration + coherence
 
 ### Fait
 
 - **Espace d'administration distinct** : nouveau composant de mise en page `admin-layout`
-  (barre « Administration » + onglets Tableau de bord / Utilisateurs / Groupes + `router-outlet`),
+  (barre Â« Administration Â» + onglets Tableau de bord / Utilisateurs / Groupes + `router-outlet`),
   avec son propre en-tete et une navigation interne. Les routes `admin`, `admin/users`,
   `admin/groups` deviennent des enfants d'une route parent protegee (`adminGuard` conserve).
 - **Coherence des pages admin** avec la bibliotheque de composants partagee :
   - avatars via `tc-avatar` (fini les `.avatar` en dur + initiales calculees) ;
-  - statuts et tags via `tc-badge` (Actif/Desactive, Archivé, nombre de membres) ;
+  - statuts et tags via `tc-badge` (Actif/Desactive, ArchivÃ©, nombre de membres) ;
   - modales via `tc-modal` (piege de focus, Echap, clic dehors, restauration du focus) ;
   - etats vides via `tc-empty-state`.
 - Suppression du code et du CSS morts (`.avatar`, `.status`, `.tag`, `.modal-backdrop`,
@@ -872,7 +872,7 @@ separees, sans casser l'existant. Travail par sprints, valides un a un.
 ### Problemes connus / non verifie
 
 - [ ] Les fonctions d'administration absentes du backend restent absentes de l'UI (pas de
-  suppression d'utilisateur, pas de protection « dernier admin », pas de journal d'activite,
+  suppression d'utilisateur, pas de protection Â« dernier admin Â», pas de journal d'activite,
   pas de parametres) : a faire cote backend, non simule ici.
 - [ ] Validation visuelle manuelle a faire cote utilisateur (barre et onglets admin, modales).
 
@@ -890,7 +890,7 @@ notifications, groupes (desarchivage, renommage), audit, parametres, authentific
 
 ---
 
-## Refonte UX/UI majeure — Sprint 6 : Annuaire & recherche
+## Refonte UX/UI majeure â€” Sprint 6 : Annuaire & recherche
 
 ### Fait
 
@@ -902,10 +902,10 @@ notifications, groupes (desarchivage, renommage), audit, parametres, authentific
   - boutons de pagination via `tc-button`.
 - **Presence reelle** : la pastille en ligne utilise desormais la presence SignalR
   (`ChatService.presence`) au lieu de confondre activite du compte et presence (bug corrige).
-- **Action « Message »** sur chaque utilisateur : cree la conversation directe
+- **Action Â« Message Â»** sur chaque utilisateur : cree la conversation directe
   (`createDirect`, idempotent) puis navigue vers `/conversations/{id}`, avec etat de chargement
   par ligne et desactivation des comptes inactifs.
-- **Chargement** : squelette anime (au lieu de « Chargement… ») coherent avec la liste des
+- **Chargement** : squelette anime (au lieu de Â« Chargementâ€¦ Â») coherent avec la liste des
   conversations ; respect de `prefers-reduced-motion`.
 - **Animation decorative supprimee** (plus de `translateY` au survol) conformement aux regles UX.
 - **Accessibilite** : compteurs, `aria-label` sur la recherche et les actions, `aria-hidden`
@@ -929,7 +929,7 @@ notifications, groupes (desarchivage, renommage), audit, parametres, authentific
 
 ---
 
-## Refonte UX/UI majeure — Sprint 7 : Fichiers, vocal & medias
+## Refonte UX/UI majeure â€” Sprint 7 : Fichiers, vocal & medias
 
 ### Fait
 
@@ -939,7 +939,7 @@ notifications, groupes (desarchivage, renommage), audit, parametres, authentific
 - **Lecteur de message vocal sur mesure** : nouveau composant `app-voice-player`
   (bouton lecture/pause, barre de progression deformable **au clavier**, minuteur temps courant/
   duree). Remplace le lecteur `<audio>` natif pour un rendu homogene au theme.
-- **Cartes de fichier ameliorees** : affichage de l'extension (PDF, DOCX, ZIP…) dans la vignette.
+- **Cartes de fichier ameliorees** : affichage de l'extension (PDF, DOCX, ZIPâ€¦) dans la vignette.
 - **Icones ajoutees** : `play`, `pause` (jeu d'icones partage).
 - **Tokens** : ajout de `--tc-scrim-strong` (fond de visionneuse) ; aucun couleur codee en dur
   dans les composants (lightbox, zoom, lecteur).
@@ -955,23 +955,23 @@ notifications, groupes (desarchivage, renommage), audit, parametres, authentific
 ### Problemes connus / non verifie
 
 - [ ] Validation visuelle manuelle a faire cote utilisateur (apercu image, lecteur vocal, cartes fichier).
-- [ ] L'onglet « Fichiers partages » du panneau Détails est **derive des messages charges**
+- [ ] L'onglet Â« Fichiers partages Â» du panneau DÃ©tails est **derive des messages charges**
   (cote client) faute d'endpoint backend ; la liste complete necessite
-  `GET /api/conversations/{id}/attachments` (voir `BACKEND_TODO.md` §3).
+  `GET /api/conversations/{id}/attachments` (voir `BACKEND_TODO.md` Â§3).
 - [ ] La duree reelle du vocal depend des metadonnees du blob (fallback sur `durationSec`).
 
 ---
 
-## Refonte UX/UI majeure — Sprint 8 : Responsive, accessibilite & finition
+## Refonte UX/UI majeure â€” Sprint 8 : Responsive, accessibilite & finition
 
 ### Fait
 
 - **Accessibilite** :
-  - lien d'evitement « Aller au contenu » (`.skip-link`) + cible `#main-content` ;
-  - la zone de contenu devient le **repère `<main>`** ; libelles sur les `<nav>`
+  - lien d'evitement Â« Aller au contenu Â» (`.skip-link`) + cible `#main-content` ;
+  - la zone de contenu devient le **repÃ¨re `<main>`** ; libelles sur les `<nav>`
     (navigation principale, administration) ; liste des conversations nommee (`id="conv-nav"`) ;
   - bouton d'ouverture du tiroir conversations : `aria-controls` + `aria-expanded` ;
-    fermeture du tiroir par **Échap** ; scrim marque `aria-hidden` ;
+    fermeture du tiroir par **Ã‰chap** ; scrim marque `aria-hidden` ;
   - compteur de l'annuaire en `aria-live="polite"` ; etats de chargement admin en `role="status"` ;
   - visionneuse d'image : le focus est place sur le bouton Fermer a l'ouverture.
 - **Responsive** :
@@ -980,7 +980,7 @@ notifications, groupes (desarchivage, renommage), audit, parametres, authentific
   - carte de connexion plus compacte sous 420px.
 - **Finition** :
   - correction de l'encodage (mojibake) du tableau de bord admin
-    (« activite », « statistiques… », « Creer/gerer/roles ») ;
+    (Â« activite Â», Â« statistiquesâ€¦ Â», Â« Creer/gerer/roles Â») ;
   - suppression des micro-animations decoratives (`translateY` au survol) sur le tableau de bord,
     pour rester coherent avec le reste de la refonte ;
   - couleurs de secours du graphique alignees sur le theme clair ; utilitaire `.sr-only` ajoute.
@@ -997,5 +997,328 @@ notifications, groupes (desarchivage, renommage), audit, parametres, authentific
 
 - [ ] Validation visuelle manuelle a faire cote utilisateur (mobile/tablette, navigation clavier,
   lien d'evitement, tiroir conversations).
-- [ ] Le bouton « Notifications » de la barre superieure reste sans action (endpoint backend absent,
-  voir `BACKEND_TODO.md` §4).
+- [ ] Le bouton Â« Notifications Â» de la barre superieure reste sans action (endpoint backend absent,
+  voir `BACKEND_TODO.md` Â§4).
+
+---
+## Sprint Backend 1 ï¿½ Gestion des comptes (admin)
+Date : 2026-10-14 22:41:05
+
+### Cible (BACKEND_TODO.md ï¿½1)
+- [x] Protection du dernier administrateur actif (dï¿½sactivation / rï¿½trogradation)
+- [x] Suppression logique d'un compte (anonymisation, sessions rï¿½voquï¿½es, messages conservï¿½s)
+- [x] Rï¿½initialisation du mot de passe par un admin (invitation)
+- [ ] Invitation rï¿½ellement envoyï¿½e (SMTP) ï¿½ reste DevEmailSender
+
+### Implï¿½mentation
+- Domaine : AppUser.DeletedAt (suppression logique)
+- Application : IUserQueries.CountActiveAdminsAsync, IAdminUserService.DeleteAsync, IAdminUserService.ResetPasswordAsync + garde-fou dans UpdateAsync (vï¿½rifie admin actif)
+- Infrastructure : UserQueries exclut les comptes supprimï¿½s, compte admins actifs distincts ; stats excluent comptes supprimï¿½s
+- API : DELETE /api/admin/users/{id}, POST /api/admin/users/{id}/reset-password (base URL injectï¿½e depuis la requï¿½te)
+- Migration : AddUserSoftDelete`n
+### Frontend
+- dmin-users : boutons ï¿½ Rï¿½initialiser ï¿½ (clï¿½) et ï¿½ Supprimer ï¿½ (poubelle), confirmations, feedback temporaire
+- icon : ajout icï¿½ne key ; dmin-users.service : emove + esetPassword`n- Responsive existant conservï¿½
+
+### Validation
+| Type | Rï¿½sultat |
+|---|---|
+| Build backend | OK |
+| Build frontend prod | OK |
+| Tests unitaires | OK (10/10) |
+| Tests intï¿½gration | OK (56/56, dont 14 liï¿½s admin + 8 lifecycle) |
+| Backend relancï¿½ | http://localhost:5285 (PID 126552) |
+| Frontend relancï¿½ | http://localhost:4200 |
+
+### Prochain sprint backend proposÃ©
+PrioritÃ© suivante : **Â§3 Conversations & messages** â€“ GET /api/conversations/{id} (dÃ©tail), GET /api/conversations/{id}/members, POST /api/conversations/{id}/leave, PATCH /api/conversations/{id} avec Archived + ConversationListItemDto.Archived. Objet : alimenter l'en-tÃªte DÃ©tails + les actions groupe.
+
+---
+
+## Sprint Backend 2 â€” Conversations & messages (BACKEND_TODO.md Â§3)
+Date : 2026-10-15
+
+### Cible
+- [x] DÃ©tail de conversation (`GET /api/conversations/{id}`)
+- [x] Liste des membres (`GET /api/conversations/{id}/members`)
+- [x] Archivage par utilisateur (`PATCH /api/conversations/{id}` body `{ archived }`)
+- [x] Quitter un groupe (`POST /api/conversations/{id}/leave`)
+- [x] Fichiers partagÃ©s (`GET /api/conversations/{id}/attachments`)
+- [x] Recherche de messages (`GET /api/conversations/{id}/messages/search?q=&limit=`)
+
+### ImplÃ©mentation
+- Domaine : `ConversationParticipant.Archived` (archivage **par participant**).
+- Application : DTOs `ConversationDetailDto`, `SharedAttachmentDto`, `UpdateConversationRequest`,
+  `LeaveConversationResult` ; `ConversationListItemDto.Archived` ; nouvelles mÃ©thodes
+  `IConversationService`/`IConversationQueries` (detail, members, leave, setArchived, attachments, search).
+- Infrastructure : `ConversationQueries` (lecture des participations lues/archivÃ©es, recherche insensible
+  Ã  la casse, projection des piÃ¨ces jointes).
+- API : endpoints ci-dessus ; le contrÃ´leur diffuse `ConversationUpdated` par utilisateur et retire les
+  connexions du groupe SignalR de la conversation au dÃ©part d'un groupe.
+- Migration : `20261014214655_AddParticipantArchive` (colonne `Archived` bool, dÃ©faut false).
+
+### Frontend
+- `conversation.models.ts` / `conversations.service.ts` Ã©tendus (dÃ©tail, membres, archive, quitter,
+  fichiers partagÃ©s, recherche).
+- Fil : panneau DÃ©tails (membres, fichiers partagÃ©s via l'API, actions archiver/quitter),
+  recherche dans la conversation avec surbrillance et dÃ©filement vers le message.
+- Liste : filtre Â« ArchivÃ©s Â» (les conversations archivÃ©es sont masquÃ©es sauf filtre dÃ©diÃ©).
+
+### Validation
+| Type | RÃ©sultat |
+|---|---|
+| Build backend | OK (0 erreur / 0 avertissement) |
+| Build frontend prod | OK |
+| Tests unitaires | OK (10/10) |
+| Tests intÃ©gration | OK (65/65, dont 9 nouveaux sur le dÃ©tail conversations) |
+
+---
+
+## Sprint Backend 3 â€” Notifications persistÃ©es (BACKEND_TODO.md Â§4)
+Date : 2026-10-15
+
+### Cible
+- [x] EntitÃ© `Notification` persistÃ©e + enum `NotificationType`
+- [x] Endpoints `GET /api/notifications`, `POST /api/notifications/{id}/read`, `POST /api/notifications/read-all`
+- [x] Ã‰mission sur ajout Ã  un groupe (`GroupAdded`) et appel manquÃ© (`MissedCall`)
+- [x] Ã‰vÃ©nement temps rÃ©el `NotificationsUpdated` (cloche rafraÃ®chie)
+- [x] Cloche frontend fonctionnelle (panneau, compteur, tout marquer comme lu)
+
+### ImplÃ©mentation
+- Domaine : `NotificationType` (`GroupAdded=0`, `MissedCall=1`), `Notification`
+  (Id, UserId, Type, Title, Body, ConversationId?, ActorUserId?, CreatedAt, ReadAt?).
+- Application : `NotificationDto`/`NotificationListDto`, `INotificationService`,
+  `INotificationQueries`, `NotificationService` (best effort, `TimeProvider`).
+- Infrastructure : `NotificationQueries` (Create, GetForUser, `ExecuteUpdateAsync` pour MarkRead /
+  MarkAllRead, CountUnread) ; `TeamChatDbContext` config (table `Notifications`, longueurs, index,
+  FK cascade / set-null).
+- API : `NotificationsController` (auth requise) ; `IChatClient.NotificationsUpdated()` diffusÃ© au
+  groupe utilisateur aprÃ¨s mutation.
+- Ã‰mission : `AdminGroupsController` (membres ajoutÃ©s Ã  un groupe, sauf l'acteur) ; `ChatHub`
+  (appel manquÃ© Ã  la clÃ´ture d'un appel restÃ© en sonnerie) ; `CallTimeoutService` (sonnerie expirÃ©e).
+  `GroupOperationResult` porte dÃ©sormais `GroupName` ; `CallExpiredEvent` porte dÃ©sormais `Type`.
+- Migration : `20261015084711_AddNotifications` (table `Notifications`).
+
+### Frontend
+- `core/models/notification.models.ts`, `core/api/notifications.service.ts`.
+- `ChatService` : flux `notificationsUpdated$` (handler hub).
+- Coquille : cloche avec compteur de non lus, panneau dÃ©roulant (liste, icÃ´ne par type, horodatage,
+  Â« tout marquer comme lu Â», navigation vers la conversation au clic), fermeture Ã‰chap / clic extÃ©rieur.
+
+### Validation
+| Type | RÃ©sultat |
+|---|---|
+| Build backend | OK (0 erreur / 0 avertissement) |
+| Build frontend prod | OK |
+| Tests unitaires | OK (10/10) |
+| Tests intÃ©gration | OK (72/72, dont 7 nouveaux sur les notifications) |
+
+### Prochain sprint backend proposÃ©
+PrioritÃ© suivante : **Â§5 Groupes (admin)** â€” dÃ©sarchivage, renommage, dÃ©tail, suppression dÃ©finitive ;
+puis **Â§6 Authentification** (mot de passe oubliÃ© / rÃ©initialisation) et **Â§7 Profil courant**
+(self-service : PATCH me, avatar, changement de mot de passe, dÃ©connexion globale).
+
+
+## Sprint Backend 4 — Groupes (admin) (BACKEND_TODO.md §5)
+Date : 2026-10-15
+
+### Cible
+- [x] Désarchiver un groupe (POST /api/admin/groups/{id}/unarchive)
+- [x] Renommer un groupe (PUT /api/admin/groups/{id})
+- [x] Détail d'un groupe (GET /api/admin/groups/{id})
+- [x] Suppression définitive d'un groupe archivé (DELETE /api/admin/groups/{id}/permanent)
+
+### Implémentation
+- DTO : RenameGroupRequest (validation 1–100 caractères)
+- Application : IAdminGroupService/IAdminGroupQueries + AdminGroupService/AdminGroupQueries (GetGroupAsync, RenameAsync, UnarchiveAsync, DeleteAsync). Unarchive restaure l'accès. DeleteAsync supprime définitivement la conversation groupe (conserve conversation 1:1), supprime participants, notifie la suppression (ConversationUpdated broadcasté).
+- API : AdminGroupsController GET/PUT/POST unarchive/DELETE permanent. Diffusion SignalR mise à jour (retire les connexions des membres).
+- Pas de migration nécessaire.
+
+### Frontend
+- dmin-groups.service.ts : getGroup, enameGroup, unarchiveGroup, deleteGroup
+- dmin-groups.ts/.html : actions Renommer (groupe actif), Désarchiver + Supprimer définitivement (groupe archivé), confirmation avant suppression
+
+### Validation
+| Type | Résultat |
+|---|---|
+| Build backend | OK (0 erreur / 0 avertissement) |
+| Build frontend prod | OK |
+| Tests unitaires | OK (10/10) |
+| Tests intégration | OK (75/75, dont 3 nouveaux sur AdminGroups) |
+
+---
+
+## Sprint Backend 5 — Authentification (BACKEND_TODO.md §6)
+Date : 2026-10-15
+
+### Cible
+- [x] Mot de passe oublié (POST /api/auth/forgot-password) — anti-enumération, 202 Accepted
+- [x] Réinitialisation mot de passe (POST /api/auth/reset-password) — 204 NoContent, 400/404 selon cas
+- [x] Frontend : page « Mot de passe oublié », page « Réinitialiser mot de passe » + lien depuis login
+
+### Implémentation
+- Application : ForgotPasswordRequest, ResetPasswordRequest, validateurs ; IAuthService.ForgotPasswordAsync (génère token, envoie email via IEmailSender, anti-enum si compte introuvable/inactif/supprimé) et ResetPasswordAsync (valide token, révoque tous les refresh tokens, invalide profil cache). DevEmailSender no-op en dev.
+- API : AuthController forgot-password (rate-limited « login »), reset-password. Lien de réinitialisation construit avec userId + 	oken URL-encodé vers /reset-password.
+- Policy mots de passe Identity : RequireNonAlphanumeric = true → tests utilisent Nouveau123!.
+
+### Frontend
+- AuthService : orgotPassword, esetPassword, cceptInvite
+- Pages eatures/auth/forgot-password + eatures/auth/set-password (gère /reset-password et /accept-invite), routes ajoutées
+- Login : lien « Mot de passe oublié ? »
+
+### Validation
+| Type | Résultat |
+|---|---|
+| Build backend | OK (0 erreur / 0 avertissement) |
+| Build frontend prod | OK |
+| Tests unitaires | OK (10/10) |
+| Tests intégration | OK (81/81, dont 6 nouveaux PasswordReset) |
+
+---
+
+## Sprint Backend 6 — Profil courant (self-service) (BACKEND_TODO.md §7)
+Date : 2026-10-15
+
+### Cible
+- [x] Modifier son profil (PATCH /api/users/me) — nom affiché
+- [x] Uploader/supprimer avatar (POST /api/users/me/avatar, DELETE /api/users/me/avatar, GET /api/users/{id}/avatar — public inline/non-cache strict côté API)
+- [x] Changer son mot de passe (POST /api/auth/change-password) — nécessite mot de passe actuel, révoque sessions
+- [x] Déconnexion globale (POST /api/auth/logout-all) — révoque tous les refresh tokens
+- [x] Page « Mon compte » frontend
+
+### Implémentation
+- Application : ProfileService (validation avatar image via FileSignatureDetector, max 2MB, clé vatar_{userId:N}, MAJ UserProfileCache, révocation tokens). IIdentityService.ChangePasswordAsync ajouté.
+- API : UsersController PATCH me, upload/delete avatar, GET avatar anonyme ; AuthController change-password + logout-all (supprime cookie).
+- Sécurité : avatar GET anonyme (pas besoin d'auth) — mais contrôlé par existence ; stockage via IFileStorage.
+
+### Frontend
+- AuthService : updateProfile, uploadAvatar, emoveAvatar, changePassword, logoutAll
+- Page eatures/account : avatar (upload/retirer), nom affiché, email readonly, changement mot de passe (avec confirmation), déconnexion globale
+- Shell : lien « Mon compte », routes ajoutées
+
+### Validation
+| Type | Résultat |
+|---|---|
+| Build backend | OK (0 erreur / 0 avertissement) |
+| Build frontend prod | OK |
+| Tests unitaires | OK (10/10) |
+| Tests intégration | OK (90/90, dont 9 nouveaux ProfileEndpointTests) |
+
+### Note
+Backend Sprints 2–6 implémentés end-to-end (backend + frontend). Sprints suivants selon BACKEND_TODO : invites réelles (SMTP), suppression conversation 1:1, réponses/réactions/épingles, accusés lecture autres, recherche globale messages, audit, paramètres, Google Sign-in validation audience, appels groupe, quotas pièces jointes, etc.
+
+
+## Sprint Backend 4 — Groupes (admin) (BACKEND_TODO.md §5)
+Date : 2026-10-15
+
+### Cible
+- [x] Désarchiver un groupe (POST /api/admin/groups/{id}/unarchive)
+- [x] Renommer un groupe (PUT /api/admin/groups/{id})
+- [x] Détail d'un groupe (GET /api/admin/groups/{id})
+- [x] Suppression définitive d'un groupe archivé (DELETE /api/admin/groups/{id}/permanent)
+
+### Implémentation
+- DTO : RenameGroupRequest (validation 1–100 caractères)
+- Application : IAdminGroupService/IAdminGroupQueries + AdminGroupService/AdminGroupQueries (GetGroupAsync, RenameAsync, UnarchiveAsync, DeleteAsync). Unarchive restaure l'accès. DeleteAsync supprime définitivement la conversation groupe (conserve conversation 1:1), supprime participants, notifie la suppression (ConversationUpdated broadcasté).
+- API : AdminGroupsController GET/PUT/POST unarchive/DELETE permanent. Diffusion SignalR mise à jour (retire les connexions des membres).
+- Pas de migration nécessaire.
+
+### Frontend
+- dmin-groups.service.ts : getGroup, enameGroup, unarchiveGroup, deleteGroup
+- dmin-groups.ts/.html : actions Renommer (groupe actif), Désarchiver + Supprimer définitivement (groupe archivé), confirmation avant suppression
+
+### Validation
+| Type | Résultat |
+|---|---|
+| Build backend | OK (0 erreur / 0 avertissement) |
+| Build frontend prod | OK |
+| Tests unitaires | OK (10/10) |
+| Tests intégration | OK (75/75, dont 3 nouveaux sur AdminGroups) |
+
+---
+
+## Sprint Backend 5 — Authentification (BACKEND_TODO.md §6)
+Date : 2026-10-15
+
+### Cible
+- [x] Mot de passe oublié (POST /api/auth/forgot-password) — anti-enumération, 202 Accepted
+- [x] Réinitialisation mot de passe (POST /api/auth/reset-password) — 204 NoContent, 400/404 selon cas
+- [x] Frontend : page « Mot de passe oublié », page « Réinitialiser mot de passe » + lien depuis login
+
+### Implémentation
+- Application : ForgotPasswordRequest, ResetPasswordRequest, validateurs ; IAuthService.ForgotPasswordAsync (génère token, envoie email via IEmailSender, anti-enum si compte introuvable/inactif/supprimé) et ResetPasswordAsync (valide token, révoque tous les refresh tokens, invalide profil cache). DevEmailSender no-op en dev.
+- API : AuthController forgot-password (rate-limited « login »), reset-password. Lien de réinitialisation construit avec userId + 	oken URL-encodé vers /reset-password.
+- Policy mots de passe Identity : RequireNonAlphanumeric = true → tests utilisent Nouveau123!.
+
+### Frontend
+- AuthService : orgotPassword, esetPassword, cceptInvite
+- Pages eatures/auth/forgot-password + eatures/auth/set-password (gère /reset-password et /accept-invite), routes ajoutées
+- Login : lien « Mot de passe oublié ? »
+
+### Validation
+| Type | Résultat |
+|---|---|
+| Build backend | OK (0 erreur / 0 avertissement) |
+| Build frontend prod | OK |
+| Tests unitaires | OK (10/10) |
+| Tests intégration | OK (81/81, dont 6 nouveaux PasswordReset) |
+
+---
+
+## Sprint Backend 6 — Profil courant (self-service) (BACKEND_TODO.md §7)
+Date : 2026-10-15
+
+### Cible
+- [x] Modifier son profil (PATCH /api/users/me) — nom affiché
+- [x] Uploader/supprimer avatar (POST /api/users/me/avatar, DELETE /api/users/me/avatar, GET /api/users/{id}/avatar)
+- [x] Changer son mot de passe (POST /api/auth/change-password) — nécessite mot de passe actuel, révoque sessions
+- [x] Déconnexion globale (POST /api/auth/logout-all) — révoque tous les refresh tokens
+- [x] Page « Mon compte » frontend
+
+### Implémentation
+- Application : ProfileService (avatar image 2MB via FileSignatureDetector, clé avatar_{userId:N}, MAJ cache, révocation). IIdentityService.ChangePasswordAsync.
+- API : UsersController PATCH me, avatar CRUD+GET anonyme ; AuthController change-password/logout-all.
+- Stockage via IFileStorage.
+
+### Frontend
+- AuthService : updateProfile/uploadAvatar/removeAvatar/changePassword/logoutAll
+- eatures/account : avatar, nom, email readonly, mot de passe + confirmation, déconnexion globale
+- Shell : lien « Mon compte », routes ajoutées
+
+### Validation
+| Type | Résultat |
+|---|---|
+| Build backend | OK (0 erreur / 0 avertissement) |
+| Build frontend prod | OK |
+| Tests unitaires | OK (10/10) |
+| Tests intégration | OK (90/90, dont 9 nouveaux ProfileEndpointTests) |
+
+### Synthèse
+Back-end Sprints 2–6 complétés end-to-end (backend + frontend). Total tests : 90 intégration + 10 unitaires, tous verts. Suite selon BACKEND_TODO : invites SMTP, suppression conversation 1:1, réponses/réactions/épingles, accusés lecture autres, recherche globale messages, audit, paramètres, validation audience Google, appels groupe, quotas pièces jointes, etc.
+
+
+## Refonte UI/UX frontend â€” correction de l'espace vide et cohÃ©rence
+
+### Cause racine
+Les composants routÃ©s (`app-thread`, `app-conversations-layout`, `app-directory`, `app-account`, `app-admin-layout`, `app-admin-home`, `app-admin-users`, `app-admin-groups`, `app-conversations-empty`) sont des items flex dans `.content` / `.conv-main` / `.admin-content`, mais n'avaient aucun dimensionnement `:host`. Ils restaient donc Ã  la largeur de leur contenu, laissant un grand espace vide Ã  droite (visible en permanence, quelle que soit la largeur).
+
+### Correctifs (6 Ã©tapes)
+1. **Largeur globale** : rÃ¨gle globale dans `styles.scss` (`flex: 1 1 auto; min-width: 0; min-height: 0;`) pour les composants routÃ©s ; `display: flex` pour `app-thread` et `app-conversations-empty`. Fin de l'espace vide Ã  droite.
+2. **Panneau DÃ©tails** : passage en overlay dÃ¨s `â‰¤ 1200px` (au lieu de 1024) ; le fil reprend immÃ©diatement la largeur Ã  la fermeture ; focus renvoyÃ© sur le bouton d'ouverture ; `aria-expanded` + `aria-controls`.
+3. **Messages** : bulles reÃ§ues sur surface blanche + bordure (contraste rÃ©el avec le fond) ; `line-height: 1.5` ; `overflow-wrap: anywhere` pour les longs contenus.
+4. **Liste + compositeur** : placeholder court Â« Rechercherâ€¦ Â» ; bouton Â« RÃ©essayer Â» sur erreur ; compositeur `textarea` multiligne auto-extensible (max 160px), EntrÃ©e pour envoyer / Maj+EntrÃ©e pour un saut de ligne ; brouillons conservÃ©s par conversation ; message d'erreur d'envoi (contenu conservÃ©).
+5. **Admin** : suppression des `max-width: 1100px` (remplissage complet) ; page Utilisateurs : filtres rÃ´le/statut, tri (nom/email/rÃ´le), pagination (20/page), Ã©tat Â« aucun rÃ©sultat Â».
+6. **Responsive + a11y** : filtres de conversations en `role="group"` + `aria-pressed` (au lieu de faux onglets) ; `aria-label` sur le bouton Â« Nouvelle conversation Â» ; raccourci de recherche affichÃ© selon l'OS.
+
+### Validation
+| Type | RÃ©sultat |
+|---|---|
+| Build frontend (dev) | OK |
+| Build frontend (prod) | OK (272.98 kB initial, sans alerte de budget) |
+| VÃ©rification navigateur | NON effectuÃ©e (pas de navigateur) â€” Ã  valider par l'utilisateur |
+
+### DÃ©cisions / limites
+- CrÃ©ation de groupe cÃ´tÃ© utilisateur non disponible (aucun endpoint) : le bouton Â« + Â» n'offre que les discussions privÃ©es ; aucun faux bouton groupe ajoutÃ©.
+- L'e-mail d'invitation/rÃ©initialisation reste un no-op en dÃ©veloppement (`DevEmailSender`).
+- Tri/pagination non ajoutÃ©s Ã  la page Admin Groupes (non exigÃ© explicitement).
+

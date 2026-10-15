@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth/auth.service';
 import { IconComponent } from '../../shared/icon/icon';
@@ -18,7 +18,7 @@ declare const google: {
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, IconComponent, ButtonComponent],
+  imports: [ReactiveFormsModule, RouterLink, IconComponent, ButtonComponent],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })

@@ -8,6 +8,22 @@ export const routes: Routes = [
     loadComponent: () => import('./features/login/login').then((m) => m.LoginComponent),
   },
   {
+    path: 'forgot-password',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/auth/forgot-password').then((m) => m.ForgotPasswordComponent),
+  },
+  {
+    path: 'reset-password',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./features/auth/set-password').then((m) => m.SetPasswordComponent),
+  },
+  {
+    path: 'accept-invite',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./features/auth/set-password').then((m) => m.SetPasswordComponent),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./layout/shell/shell').then((m) => m.ShellComponent),
@@ -16,6 +32,10 @@ export const routes: Routes = [
       {
         path: 'directory',
         loadComponent: () => import('./features/directory/directory').then((m) => m.DirectoryComponent),
+      },
+      {
+        path: 'account',
+        loadComponent: () => import('./features/account/account').then((m) => m.AccountComponent),
       },
       {
         path: 'conversations',

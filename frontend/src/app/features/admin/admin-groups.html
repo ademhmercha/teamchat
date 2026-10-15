@@ -39,18 +39,31 @@
               </div>
               <span class="group-members">{{ memberNames(group) }}</span>
             </div>
-            @if (!group.isArchived) {
-              <div class="row-actions">
+            <div class="row-actions">
+              @if (!group.isArchived) {
                 <button type="button" class="ghost" (click)="openEdit(group)">
                   <app-icon name="users" [size]="16" />
                   <span>Membres</span>
+                </button>
+                <button type="button" class="ghost" (click)="rename(group)">
+                  <app-icon name="edit" [size]="16" />
+                  <span>Renommer</span>
                 </button>
                 <button type="button" class="ghost danger" (click)="archive(group)">
                   <app-icon name="archive" [size]="16" />
                   <span>Archiver</span>
                 </button>
-              </div>
-            }
+              } @else {
+                <button type="button" class="ghost" (click)="unarchive(group)">
+                  <app-icon name="check" [size]="16" />
+                  <span>Désarchiver</span>
+                </button>
+                <button type="button" class="ghost danger" (click)="remove(group)">
+                  <app-icon name="trash" [size]="16" />
+                  <span>Supprimer</span>
+                </button>
+              }
+            </div>
           </li>
         }
       </ul>

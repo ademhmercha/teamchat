@@ -1,0 +1,123 @@
+@mixin auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 1.5rem;
+  background: var(--tc-bg);
+
+  @media (max-width: 420px) {
+    padding: 1rem;
+  }
+}
+
+@mixin auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--tc-surface);
+  border: 1px solid var(--tc-border);
+  border-radius: var(--tc-radius-lg);
+  padding: 2.25rem;
+  box-shadow: var(--tc-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  animation: tc-fade-up var(--tc-slow);
+
+  @media (max-width: 420px) {
+    padding: 1.6rem 1.25rem;
+  }
+}
+
+@mixin auth-header {
+  text-align: center;
+
+  .brand-mark {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 0.9rem;
+    border-radius: var(--tc-radius-lg);
+    background: var(--tc-primary);
+    color: var(--tc-on-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  h1 {
+    margin: 0;
+    color: var(--tc-text);
+    font-size: 1.65rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  p {
+    margin: 0.35rem 0 0;
+    color: var(--tc-text-muted);
+    font-size: 0.9rem;
+  }
+}
+
+@mixin auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+
+  span {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--tc-text-soft);
+  }
+
+  input {
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--tc-border-strong);
+    border-radius: var(--tc-radius-sm);
+    font-size: 0.95rem;
+    background: var(--tc-surface-2);
+    color: var(--tc-text);
+    transition: border-color var(--tc-fast), box-shadow var(--tc-fast);
+
+    &::placeholder {
+      color: var(--tc-text-muted);
+    }
+
+    &:focus {
+      outline: none;
+      border-color: var(--tc-primary);
+      box-shadow: var(--tc-ring);
+    }
+  }
+}
+
+@mixin auth-field-error {
+  color: var(--tc-danger);
+  font-size: 0.78rem;
+}
+
+@mixin auth-alert {
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--tc-radius-sm);
+  background: var(--tc-danger-soft);
+  border: 1px solid rgba(var(--tc-danger-rgb), 0.35);
+  color: var(--tc-danger);
+  font-size: 0.85rem;
+}
+
+@mixin auth-alert-success {
+  background: var(--tc-success-soft);
+  border-color: rgba(var(--tc-success-rgb), 0.35);
+  color: var(--tc-success);
+}
+
+@mixin auth-back-link {
+  text-align: center;
+  color: var(--tc-primary);
+  font-size: 0.87rem;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

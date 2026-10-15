@@ -231,6 +231,27 @@
   background: var(--tc-danger-soft);
   color: var(--tc-danger);
   font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.alert-retry {
+  flex-shrink: 0;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid currentColor;
+  border-radius: var(--tc-radius-sm);
+  background: transparent;
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--tc-fast);
+
+  &:hover {
+    background: rgba(var(--tc-danger-rgb), 0.1);
+  }
 }
 
 .conversation-list {

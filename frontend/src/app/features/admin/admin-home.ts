@@ -110,8 +110,6 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
   styles: `
     .admin-home {
       width: 100%;
-      max-width: 1100px;
-      margin: 0 auto;
       height: 100%;
       overflow-y: auto;
       padding: 1.75rem 2rem;

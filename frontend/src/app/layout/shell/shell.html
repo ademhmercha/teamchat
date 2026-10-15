@@ -26,6 +26,10 @@
         <app-icon name="directory" [size]="19" />
         <span class="nav-label">Annuaire</span>
       </a>
+      <a routerLink="/account" routerLinkActive="active" class="nav-link" tcTooltip="Mon compte">
+        <app-icon name="user" [size]="19" />
+        <span class="nav-label">Mon compte</span>
+      </a>
     </nav>
 
     @if (isAdmin()) {
@@ -83,13 +87,71 @@
           (input)="onSearchInput($event)"
           aria-label="Recherche globale"
         />
-        <kbd>⌘K</kbd>
+        <kbd>{{ shortcutHint }}</kbd>
       </form>
 
       <div class="topbar-actions">
-        <button type="button" class="topbar-icon" tcTooltip="Notifications">
-          <app-icon name="bell" [size]="19" />
-        </button>
+        <div #notificationsPanel class="notifications">
+          <button
+            type="button"
+            class="topbar-icon"
+            tcTooltip="Notifications"
+            [attr.aria-label]="unreadCount() > 0 ? 'Notifications, ' + unreadCount() + ' non lues' : 'Notifications'"
+            [attr.aria-expanded]="notificationsOpen()"
+            aria-haspopup="true"
+            (click)="toggleNotifications()"
+          >
+            <app-icon name="bell" [size]="19" />
+            @if (unreadCount() > 0) {
+              <span class="notif-dot" aria-hidden="true">{{ unreadCount() > 9 ? '9+' : unreadCount() }}</span>
+            }
+          </button>
+
+          @if (notificationsOpen()) {
+            <div class="notif-panel" role="dialog" aria-label="Notifications">
+              <header class="notif-head">
+                <span class="notif-title">Notifications</span>
+                @if (unreadCount() > 0) {
+                  <button type="button" class="notif-action" (click)="markAllRead()">
+                    <app-icon name="check" [size]="15" />
+                    Tout marquer comme lu
+                  </button>
+                }
+              </header>
+
+              @if (notificationsLoading() && notifications().length === 0) {
+                <p class="notif-empty">Chargement…</p>
+              } @else if (notifications().length === 0) {
+                <div class="notif-empty">
+                  <app-icon name="bell" [size]="22" />
+                  <span>Aucune notification</span>
+                </div>
+              } @else {
+                <ul class="notif-list">
+                  @for (item of notifications(); track item.id) {
+                    <li>
+                      <button
+                        type="button"
+                        class="notif-item"
+                        [class.unread]="!item.read"
+                        (click)="openNotification(item)"
+                      >
+                        <span class="notif-icon" [attr.data-type]="item.type">
+                          <app-icon [name]="notificationIcon(item.type)" [size]="17" />
+                        </span>
+                        <span class="notif-body">
+                          <span class="notif-item-title">{{ item.title }}</span>
+                          <span class="notif-item-text">{{ item.body }}</span>
+                          <span class="notif-item-time">{{ timeLabel(item.createdAt) }}</span>
+                        </span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        </div>
         <div class="account">
           <tc-avatar [name]="user()?.displayName ?? ''" size="sm" />
           <div class="account-info">

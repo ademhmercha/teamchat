@@ -36,6 +36,30 @@ export interface ConversationListItemDto {
   lastMessagePreview: string | null;
   participantCount: number;
   unreadCount: number;
+  archived: boolean;
+}
+
+export interface ConversationDetailDto {
+  id: string;
+  type: number;
+  name: string | null;
+  createdAt: string;
+  archived: boolean;
+  participants: ConversationParticipantDto[];
+}
+
+export interface SharedAttachmentDto {
+  messageId: string;
+  sequence: number;
+  attachmentId: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  durationSec: number | null;
+  senderId: string;
+  senderDisplayName: string;
+  type: number;
+  createdAt: string;
 }
 
 export interface GroupMemberDto {

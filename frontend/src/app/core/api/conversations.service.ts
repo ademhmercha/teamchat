@@ -2,7 +2,14 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ConversationDto, ConversationListItemDto, MessageHistoryResult } from '../models/conversation.models';
+import {
+  ConversationDetailDto,
+  ConversationDto,
+  ConversationListItemDto,
+  ConversationParticipantDto,
+  MessageHistoryResult,
+  SharedAttachmentDto,
+} from '../models/conversation.models';
 
 @Injectable({ providedIn: 'root' })
 export class ConversationsService {
@@ -28,5 +35,30 @@ export class ConversationsService {
 
   markAsRead(conversationId: string, messageId?: string): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/${conversationId}/read`, { messageId: messageId ?? null });
+  }
+
+  getDetail(conversationId: string): Observable<ConversationDetailDto> {
+    return this.http.get<ConversationDetailDto>(`${this.baseUrl}/${conversationId}`);
+  }
+
+  getMembers(conversationId: string): Observable<ConversationParticipantDto[]> {
+    return this.http.get<ConversationParticipantDto[]>(`${this.baseUrl}/${conversationId}/members`);
+  }
+
+  setArchived(conversationId: string, archived: boolean): Observable<void> {
+    return this.http.patch<void>(`${this.baseUrl}/${conversationId}`, { archived });
+  }
+
+  leave(conversationId: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${conversationId}/leave`, {});
+  }
+
+  getSharedAttachments(conversationId: string): Observable<SharedAttachmentDto[]> {
+    return this.http.get<SharedAttachmentDto[]>(`${this.baseUrl}/${conversationId}/attachments`);
+  }
+
+  searchMessages(conversationId: string, query: string, limit = 30): Observable<MessageHistoryResult> {
+    const params = new HttpParams().set('q', query).set('limit', limit);
+    return this.http.get<MessageHistoryResult>(`${this.baseUrl}/${conversationId}/messages/search`, { params });
   }
 }

@@ -135,6 +135,40 @@ export class AdminGroupsComponent {
     });
   }
 
+  rename(group: GroupDto): void {
+    const name = prompt('Nouveau nom du groupe :', group.name)?.trim();
+    if (!name || name === group.name) {
+      return;
+    }
+
+    this.groups.renameGroup(group.id, name).subscribe({
+      next: () => this.load(),
+      error: (error: HttpErrorResponse) => this.error.set(this.readErrorMessage(error)),
+    });
+  }
+
+  unarchive(group: GroupDto): void {
+    this.groups.unarchiveGroup(group.id).subscribe({
+      next: () => this.load(),
+      error: (error: HttpErrorResponse) => this.error.set(this.readErrorMessage(error)),
+    });
+  }
+
+  remove(group: GroupDto): void {
+    if (
+      !confirm(
+        `Supprimer définitivement le groupe « ${group.name} » ? Cette action est irréversible.`,
+      )
+    ) {
+      return;
+    }
+
+    this.groups.deleteGroup(group.id).subscribe({
+      next: () => this.load(),
+      error: (error: HttpErrorResponse) => this.error.set(this.readErrorMessage(error)),
+    });
+  }
+
   memberNames(group: GroupDto): string {
     return group.members.map((member) => member.displayName).join(', ');
   }
