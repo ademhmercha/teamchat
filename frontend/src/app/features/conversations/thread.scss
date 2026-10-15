@@ -407,13 +407,29 @@
 .msg-meta {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.15rem 0.25rem 0;
-  min-height: 16px;
+  gap: 0.4rem;
+  padding: 0 0.25rem;
+  height: 0;
+  min-height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: height var(--tc-fast);
 
   .message.own & {
     flex-direction: row-reverse;
   }
+}
+
+/* La ligne méta (heure + actions) ne réserve de la place que quand elle est
+   visible : dernière bulle d'un groupe (heure) ou survol/focus (actions). */
+.message.last .msg-meta {
+  height: 15px;
+}
+
+.message:hover .msg-meta,
+.message:focus-within .msg-meta {
+  height: 22px;
+  pointer-events: auto;
 }
 
 .time {
@@ -433,8 +449,8 @@
   transition: opacity var(--tc-fast);
 
   .link {
-    width: 26px;
-    height: 26px;
+    width: 22px;
+    height: 22px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -463,6 +479,11 @@
 }
 
 @media (hover: none) {
+  .msg-meta {
+    height: 22px;
+    pointer-events: auto;
+  }
+
   .actions {
     opacity: 1;
   }

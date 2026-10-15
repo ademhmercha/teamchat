@@ -1365,3 +1365,6 @@ Rendre l'application rÃ©ellement utilisable sur tÃ©lÃ©phone : le rail de n
 | Build frontend (prod) | OK (272.99 kB, sans alerte) |
 | VÃ©rification visuelle | NON effectuÃ©e â€” Ã  valider par l'utilisateur |
 
+
+### Correctif espacement (bis)
+La ligne méta (heure + boutons d'action) réservait ~26px sous *chaque* bulle à cause de min-height:auto sur l'item flex et des boutons en opacity:0. Elle est désormais repliée par défaut (height:0; min-height:0; overflow:hidden) et ne se déploie que pour la dernière bulle d'un groupe (heure, 15px) ou au survol/focus (actions, 22px). Boutons d'action réduits à 22px. Sur écran tactile, la ligne reste visible (22px).
