@@ -12,6 +12,7 @@ using TeamChat.Infrastructure.Persistence;
 using TeamChat.Infrastructure.Realtime;
 using TeamChat.Infrastructure.Security;
 using TeamChat.Infrastructure.Storage;
+using TeamChat.Infrastructure.Tenants;
 using TeamChat.Domain.Entities;
 
 namespace TeamChat.Infrastructure;
@@ -29,6 +30,7 @@ public static class DependencyInjection
         services.Configure<CallOptions>(configuration.GetSection(CallOptions.SectionName));
         services.Configure<TurnOptions>(configuration.GetSection(TurnOptions.SectionName));
 
+        services.AddHttpContextAccessor();
         AddCache(services, configuration);
         AddDatabase(services, configuration);
         AddStorage(services, configuration);
@@ -98,6 +100,11 @@ public static class DependencyInjection
 
     private static void AddServices(IServiceCollection services)
     {
+        services.AddScoped<HttpContextUserContext>();
+        services.AddScoped<ICurrentUser>(sp => sp.GetRequiredService<HttpContextUserContext>());
+        services.AddScoped<ICurrentTenant>(sp => sp.GetRequiredService<HttpContextUserContext>());
+        services.AddScoped<ICurrentTenantSetter>(sp => sp.GetRequiredService<HttpContextUserContext>());
+        services.AddScoped<ITenantService, TenantService>();
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
         services.AddScoped<IUserQueries, UserQueries>();

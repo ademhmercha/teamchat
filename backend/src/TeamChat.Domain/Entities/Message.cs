@@ -5,9 +5,11 @@ namespace TeamChat.Domain.Entities;
 /// (Text) ou une reference a une piece jointe (AttachmentId) pour les
 /// messages vocaux, fichiers et images.
 /// </summary>
-public sealed class Message
+public sealed class Message : ITenantScoped
 {
     public Guid Id { get; set; }
+
+    public Guid TenantId { get; set; }
 
     /// <summary>Ordre chronologique global (identity). Sert de curseur de pagination fiable.</summary>
     public long Sequence { get; set; }

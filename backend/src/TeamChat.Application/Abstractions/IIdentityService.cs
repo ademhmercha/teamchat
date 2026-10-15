@@ -31,6 +31,11 @@ public interface IIdentityService
 
     Task<OperationResult> CreateAsync(AppUser user, CancellationToken cancellationToken = default);
 
+    Task<OperationResult> CreateAsync(
+        AppUser user,
+        string password,
+        CancellationToken cancellationToken = default);
+
     Task<OperationResult> UpdateAsync(AppUser user, CancellationToken cancellationToken = default);
 
     Task<OperationResult> SetRolesAsync(

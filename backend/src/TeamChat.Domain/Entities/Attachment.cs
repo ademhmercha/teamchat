@@ -5,9 +5,11 @@ namespace TeamChat.Domain.Entities;
 /// Le binaire est stocke via <c>IFileStorage</c> sous une cle aleatoire ;
 /// le nom d'origine n'est jamais utilise comme chemin de stockage.
 /// </summary>
-public sealed class Attachment
+public sealed class Attachment : ITenantScoped
 {
     public Guid Id { get; set; }
+
+    public Guid TenantId { get; set; }
 
     /// <summary>Cle de stockage aleatoire (jamais le nom d'origine).</summary>
     public string StorageKey { get; set; } = null!;

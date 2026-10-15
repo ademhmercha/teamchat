@@ -15,11 +15,13 @@ public sealed class UserQueries : IUserQueries
 
     private readonly TeamChatDbContext _db;
     private readonly ICacheService _cache;
+    private readonly ICurrentTenant _tenant;
 
-    public UserQueries(TeamChatDbContext db, ICacheService cache)
+    public UserQueries(TeamChatDbContext db, ICacheService cache, ICurrentTenant tenant)
     {
         _db = db;
         _cache = cache;
+        _tenant = tenant;
     }
 
     public Task<PagedResult<UserListItemDto>> SearchAsync(
@@ -28,10 +30,10 @@ public sealed class UserQueries : IUserQueries
         int pageSize,
         CancellationToken cancellationToken = default)
         => _cache.GetOrCreateAsync(
-            CacheKeys.Directory(page, pageSize, search),
+            CacheKeys.Directory(_tenant.TenantId, page, pageSize, search),
             token => QueryAsync(search, page, pageSize, token),
             DirectoryTtl,
-            new[] { CacheKeys.DirectoryTag() },
+            new[] { CacheKeys.DirectoryTag(_tenant.TenantId) },
             cancellationToken).AsTask();
 
     private async ValueTask<PagedResult<UserListItemDto>> QueryAsync(
@@ -130,6 +132,8 @@ public sealed class UserQueries : IUserQueries
         => (from user in _db.Users.AsNoTracking()
             join userRole in _db.UserRoles on user.Id equals userRole.UserId
             join role in _db.Roles on userRole.RoleId equals role.Id
-            where role.Name == Roles.Admin && user.IsActive && user.DeletedAt == null
+            where (role.Name == Roles.Owner || role.Name == Roles.Admin)
+                  && user.IsActive
+                  && user.DeletedAt == null
             select user.Id).Distinct().CountAsync(cancellationToken);
 }

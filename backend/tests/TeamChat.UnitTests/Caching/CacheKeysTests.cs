@@ -29,15 +29,28 @@ public sealed class CacheKeysTests
     [Fact]
     public void Directory_key_normalizes_search_term()
     {
-        var key = CacheKeys.Directory(1, 20, "  Ada Lovelace ");
+        var tenantId = Guid.NewGuid();
+        var key = CacheKeys.Directory(tenantId, 1, 20, "  Ada Lovelace ");
 
-        Assert.Equal("tc:v1:directory:1:20:ada_lovelace", key);
+        Assert.Equal($"tc:v1:t:{tenantId}:directory:1:20:ada_lovelace", key);
     }
 
     [Fact]
     public void Directory_key_uses_placeholder_for_empty_search()
     {
-        Assert.Equal("tc:v1:directory:2:50:_", CacheKeys.Directory(2, 50, "   "));
-        Assert.Equal("tc:v1:directory:2:50:_", CacheKeys.Directory(2, 50, null));
+        var tenantId = Guid.NewGuid();
+        Assert.Equal($"tc:v1:t:{tenantId}:directory:2:50:_", CacheKeys.Directory(tenantId, 2, 50, "   "));
+        Assert.Equal($"tc:v1:t:{tenantId}:directory:2:50:_", CacheKeys.Directory(tenantId, 2, 50, null));
+    }
+
+    [Fact]
+    public void Directory_key_is_isolated_per_tenant()
+    {
+        var tenantA = Guid.NewGuid();
+        var tenantB = Guid.NewGuid();
+
+        Assert.NotEqual(
+            CacheKeys.DirectoryTag(tenantA),
+            CacheKeys.DirectoryTag(tenantB));
     }
 }

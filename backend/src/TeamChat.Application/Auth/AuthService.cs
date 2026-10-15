@@ -17,6 +17,7 @@ public sealed class AuthService : IAuthService
     private readonly IUserProfileCache _profileCache;
     private readonly IGoogleTokenValidator _google;
     private readonly IEmailSender _email;
+    private readonly ITenantService _tenants;
     private readonly JwtOptions _jwtOptions;
     private readonly TimeProvider _clock;
 
@@ -27,6 +28,7 @@ public sealed class AuthService : IAuthService
         IUserProfileCache profileCache,
         IGoogleTokenValidator google,
         IEmailSender email,
+        ITenantService tenants,
         IOptions<JwtOptions> jwtOptions,
         TimeProvider clock)
     {
@@ -36,8 +38,49 @@ public sealed class AuthService : IAuthService
         _profileCache = profileCache;
         _google = google;
         _email = email;
+        _tenants = tenants;
         _jwtOptions = jwtOptions.Value;
         _clock = clock;
+    }
+
+    public async Task<AuthResult> RegisterCompanyAsync(
+        RegisterCompanyRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+        if (await _identity.FindByEmailAsync(email, cancellationToken) is not null)
+        {
+            throw new ConflictException("Un compte avec cet email existe deja.");
+        }
+
+        var tenant = await _tenants.CreateAsync(request.CompanyName, cancellationToken);
+
+        var owner = new AppUser
+        {
+            UserName = email,
+            Email = email,
+            DisplayName = request.DisplayName.Trim(),
+            TenantId = tenant.Id,
+            IsActive = true,
+            EmailConfirmed = true,
+            CreatedAt = _clock.GetUtcNow(),
+        };
+
+        var created = await _identity.CreateAsync(owner, request.Password, cancellationToken);
+        if (!created.Succeeded)
+        {
+            throw new ValidationException(created.Errors.Select(e =>
+                new FluentValidation.Results.ValidationFailure(string.Empty, e)));
+        }
+
+        var roles = await _identity.SetRolesAsync(owner, new[] { Domain.Constants.Roles.Owner }, cancellationToken);
+        if (!roles.Succeeded)
+        {
+            throw new ValidationException(roles.Errors.Select(e =>
+                new FluentValidation.Results.ValidationFailure(string.Empty, e)));
+        }
+
+        return await IssueTokensAsync(owner, cancellationToken);
     }
 
     public async Task<AuthResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
@@ -133,7 +176,7 @@ public sealed class AuthService : IAuthService
             ExpiresAt = newExpiresAt,
         }, cancellationToken);
 
-        return new AuthResult(access.Token, access.ExpiresAt, newRaw, newExpiresAt, ToProfile(user, roles));
+        return new AuthResult(access.Token, access.ExpiresAt, newRaw, newExpiresAt, await ToProfileAsync(user, roles, cancellationToken));
     }
 
     public async Task LogoutAsync(string refreshToken, CancellationToken cancellationToken = default)
@@ -157,7 +200,7 @@ public sealed class AuthService : IAuthService
             ?? throw new NotFoundException("Utilisateur introuvable.");
 
         var roles = await _identity.GetRolesAsync(user, cancellationToken);
-        return ToProfile(user, roles);
+        return await ToProfileAsync(user, roles, cancellationToken);
     }
 
     public async Task AcceptInviteAsync(AcceptInviteRequest request, CancellationToken cancellationToken = default)
@@ -233,16 +276,31 @@ public sealed class AuthService : IAuthService
             ExpiresAt = refreshExpiresAt,
         }, cancellationToken);
 
-        return new AuthResult(access.Token, access.ExpiresAt, raw, refreshExpiresAt, ToProfile(user, roles));
+        return new AuthResult(access.Token, access.ExpiresAt, raw, refreshExpiresAt, await ToProfileAsync(user, roles, cancellationToken));
     }
 
-    private static UserProfileDto ToProfile(AppUser user, IReadOnlyList<string> roles) => new(
-        user.Id,
-        user.DisplayName,
-        user.Email ?? string.Empty,
-        user.AvatarUrl,
-        roles.FirstOrDefault() ?? string.Empty,
-        user.IsActive);
+    private async Task<UserProfileDto> ToProfileAsync(
+        AppUser user,
+        IReadOnlyList<string> roles,
+        CancellationToken cancellationToken)
+    {
+        string? tenantName = null;
+        if (user.TenantId is { } tenantId)
+        {
+            var tenant = await _tenants.GetByIdAsync(tenantId, cancellationToken);
+            tenantName = tenant?.Name;
+        }
+
+        return new UserProfileDto(
+            user.Id,
+            user.DisplayName,
+            user.Email ?? string.Empty,
+            user.AvatarUrl,
+            roles.FirstOrDefault() ?? string.Empty,
+            user.IsActive,
+            user.TenantId,
+            tenantName);
+    }
 
     internal static string GenerateRefreshToken()
     {

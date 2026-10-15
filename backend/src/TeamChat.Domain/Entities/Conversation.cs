@@ -5,9 +5,11 @@ namespace TeamChat.Domain.Entities;
 /// Les conversations directes portent un DirectKey unique ("d:{idMin}:{idMax}")
 /// pour garantir l'unicite (obtenir ou creer de maniere idempotente).
 /// </summary>
-public sealed class Conversation
+public sealed class Conversation : ITenantScoped
 {
     public Guid Id { get; set; }
+
+    public Guid TenantId { get; set; }
 
     public ConversationType Type { get; set; }
 

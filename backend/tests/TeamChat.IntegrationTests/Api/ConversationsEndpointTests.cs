@@ -182,6 +182,7 @@ public sealed class ConversationsEndpointTests
                     UserName = email,
                     Email = email,
                     DisplayName = "Conversation Tester",
+                    TenantId = TeamChat.Domain.Constants.TenantDefaults.DefaultTenantId,
                     IsActive = true,
                     EmailConfirmed = true,
                     CreatedAt = DateTimeOffset.UtcNow,
@@ -220,16 +221,18 @@ public sealed class ConversationsEndpointTests
 
     private async Task SeedMessagesAsync(Guid conversationId, Guid senderUserId)
     {
-        using var scope = _fixture.Factory.Services.CreateAsyncScope();
-        var conversations = scope.ServiceProvider.GetRequiredService<IConversationService>();
-
-        for (var i = 0; i < 5; i++)
+        await ApiTestHelper.RunWithTenantAsync(_fixture.Factory, TeamChat.Domain.Constants.TenantDefaults.DefaultTenantId, async provider =>
         {
-            await conversations.SendMessageAsync(
-                senderUserId,
-                conversationId,
-                $"Message de test {i}",
-                CancellationToken.None);
-        }
+            var conversations = provider.GetRequiredService<IConversationService>();
+
+            for (var i = 0; i < 5; i++)
+            {
+                await conversations.SendMessageAsync(
+                    senderUserId,
+                    conversationId,
+                    $"Message de test {i}",
+                    CancellationToken.None);
+            }
+        });
     }
 }

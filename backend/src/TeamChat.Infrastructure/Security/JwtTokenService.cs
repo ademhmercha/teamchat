@@ -40,6 +40,11 @@ public sealed class JwtTokenService : IJwtTokenService
 
         claims.AddRange(roles.Select(role => new Claim("role", role)));
 
+        if (user.TenantId is { } tenantId)
+        {
+            claims.Add(new Claim("tenant_id", tenantId.ToString()));
+        }
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

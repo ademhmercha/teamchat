@@ -16,18 +16,24 @@ public sealed class AdminStatsService : IAdminStatsService
 
     private readonly IAdminStatsQueries _queries;
     private readonly ICacheService _cache;
+    private readonly ICurrentTenant _tenant;
     private readonly TimeProvider _clock;
 
-    public AdminStatsService(IAdminStatsQueries queries, ICacheService cache, TimeProvider clock)
+    public AdminStatsService(
+        IAdminStatsQueries queries,
+        ICacheService cache,
+        ICurrentTenant tenant,
+        TimeProvider clock)
     {
         _queries = queries;
         _cache = cache;
+        _tenant = tenant;
         _clock = clock;
     }
 
     public Task<AdminStatsDto> GetStatsAsync(CancellationToken cancellationToken = default)
         => _cache
-            .GetOrCreateAsync(CacheKeys.AdminStats(), LoadAsync, StatsTtl, cancellationToken: cancellationToken)
+            .GetOrCreateAsync(CacheKeys.AdminStats(_tenant.TenantId), LoadAsync, StatsTtl, cancellationToken: cancellationToken)
             .AsTask();
 
     private async ValueTask<AdminStatsDto> LoadAsync(CancellationToken cancellationToken)

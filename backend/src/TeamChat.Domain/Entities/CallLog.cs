@@ -5,9 +5,11 @@ namespace TeamChat.Domain.Entities;
 /// hub de signalisation : Ringing -> Accepted -> Ended, ou Rejected / Missed / Failed.
 /// Les participants sont toujours deux utilisateurs (pas d'appel de groupe).
 /// </summary>
-public sealed class CallLog
+public sealed class CallLog : ITenantScoped
 {
     public Guid Id { get; set; }
+
+    public Guid TenantId { get; set; }
 
     public Guid CallerId { get; set; }
 

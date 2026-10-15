@@ -14,6 +14,9 @@ public interface IAuthService
 {
     Task<AuthResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
 
+    /// <summary>Inscription publique : cree une societe et son compte proprietaire (Owner).</summary>
+    Task<AuthResult> RegisterCompanyAsync(RegisterCompanyRequest request, CancellationToken cancellationToken = default);
+
     Task<AuthResult> LoginWithGoogleAsync(GoogleLoginRequest request, CancellationToken cancellationToken = default);
 
     Task<AuthResult> RefreshAsync(string refreshToken, CancellationToken cancellationToken = default);

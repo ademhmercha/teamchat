@@ -1,10 +1,13 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using TeamChat.Application.Abstractions;
 using TeamChat.Application.Auth.Dtos;
+using TeamChat.Domain.Constants;
 using TeamChat.Domain.Entities;
 
 namespace TeamChat.IntegrationTests.Support;
@@ -36,6 +39,7 @@ public static class ApiTestHelper
                     UserName = email,
                     Email = email,
                     DisplayName = "Testeur " + email.Split('@')[0],
+                    TenantId = TenantDefaults.DefaultTenantId,
                     IsActive = true,
                     EmailConfirmed = true,
                     CreatedAt = DateTimeOffset.UtcNow,
@@ -55,6 +59,38 @@ public static class ApiTestHelper
         login.EnsureSuccessStatusCode();
         var auth = await login.Content.ReadFromJsonAsync<AuthResponse>();
         return (userId, auth!.AccessToken);
+    }
+
+    /// <summary>
+    /// Execute une operation de "seed" hors requete HTTP avec un locataire courant
+    /// (societe par defaut) afin que les entites creees recoivent le bon TenantId.
+    /// </summary>
+    public static async Task RunWithTenantAsync(
+        TeamChatApiFactory factory,
+        Guid tenantId,
+        Func<IServiceProvider, Task> action)
+    {
+        using var scope = factory.Services.CreateAsyncScope();
+        var accessor = scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>();
+        var previous = accessor.HttpContext;
+
+        var identity = new ClaimsIdentity(
+            new[]
+            {
+                new Claim("sub", Guid.NewGuid().ToString()),
+                new Claim("tenant_id", tenantId.ToString()),
+            },
+            authenticationType: "Test");
+
+        accessor.HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+        try
+        {
+            await action(scope.ServiceProvider);
+        }
+        finally
+        {
+            accessor.HttpContext = previous;
+        }
     }
 
     public static async Task<string> LoginAsync(HttpClient client, string email, string password)

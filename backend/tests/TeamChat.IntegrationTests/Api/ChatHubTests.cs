@@ -162,6 +162,7 @@ public sealed class ChatHubTests
                     UserName = email,
                     Email = email,
                     DisplayName = "Hub Tester",
+                    TenantId = TeamChat.Domain.Constants.TenantDefaults.DefaultTenantId,
                     IsActive = true,
                     EmailConfirmed = true,
                     CreatedAt = DateTimeOffset.UtcNow,

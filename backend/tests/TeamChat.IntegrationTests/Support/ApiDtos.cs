@@ -11,7 +11,9 @@ public sealed record UserProfileDto(
     string Email,
     string? AvatarUrl,
     string Role,
-    bool IsActive);
+    bool IsActive,
+    Guid? TenantId = null,
+    string? TenantName = null);
 
 public sealed record UserListItemDto(
     Guid Id,

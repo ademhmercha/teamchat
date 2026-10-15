@@ -11,6 +11,8 @@ public sealed class ApiCollectionFixture : IAsyncLifetime
 {
     public const string AdminEmail = "admin@teamchat.test";
     public const string AdminPassword = "Admin123!";
+    public const string SuperAdminEmail = "superadmin@teamchat.test";
+    public const string SuperAdminPassword = "SuperAdmin123!";
 
     private readonly PostgreSqlContainer _db = new PostgreSqlBuilder("postgres:16-alpine")
         .WithDatabase($"teamchat_test_{Guid.NewGuid():N}")

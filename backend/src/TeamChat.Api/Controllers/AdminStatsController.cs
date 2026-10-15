@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TeamChat.Application.Abstractions;
 using TeamChat.Application.Admin.Dtos;
@@ -7,7 +7,7 @@ using TeamChat.Domain.Constants;
 namespace TeamChat.Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = Roles.Admin)]
+[Authorize(Roles = Roles.CompanyAdmins)]
 [Route("api/admin/stats")]
 public sealed class AdminStatsController : ControllerBase
 {

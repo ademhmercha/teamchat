@@ -10,6 +10,12 @@ public class AppUser : IdentityUser<Guid>
 {
     public string DisplayName { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Societe de rattachement. Null uniquement pour le super-admin de la
+    /// plateforme (qui n'appartient a aucune societe).
+    /// </summary>
+    public Guid? TenantId { get; set; }
+
     public string? AvatarUrl { get; set; }
 
     public bool IsActive { get; set; } = true;

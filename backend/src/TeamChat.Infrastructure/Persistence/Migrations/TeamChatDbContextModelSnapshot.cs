@@ -219,6 +219,9 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
 
@@ -236,6 +239,8 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -270,6 +275,9 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                         .HasMaxLength(400)
                         .HasColumnType("character varying(400)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("UploadedByUserId")
                         .HasColumnType("uuid");
 
@@ -277,6 +285,8 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("StorageKey")
                         .IsUnique();
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("UploadedByUserId");
 
@@ -307,10 +317,15 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Type")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("CalleeId", "StartedAt");
 
@@ -344,6 +359,9 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Type")
                         .HasColumnType("integer");
 
@@ -353,6 +371,8 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("DirectKey")
                         .IsUnique();
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("Conversations", (string)null);
                 });
@@ -415,6 +435,9 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Sequence"));
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Type")
                         .HasColumnType("integer");
 
@@ -423,6 +446,8 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                     b.HasIndex("AttachmentId");
 
                     b.HasIndex("SenderId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("ConversationId", "Sequence");
 
@@ -452,6 +477,9 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("ReadAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -468,6 +496,8 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                     b.HasIndex("ActorUserId");
 
                     b.HasIndex("ConversationId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("UserId", "CreatedAt");
 
@@ -511,6 +541,36 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("RefreshTokens", (string)null);
+                });
+
+            modelBuilder.Entity("TeamChat.Domain.Entities.Tenant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("Tenants", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

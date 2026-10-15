@@ -55,6 +55,12 @@ public sealed class IdentityService : IIdentityService
     public async Task<OperationResult> CreateAsync(AppUser user, CancellationToken cancellationToken = default)
         => Map(await _userManager.CreateAsync(user));
 
+    public async Task<OperationResult> CreateAsync(
+        AppUser user,
+        string password,
+        CancellationToken cancellationToken = default)
+        => Map(await _userManager.CreateAsync(user, password));
+
     public async Task<OperationResult> UpdateAsync(AppUser user, CancellationToken cancellationToken = default)
         => Map(await _userManager.UpdateAsync(user));
 

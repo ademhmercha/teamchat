@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using TeamChat.Api.Hubs;
@@ -10,7 +10,7 @@ using TeamChat.Domain.Constants;
 namespace TeamChat.Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = Roles.Admin)]
+[Authorize(Roles = Roles.CompanyAdmins)]
 [Route("api/admin/groups")]
 public sealed class AdminGroupsController : ControllerBase
 {

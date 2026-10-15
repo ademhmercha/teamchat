@@ -12,6 +12,7 @@
 - [x] **Sprint 4 : Fichiers et messages vocaux** - termine, valide et fusionne sur `main` (branche `sprint-4-files`)
 - [x] **Sprint 5 : Appels audio, video et partage d'ecran** - termine, valide et fusionne sur `main` (branche `sprint-5-calls`)
 - [~] **Sprint 6 : Dashboard admin, qualite, deploiement** - en cours (backend + frontend realises, en attente de validation)
+- [~] **Multi-societes - Sprint 1 : fondations backend** - code + tests verts, en attente de validation (voir section dediee)
 
 ---
 
@@ -1368,3 +1369,44 @@ Rendre l'application rÃ©ellement utilisable sur tÃ©lÃ©phone : le rail de n
 
 ### Correctif espacement (bis)
 La ligne méta (heure + boutons d'action) réservait ~26px sous *chaque* bulle à cause de min-height:auto sur l'item flex et des boutons en opacity:0. Elle est désormais repliée par défaut (height:0; min-height:0; overflow:hidden) et ne se déploie que pour la dernière bulle d'un groupe (heure, 15px) ou au survol/focus (actions, 22px). Boutons d'action réduits à 22px. Sur écran tactile, la ligne reste visible (22px).
+
+---
+
+## Multi-societes - Sprint 1 : fondations backend (CLAUDE.md mis a jour)
+
+Date : 2026-10-16
+
+### Cible
+- [x] Entite `Tenant` + `ITenantScoped` ; `TenantId` sur AppUser/Conversation/Message/Attachment/CallLog/Notification
+- [x] Isolation par filtre global EF (`TenantFilterBypassed || TenantId == CurrentTenantId`)
+- [x] Roles SuperAdmin / Owner / Admin / User ; permissions Owner>Admin
+- [x] Inscription d'une societe (POST /api/auth/register-company) : cree societe + Owner actif + connexion immediate
+- [x] Migration `20261015230508_AddTenants` : table Tenants, societe par defaut, backfill des donnees existantes
+- [x] Scoping des caches par societe (`tc:v1:t:{tenant}:...`)
+- [x] SignalR : societe resolue hors requete HTTP (filtre de hub)
+
+### Implementation
+- Domain : Tenant, ITenantScoped, TenantDefaults (societe par defaut 000...001), Roles etendu.
+- Infrastructure : TeamChatDbContext (filtres + StampTenant), HttpContextUserContext (ICurrentUser/ICurrentTenant/ICurrentTenantSetter), TenantService, claim tenant_id (JwtTokenService), DbSeeder (societe par defaut + Owner + SuperAdmin), UserQueries tenant-aware.
+- Application : ICurrentTenant(+Setter), ITenantService, RegisterCompanyRequest(+validateur), AuthService.RegisterCompanyAsync, AdminUserService (scoping + permissions), AdminStatsService.
+- API : AuthController register-company (rate-limit login) ; Admin* -> [Authorize(Roles = Roles.CompanyAdmins)] ; TenantHubFilter.
+- Middleware HTTP : resout la societe une fois par requete authentifiee et la stocke dans le scope (necessaire car les fabriques HybridCache s'executent sans IHttpContextAccessor).
+
+### Bugs reels corriges (mis en evidence par MultiTenancyTests)
+1. `RegisterCompanyAsync` ne definissait pas le mot de passe (IIdentityService ne proposait pas de surcharge) : ajout de `CreateAsync(user, password)` (UserManager.CreateAsync(user, password)).
+2. Annuaire public non filtre par societe : la fabrique HybridCache (`UserQueries.SearchAsync`) s'executait sans HttpContext -> `FilterDisabled=true` -> filtre contourne. Corrige en resolvant la societe dans le scope via middleware (valeur conservee independamment de IHttpContextAccessor).
+
+### Validation
+| Type | Resultat |
+|---|---|
+| Build backend | OK (0 erreur / 0 avertissement) |
+| Tests unitaires | OK (11/11) |
+| Tests integration | OK (98/98, dont 8 nouveaux MultiTenancyTests) |
+
+### Decisions
+| # | Decision | Raison |
+|---|---|---|
+| T1 | Isolation option A : base unique + TenantId + filtre global EF | Simplicite, conforme au cahier des charges |
+| T2 | Email unique global, sans restriction de domaine | Un compte = une societe, pas de selecteur au login |
+| T3 | Super-admin global hors societe | Besoin plateforme |
+| T4 | Societe resolue dans le scope HTTP (middleware) et pour le hub (filtre) | HybridCache execute les fabriques hors HttpContext |

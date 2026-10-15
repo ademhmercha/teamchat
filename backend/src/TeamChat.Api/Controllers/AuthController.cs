@@ -38,6 +38,16 @@ public sealed class AuthController : ControllerBase
         return Ok(ToResponse(result));
     }
 
+    [HttpPost("register-company")]
+    [EnableRateLimiting("login")]
+    public async Task<ActionResult<AuthResponse>> RegisterCompany(
+        [FromBody] RegisterCompanyRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _auth.RegisterCompanyAsync(request, cancellationToken);
+        return Ok(ToResponse(result));
+    }
+
     [HttpPost("google")]
     [EnableRateLimiting("login")]
     public async Task<ActionResult<AuthResponse>> Google(

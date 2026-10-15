@@ -7,14 +7,24 @@
 
 ## 1. Le projet
 
-**TeamChat** est une messagerie interne pour les employés d'une société (une seule société, un seul niveau d'administration).
+**TeamChat** est une messagerie interne **multi-sociétés** : chaque société dispose de son propre espace totalement isolé (utilisateurs, conversations, groupes, fichiers, appels).
 
 ### Rôles
 
 | Rôle | Pouvoirs |
 |---|---|
-| **Admin** | Crée/désactive les utilisateurs, crée les groupes et gère leurs membres, voit les statistiques |
+| **SuperAdmin** | Rôle plateforme, hors société : administration globale (gestion des sociétés — Sprint 2) |
+| **Owner** | Créateur de la société. Gère les admins **et** les membres, les groupes, voit les statistiques |
+| **Admin** | Gère les **membres** uniquement (ne peut pas créer/modifier/supprimer un admin ou l'Owner), les groupes, voit les statistiques |
 | **User** | Voit l'annuaire, recherche, écrit, envoie fichiers et vocaux, appelle |
+
+### Multi-société (isolation)
+
+- Isolation en **base unique** : `TenantId` sur les entités + **filtres globaux EF Core** (option A).
+- Email **unique global**, sans restriction de domaine : un compte appartient à une seule société.
+- À l'inscription publique, un visiteur **crée sa société** (il devient Owner, actif immédiatement) ou **rejoint** la société dont il est membre via `/login`.
+- Les données existantes sont rattachées à une **société par défaut** par la migration.
+- Définition des rôles de gestion par société : Owner (admins + membres) > Admin (membres uniquement) ; garde-fou « dernier gestionnaire » par société.
 
 ### Fonctionnalités (périmètre complet)
 
@@ -31,10 +41,10 @@
 11. **Appel vidéo** : la caméra est **optionnelle** (on peut l'activer / couper pendant l'appel)
 12. **Partage d'écran** pendant un appel
 13. Dashboard admin : statistiques, utilisateurs, groupes
+14. **Multi-société** : création d'une société (Owner) depuis une page publique, isolation totale des données par société
 
 ### Hors périmètre (ne pas faire)
 
-- Multi-sociétés, super admin
 - Appels de groupe (nécessiterait un serveur SFU)
 - Intelligence artificielle
 - Application mobile native

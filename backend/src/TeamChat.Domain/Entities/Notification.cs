@@ -5,9 +5,11 @@ namespace TeamChat.Domain.Entities;
 /// Le titre et le corps sont figes au moment de l'emission pour rester
 /// lisibles meme si l'acteur ou la conversation evoluent ensuite.
 /// </summary>
-public sealed class Notification
+public sealed class Notification : ITenantScoped
 {
     public Guid Id { get; set; }
+
+    public Guid TenantId { get; set; }
 
     /// <summary>Destinataire de la notification.</summary>
     public Guid UserId { get; set; }

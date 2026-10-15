@@ -131,8 +131,30 @@ public sealed class AdminUserServiceTests
             new FakeMembershipService(),
             sessions,
             new FakeCacheService(),
-            new FakeEmailSender());
+            new FakeEmailSender(),
+            new FakeCurrentUser(Roles.Owner),
+            new FakeCurrentTenant());
         return identity;
+    }
+
+    private sealed class FakeCurrentUser : ICurrentUser
+    {
+        private readonly HashSet<string> _roles;
+
+        public FakeCurrentUser(params string[] roles) => _roles = roles.ToHashSet();
+
+        public Guid? UserId { get; } = Guid.NewGuid();
+
+        public bool IsAuthenticated => true;
+
+        public bool IsInRole(string role) => _roles.Contains(role);
+    }
+
+    private sealed class FakeCurrentTenant : ICurrentTenant
+    {
+        public Guid? TenantId { get; } = Guid.NewGuid();
+
+        public bool FilterDisabled => false;
     }
 
     private sealed class FakeIdentityService : IIdentityService
@@ -159,6 +181,9 @@ public sealed class AdminUserServiceTests
             => Task.FromResult<IReadOnlyList<string>>(_roles.ToList());
 
         public Task<OperationResult> CreateAsync(AppUser user, CancellationToken cancellationToken = default)
+            => Task.FromResult(OperationResult.Ok());
+
+        public Task<OperationResult> CreateAsync(AppUser user, string password, CancellationToken cancellationToken = default)
             => Task.FromResult(OperationResult.Ok());
 
         public Task<OperationResult> UpdateAsync(AppUser user, CancellationToken cancellationToken = default)

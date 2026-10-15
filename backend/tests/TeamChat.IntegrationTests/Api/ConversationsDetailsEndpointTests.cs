@@ -141,13 +141,13 @@ public sealed class ConversationsDetailsEndpointTests
 
         var conversationId = await ApiTestHelper.CreateDirectAsync(client, token, otherId);
 
-        using (var scope = _fixture.Factory.Services.CreateAsyncScope())
+        await ApiTestHelper.RunWithTenantAsync(_fixture.Factory, TeamChat.Domain.Constants.TenantDefaults.DefaultTenantId, async provider =>
         {
-            var conversations = scope.ServiceProvider.GetRequiredService<IConversationService>();
+            var conversations = provider.GetRequiredService<IConversationService>();
             await conversations.SendMessageAsync(myId, conversationId, "Reunion budget lundi", CancellationToken.None);
             await conversations.SendMessageAsync(otherId, conversationId, "Note sur le budget trimestriel", CancellationToken.None);
             await conversations.SendMessageAsync(myId, conversationId, "Autre sujet", CancellationToken.None);
-        }
+        });
 
         var response = await ApiTestHelper.SendAsync(client, HttpMethod.Get, $"/api/conversations/{conversationId}/messages/search?q=budget", token);
         response.EnsureSuccessStatusCode();
@@ -167,9 +167,9 @@ public sealed class ConversationsDetailsEndpointTests
 
         var conversationId = await ApiTestHelper.CreateDirectAsync(client, token, otherId);
 
-        using (var scope = _fixture.Factory.Services.CreateAsyncScope())
+        await ApiTestHelper.RunWithTenantAsync(_fixture.Factory, TeamChat.Domain.Constants.TenantDefaults.DefaultTenantId, async provider =>
         {
-            var attachments = scope.ServiceProvider.GetRequiredService<IAttachmentQueries>();
+            var attachments = provider.GetRequiredService<IAttachmentQueries>();
             await attachments.PersistAttachmentMessageAsync(
                 conversationId,
                 myId,
@@ -181,7 +181,7 @@ public sealed class ConversationsDetailsEndpointTests
                 MessageType.File,
                 DateTimeOffset.UtcNow,
                 CancellationToken.None);
-        }
+        });
 
         var response = await ApiTestHelper.SendAsync(client, HttpMethod.Get, $"/api/conversations/{conversationId}/attachments", token);
         response.EnsureSuccessStatusCode();

@@ -25,14 +25,17 @@ public static class CacheKeys
     public static string UserMembershipTag(Guid userId) =>
         $"{Root}:membership-user:{userId}";
 
-    public static string Directory(int page, int pageSize, string? search) =>
-        $"{Root}:directory:{page}:{pageSize}:{Sanitize(search)}";
+    public static string Directory(Guid? tenantId, int page, int pageSize, string? search) =>
+        $"{Root}:t:{TenantKey(tenantId)}:directory:{page}:{pageSize}:{Sanitize(search)}";
 
-    public static string DirectoryTag() => $"{Root}:directory";
+    public static string DirectoryTag(Guid? tenantId) => $"{Root}:t:{TenantKey(tenantId)}:directory";
 
-    public static string AdminStats() => $"{Root}:admin:stats";
+    public static string AdminStats(Guid? tenantId) => $"{Root}:t:{TenantKey(tenantId)}:admin:stats";
 
     public static string StunTurn() => $"{Root}:stun-turn";
+
+    /// <summary>Segment de cle identifiant la societe (isole les donnees mises en cache).</summary>
+    private static string TenantKey(Guid? tenantId) => tenantId?.ToString() ?? "_";
 
     private static string Sanitize(string? value)
     {

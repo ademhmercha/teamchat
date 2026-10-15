@@ -21,6 +21,8 @@ public sealed class AdminUserService : IAdminUserService
     private readonly IUserSessionTerminator _sessions;
     private readonly ICacheService _cache;
     private readonly IEmailSender _email;
+    private readonly ICurrentUser _currentUser;
+    private readonly ICurrentTenant _tenant;
 
     public AdminUserService(
         IIdentityService identity,
@@ -30,7 +32,9 @@ public sealed class AdminUserService : IAdminUserService
         IMembershipService membership,
         IUserSessionTerminator sessions,
         ICacheService cache,
-        IEmailSender email)
+        IEmailSender email,
+        ICurrentUser currentUser,
+        ICurrentTenant tenant)
     {
         _identity = identity;
         _refreshTokens = refreshTokens;
@@ -40,6 +44,8 @@ public sealed class AdminUserService : IAdminUserService
         _sessions = sessions;
         _cache = cache;
         _email = email;
+        _currentUser = currentUser;
+        _tenant = tenant;
     }
 
     public Task<PagedResult<UserProfileDto>> ListAsync(
@@ -54,7 +60,7 @@ public sealed class AdminUserService : IAdminUserService
         string inviteBaseUrl,
         CancellationToken cancellationToken = default)
     {
-        if (!Roles.All.Contains(request.Role))
+        if (!Roles.TenantRoles.Contains(request.Role))
         {
             throw new ValidationException(new[]
             {
@@ -62,16 +68,27 @@ public sealed class AdminUserService : IAdminUserService
             });
         }
 
-        if (await _identity.FindByEmailAsync(request.Email, cancellationToken) is not null)
+        // Seul le proprietaire (Owner) peut nommer des administrateurs/proprietaires.
+        if (request.Role != Roles.User && !_currentUser.IsInRole(Roles.Owner))
+        {
+            throw new ForbiddenException("Seul le proprietaire peut creer un administrateur.");
+        }
+
+        var tenantId = _tenant.TenantId
+            ?? throw new ForbiddenException("Vous n'etes rattache a aucune societe.");
+
+        var email = request.Email.Trim().ToLowerInvariant();
+        if (await _identity.FindByEmailAsync(email, cancellationToken) is not null)
         {
             throw new ConflictException("Un utilisateur avec cet email existe deja.");
         }
 
         var user = new AppUser
         {
-            UserName = request.Email,
-            Email = request.Email,
-            DisplayName = request.DisplayName,
+            UserName = email,
+            Email = email,
+            DisplayName = request.DisplayName.Trim(),
+            TenantId = tenantId,
             IsActive = true,
             CreatedAt = DateTimeOffset.UtcNow,
         };
@@ -104,20 +121,47 @@ public sealed class AdminUserService : IAdminUserService
         }
 
         var currentRoles = await _identity.GetRolesAsync(user, cancellationToken);
-        var isActiveAdmin = user.IsActive && currentRoles.Contains(Roles.Admin);
-        var willDeactivate = request.IsActive is false && user.IsActive;
-        var willDemote = request.Role is { } requestedRole
-            && requestedRole != Roles.Admin
-            && currentRoles.Contains(Roles.Admin);
+        var currentRole = currentRoles.FirstOrDefault() ?? Roles.User;
+        var callerIsOwner = _currentUser.IsInRole(Roles.Owner);
+        var currentIsManager = currentRole is Roles.Owner or Roles.Admin;
 
-        if (isActiveAdmin && (willDeactivate || willDemote))
+        // Un administrateur ne peut pas toucher au proprietaire de la societe.
+        if (!callerIsOwner && currentRole == Roles.Owner)
+        {
+            throw new ForbiddenException("Vous ne pouvez pas modifier le proprietaire de la societe.");
+        }
+
+        if (request.Role is { } requestedRole)
+        {
+            if (!Roles.TenantRoles.Contains(requestedRole))
+            {
+                throw new ValidationException(new[]
+                {
+                    new FluentValidation.Results.ValidationFailure(nameof(request.Role), "Role invalide."),
+                });
+            }
+
+            if (!callerIsOwner && requestedRole != Roles.User)
+            {
+                throw new ForbiddenException("Seul le proprietaire peut nommer un administrateur.");
+            }
+        }
+
+        var isActiveManager = user.IsActive && currentIsManager;
+        var willDeactivate = request.IsActive is false && user.IsActive;
+        var willDemote = request.Role is { } target
+            && target != currentRole
+            && currentIsManager
+            && target == Roles.User;
+
+        if (isActiveManager && (willDeactivate || willDemote))
         {
             await EnsureNotLastAdminAsync(cancellationToken);
         }
 
         if (request.DisplayName is not null)
         {
-            user.DisplayName = request.DisplayName;
+            user.DisplayName = request.DisplayName.Trim();
         }
 
         var deactivated = false;
@@ -158,7 +202,14 @@ public sealed class AdminUserService : IAdminUserService
         }
 
         var roles = await _identity.GetRolesAsync(user, cancellationToken);
-        if (user.IsActive && roles.Contains(Roles.Admin))
+        var currentRole = roles.FirstOrDefault() ?? Roles.User;
+
+        if (currentRole == Roles.Owner && !_currentUser.IsInRole(Roles.Owner))
+        {
+            throw new ForbiddenException("Vous ne pouvez pas supprimer le proprietaire de la societe.");
+        }
+
+        if (user.IsActive && currentRole is Roles.Owner or Roles.Admin)
         {
             await EnsureNotLastAdminAsync(cancellationToken);
         }
@@ -219,7 +270,7 @@ public sealed class AdminUserService : IAdminUserService
     private async Task InvalidateAsync(Guid userId, CancellationToken cancellationToken)
     {
         await _profileCache.InvalidateAsync(userId, cancellationToken);
-        await _cache.RemoveByTagAsync(CacheKeys.DirectoryTag(), cancellationToken);
+        await _cache.RemoveByTagAsync(CacheKeys.DirectoryTag(_tenant.TenantId), cancellationToken);
     }
 
     private static void EnsureSuccess(OperationResult result)
@@ -237,5 +288,6 @@ public sealed class AdminUserService : IAdminUserService
         user.Email ?? string.Empty,
         user.AvatarUrl,
         role,
-        user.IsActive);
+        user.IsActive,
+        user.TenantId);
 }

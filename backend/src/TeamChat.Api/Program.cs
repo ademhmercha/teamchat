@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using TeamChat.Api.Infrastructure;
 using TeamChat.Application;
@@ -23,7 +24,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 
 var redisBackplane = builder.Configuration["Redis:ConnectionString"];
-var signalRBuilder = builder.Services.AddSignalR();
+var signalRBuilder = builder.Services.AddSignalR(options => options.AddFilter<TenantHubFilter>());
 if (!string.IsNullOrWhiteSpace(redisBackplane))
 {
     signalRBuilder.AddStackExchangeRedis(redisBackplane);
@@ -153,6 +154,20 @@ app.Use(async (context, next) =>
 app.UseCors("frontend");
 app.UseRateLimiter();
 app.UseAuthentication();
+app.Use(async (context, next) =>
+{
+    // Resout la societe une seule fois par requete authentifiee et la conserve
+    // dans le scope. Les fabriques de cache (HybridCache) s'executent sans
+    // IHttpContextAccessor : sans cela le filtre global serait desactive.
+    if (context.User.Identity?.IsAuthenticated == true)
+    {
+        var setter = context.RequestServices.GetRequiredService<ICurrentTenantSetter>();
+        var claim = context.User.FindFirst("tenant_id")?.Value;
+        setter.SetTenant(Guid.TryParse(claim, out var tenantId) ? tenantId : null);
+    }
+
+    await next();
+});
 app.UseAuthorization();
 app.UseWebSockets();
 
