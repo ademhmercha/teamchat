@@ -1,6 +1,7 @@
 import { Component, ElementRef, HostListener, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ChatService } from '../../core/chat/chat.service';
 import { NotificationsService } from '../../core/api/notifications.service';
@@ -46,6 +47,8 @@ export class ShellComponent {
   private static readonly RAIL_KEY = 'tc.sidebar-collapsed';
   readonly collapsed = signal(this.readRail());
 
+  readonly mobileNavOpen = signal(false);
+
   private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
   private readonly notificationsPanel = viewChild<ElementRef<HTMLElement>>('notificationsPanel');
 
@@ -54,6 +57,13 @@ export class ShellComponent {
     this.chat.forceLogout$.pipe(takeUntilDestroyed()).subscribe(() => this.forceLogout());
     this.chat.notificationsUpdated$.pipe(takeUntilDestroyed()).subscribe(() => this.loadNotifications());
     this.loadNotifications();
+
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => this.closeMobileNav());
   }
 
   timeLabel(value: string): string {
@@ -122,6 +132,14 @@ export class ShellComponent {
     }
   }
 
+  toggleMobileNav(): void {
+    this.mobileNavOpen.update((open) => !open);
+  }
+
+  closeMobileNav(): void {
+    this.mobileNavOpen.set(false);
+  }
+
   private readRail(): boolean {
     try {
       return localStorage.getItem(ShellComponent.RAIL_KEY) === '1';
@@ -150,6 +168,10 @@ export class ShellComponent {
 
     if (event.key === 'Escape' && this.notificationsOpen()) {
       this.notificationsOpen.set(false);
+    }
+
+    if (event.key === 'Escape' && this.mobileNavOpen()) {
+      this.closeMobileNav();
     }
   }
 

@@ -1322,3 +1322,28 @@ Les composants routÃ©s (`app-thread`, `app-conversations-layout`, `app-directo
 - L'e-mail d'invitation/rÃ©initialisation reste un no-op en dÃ©veloppement (`DevEmailSender`).
 - Tri/pagination non ajoutÃ©s Ã  la page Admin Groupes (non exigÃ© explicitement).
 
+
+
+## Version tÃ©lÃ©phone (mobile)
+
+### Objectif
+Rendre l'application rÃ©ellement utilisable sur tÃ©lÃ©phone : le rail de navigation de 72px (â‰²20% d'un Ã©cran 375px) empÃªchait une bonne utilisation.
+
+### Modifications
+- **Shell (`shell.html/.ts/.scss`)** : sur tÃ©lÃ©phone (â‰¤ 640px), la barre latÃ©rale devient un **tiroir** (position fixed, `translateX(-100%)`) ouvert via un **bouton menu dans la barre du haut** ; scrim de fermeture ; fermeture automatique Ã  la navigation (abonnement `NavigationEnd`) et via Ã‰chap. Le rail reste pour les tablettes (641â€“860px).
+- **Barre du haut** : recherche globale et bouton menu regroupÃ©s dans `.topbar-left` ; recherche/raccourci masquÃ©s proprement sur mobile.
+- **DÃ©tails (`thread.scss`)** : sur tÃ©lÃ©phone, le panneau DÃ©tails devient un **volet plein Ã©cran** (`top:0; width:100%`), scrim plein Ã©cran.
+- **Fil (`thread.scss`)** : en-tÃªte et compositeur compactÃ©s sur tÃ©lÃ©phone (boutons 36â€“38px, avatar 38px, espacements rÃ©duits) pour libÃ©rer de la largeur.
+- **Liste de conversations (`conversations-list.html/.scss`)** : ajout d'un **bouton fermer** visible en mode tiroir (â‰¤ 900px).
+- Comportement mono-vue liste â†” fil dÃ©jÃ  en place (tiroir de liste â‰¤ 900px, bouton menu dans l'en-tÃªte du fil, `conversations-empty`), consolidÃ©.
+
+### Validation
+| Type | RÃ©sultat |
+|---|---|
+| Build frontend (dev) | OK |
+| Build frontend (prod) | OK (272.99 kB, sans alerte de budget) |
+| VÃ©rification sur appareil/navigateur | NON effectuÃ©e â€” Ã  valider par l'utilisateur |
+
+### Limites
+- Les pages Admin/Directory/Compte disposaient dÃ©jÃ  de rÃ¨gles responsives (grilles 1 colonne, tableaux en `flex-wrap`, onglets dÃ©filants) ; non revues en dÃ©tail pour le tÃ©lÃ©phone.
+

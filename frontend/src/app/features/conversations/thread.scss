@@ -1079,12 +1079,57 @@
 }
 
 @media (max-width: 640px) {
+  .thread-header {
+    padding: 0 0.6rem;
+    gap: 0.5rem;
+  }
+
+  .peer {
+    padding: 0.25rem 0.2rem;
+    gap: 0.55rem;
+  }
+
+  .avatar {
+    width: 38px;
+    height: 38px;
+  }
+
+  .header-actions {
+    gap: 0.3rem;
+  }
+
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+
   .scroll-area {
     padding: 0.75rem;
   }
 
   .msg-body {
     max-width: 92%;
+  }
+
+  .composer {
+    padding: 0.6rem 0.6rem 0.75rem;
+  }
+
+  .composer-action,
+  .send-action {
+    width: 38px;
+    height: 38px;
+  }
+
+  /* Détails en plein écran sur téléphone. */
+  .thread-details {
+    top: 0;
+    width: 100%;
+    max-width: none;
+  }
+
+  .thread.details-shown .details-scrim {
+    inset: 0;
   }
 }
 

@@ -192,6 +192,38 @@
   border-bottom: 1px solid var(--tc-border);
 }
 
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-menu {
+  display: none;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--tc-border-strong);
+  border-radius: var(--tc-radius-sm);
+  background: var(--tc-surface);
+  color: var(--tc-text-soft);
+  cursor: pointer;
+  transition: background var(--tc-fast), color var(--tc-fast);
+
+  &:hover {
+    background: var(--tc-surface-2);
+    color: var(--tc-text);
+  }
+}
+
+.mobile-scrim {
+  display: none;
+}
+
 .global-search {
   display: flex;
   align-items: center;
@@ -243,6 +275,7 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  flex-shrink: 0;
 }
 
 .topbar-icon {
@@ -491,13 +524,16 @@
   }
 }
 
-.shell.rail {
-  @include rail;
+@media (min-width: 641px) {
+  .shell.rail {
+    @include rail;
+  }
 }
 
 /* ---------- Responsive ---------- */
 
-@media (max-width: 860px) {
+/* Tablette : la navigation se replie en rail (l'utilisateur peut la déplier). */
+@media (min-width: 641px) and (max-width: 860px) {
   .shell {
     @include rail;
   }
@@ -511,10 +547,24 @@
   }
 }
 
+/* Téléphone : la navigation devient un tiroir accessible via le bouton du
+   haut de page ; la vue principale reste le fil ou la liste. */
 @media (max-width: 640px) {
   .topbar {
     gap: 0.6rem;
     padding: 0 0.75rem;
+  }
+
+  .mobile-menu {
+    display: inline-flex;
+  }
+
+  .global-search {
+    max-width: none;
+
+    kbd {
+      display: none;
+    }
   }
 
   .account-info {
@@ -528,5 +578,36 @@
   .topbar-icon {
     width: 36px;
     height: 36px;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 90;
+    width: min(300px, 84vw);
+    padding: 12px 8px;
+    transform: translateX(-100%);
+    transition: transform var(--tc-normal);
+    box-shadow: var(--tc-shadow-lg);
+  }
+
+  .shell.mobile-open .sidebar {
+    transform: translateX(0);
+  }
+
+  .shell.mobile-open .mobile-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: var(--tc-scrim);
+    backdrop-filter: blur(2px);
+    animation: tc-fade-in var(--tc-fast);
+  }
+
+  .rail-toggle {
+    display: none;
   }
 }
