@@ -3,5 +3,8 @@
   "framework": "angular",
   "buildCommand": "npm run build -- --configuration production",
   "outputDirectory": "dist/frontend/browser",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://REMPLACER-DOMAINE-RAILWAY/api/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

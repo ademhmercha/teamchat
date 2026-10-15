@@ -85,7 +85,7 @@ export class ChatService {
     }
 
     const hub = new HubConnectionBuilder()
-      .withUrl(`${environment.apiBaseUrl}/hubs/chat`, {
+      .withUrl(`${environment.hubBaseUrl}/hubs/chat`, {
         accessTokenFactory: () => this.auth.accessToken() ?? '',
       })
       .withAutomaticReconnect()
