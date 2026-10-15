@@ -47,4 +47,7 @@ public interface IChatClient
 
     /// <summary>Signalisation WebRTC : candidat ICE relaye au pair.</summary>
     Task ReceiveIceCandidate(Guid callId, string candidate, string? sdpMid, int? sdpMLineIndex);
+
+    /// <summary>Le compteur de notifications (ou la liste) a change pour l'utilisateur.</summary>
+    Task NotificationsUpdated();
 }

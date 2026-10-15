@@ -219,7 +219,7 @@ public sealed class CallService : ICallService
             var now = _time.GetUtcNow();
             await _calls.UpdateStatusAsync(call.Id, CallStatus.Missed, null, now, cancellationToken);
             var message = await PostSystemMessageAsync(call, "manque", now, cancellationToken);
-            expired.Add(new CallExpiredEvent(call.Id, call.CallerId, call.CalleeId, CallStatus.Missed, message));
+            expired.Add(new CallExpiredEvent(call.Id, call.CallerId, call.CalleeId, call.Type, CallStatus.Missed, message));
         }
 
         return expired;

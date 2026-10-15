@@ -23,4 +23,13 @@ public interface IAuthService
     Task<UserProfileDto> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken = default);
 
     Task AcceptInviteAsync(AcceptInviteRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>Envoie un lien de reinitialisation (sans reveler l'existence du compte).</summary>
+    Task ForgotPasswordAsync(
+        ForgotPasswordRequest request,
+        string resetBaseUrl,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Definit un nouveau mot de passe a partir du token recu par email.</summary>
+    Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default);
 }

@@ -176,6 +176,9 @@ public sealed class AdminUserServiceTests
 
         public Task<OperationResult> ResetPasswordAsync(AppUser user, string token, string newPassword, CancellationToken cancellationToken = default)
             => Task.FromResult(OperationResult.Ok());
+
+        public Task<OperationResult> ChangePasswordAsync(AppUser user, string currentPassword, string newPassword, CancellationToken cancellationToken = default)
+            => Task.FromResult(OperationResult.Ok());
     }
 
     private sealed class FakeUserQueries : IUserQueries

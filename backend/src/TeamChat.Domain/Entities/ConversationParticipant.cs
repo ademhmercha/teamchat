@@ -9,4 +9,7 @@ public sealed class ConversationParticipant
     public DateTimeOffset JoinedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public Guid? LastReadMessageId { get; set; }
+
+    /// <summary>Archivage cote utilisateur (masque la conversation de sa liste, propre a chacun).</summary>
+    public bool Archived { get; set; }
 }

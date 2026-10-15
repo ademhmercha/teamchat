@@ -5,6 +5,7 @@ using TeamChat.Api.Contracts;
 using TeamChat.Api.Infrastructure;
 using TeamChat.Application.Abstractions;
 using TeamChat.Application.Auth.Dtos;
+using TeamChat.Application.Profile.Dtos;
 using TeamChat.Application.Users.Dtos;
 
 namespace TeamChat.Api.Controllers;
@@ -17,11 +18,13 @@ public sealed class AuthController : ControllerBase
     private const string RefreshCookiePath = "/api/auth";
 
     private readonly IAuthService _auth;
+    private readonly IProfileService _profile;
     private readonly IWebHostEnvironment _environment;
 
-    public AuthController(IAuthService auth, IWebHostEnvironment environment)
+    public AuthController(IAuthService auth, IProfileService profile, IWebHostEnvironment environment)
     {
         _auth = auth;
+        _profile = profile;
         _environment = environment;
     }
 
@@ -70,10 +73,56 @@ public sealed class AuthController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("forgot-password")]
+    [EnableRateLimiting("login")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    public async Task<IActionResult> ForgotPassword(
+        [FromBody] ForgotPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var resetBaseUrl = $"{Request.Scheme}://{Request.Host}/reset-password";
+        await _auth.ForgotPasswordAsync(request, resetBaseUrl, cancellationToken);
+        return Accepted();
+    }
+
+    [HttpPost("reset-password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResetPassword(
+        [FromBody] ResetPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        await _auth.ResetPasswordAsync(request, cancellationToken);
+        return NoContent();
+    }
+
     [Authorize]
     [HttpGet("me")]
     public async Task<ActionResult<UserProfileDto>> Me(CancellationToken cancellationToken)
         => Ok(await _auth.GetCurrentUserAsync(User.GetUserId(), cancellationToken));
+
+    [Authorize]
+    [HttpPost("change-password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ChangePassword(
+        [FromBody] ChangePasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        await _profile.ChangePasswordAsync(User.GetUserId(), request, cancellationToken);
+        DeleteRefreshCookie();
+        return NoContent();
+    }
+
+    [Authorize]
+    [HttpPost("logout-all")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> LogoutAll(CancellationToken cancellationToken)
+    {
+        await _profile.LogoutAllAsync(User.GetUserId(), cancellationToken);
+        DeleteRefreshCookie();
+        return NoContent();
+    }
 
     private AuthResponse ToResponse(AuthResult result)
     {

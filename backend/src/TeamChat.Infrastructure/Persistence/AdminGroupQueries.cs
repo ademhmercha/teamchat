@@ -130,13 +130,39 @@ public sealed class AdminGroupQueries : IAdminGroupQueries
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        return new GroupOperationResult(groupId, toAdd, toRemove.Select(p => p.UserId).ToList(), desired.ToList());
+        var groupName = await _db.Conversations
+            .Where(c => c.Id == groupId)
+            .Select(c => c.Name)
+            .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
+
+        return new GroupOperationResult(groupId, groupName, toAdd, toRemove.Select(p => p.UserId).ToList(), desired.ToList());
     }
 
     public async Task ArchiveAsync(Guid groupId, DateTimeOffset now, CancellationToken cancellationToken = default)
     {
         var conversation = await _db.Conversations.FirstAsync(c => c.Id == groupId, cancellationToken);
         conversation.ArchivedAt = now;
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task RenameAsync(Guid groupId, string name, CancellationToken cancellationToken = default)
+    {
+        var conversation = await _db.Conversations.FirstAsync(c => c.Id == groupId, cancellationToken);
+        conversation.Name = name;
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task UnarchiveAsync(Guid groupId, CancellationToken cancellationToken = default)
+    {
+        var conversation = await _db.Conversations.FirstAsync(c => c.Id == groupId, cancellationToken);
+        conversation.ArchivedAt = null;
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteAsync(Guid groupId, CancellationToken cancellationToken = default)
+    {
+        var conversation = await _db.Conversations.FirstAsync(c => c.Id == groupId, cancellationToken);
+        _db.Conversations.Remove(conversation);
         await _db.SaveChangesAsync(cancellationToken);
     }
 

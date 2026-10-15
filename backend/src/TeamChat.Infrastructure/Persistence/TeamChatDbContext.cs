@@ -23,6 +23,8 @@ public sealed class TeamChatDbContext : IdentityDbContext<AppUser, IdentityRole<
 
     public DbSet<CallLog> Calls => Set<CallLog>();
 
+    public DbSet<Notification> Notifications => Set<Notification>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -126,6 +128,28 @@ public sealed class TeamChatDbContext : IdentityDbContext<AppUser, IdentityRole<
                 .WithMany()
                 .HasForeignKey(c => c.CalleeId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Notification>(entity =>
+        {
+            entity.ToTable("Notifications");
+            entity.HasKey(n => n.Id);
+            entity.Property(n => n.Title).HasMaxLength(100).IsRequired();
+            entity.Property(n => n.Body).HasMaxLength(300).IsRequired();
+            entity.HasIndex(n => new { n.UserId, n.CreatedAt });
+            entity.HasIndex(n => new { n.UserId, n.ReadAt });
+            entity.HasOne<AppUser>()
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<AppUser>()
+                .WithMany()
+                .HasForeignKey(n => n.ActorUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<Conversation>()
+                .WithMany()
+                .HasForeignKey(n => n.ConversationId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

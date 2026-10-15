@@ -16,6 +16,7 @@ public sealed class AuthService : IAuthService
     private readonly IRefreshTokenStore _refreshTokens;
     private readonly IUserProfileCache _profileCache;
     private readonly IGoogleTokenValidator _google;
+    private readonly IEmailSender _email;
     private readonly JwtOptions _jwtOptions;
     private readonly TimeProvider _clock;
 
@@ -25,6 +26,7 @@ public sealed class AuthService : IAuthService
         IRefreshTokenStore refreshTokens,
         IUserProfileCache profileCache,
         IGoogleTokenValidator google,
+        IEmailSender email,
         IOptions<JwtOptions> jwtOptions,
         TimeProvider clock)
     {
@@ -33,6 +35,7 @@ public sealed class AuthService : IAuthService
         _refreshTokens = refreshTokens;
         _profileCache = profileCache;
         _google = google;
+        _email = email;
         _jwtOptions = jwtOptions.Value;
         _clock = clock;
     }
@@ -169,6 +172,50 @@ public sealed class AuthService : IAuthService
                 new FluentValidation.Results.ValidationFailure(nameof(request.Password), e)));
         }
 
+        await _profileCache.InvalidateAsync(user.Id, cancellationToken);
+    }
+
+    public async Task ForgotPasswordAsync(
+        ForgotPasswordRequest request,
+        string resetBaseUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _identity.FindByEmailAsync(request.Email, cancellationToken);
+
+        // Reponse volontairement identique que le compte existe ou non (anti-enumeration).
+        if (user is null || user.DeletedAt is not null || !user.IsActive)
+        {
+            return;
+        }
+
+        var token = await _identity.GeneratePasswordResetTokenAsync(user, cancellationToken);
+        var link = $"{resetBaseUrl}?userId={user.Id}&token={Uri.EscapeDataString(token)}";
+        await _email.SendAsync(
+            user.Email!,
+            "Reinitialisation de votre mot de passe TeamChat",
+            $"Bonjour {user.DisplayName}, definissez un nouveau mot de passe : {link}",
+            cancellationToken);
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _identity.FindByIdAsync(request.UserId, cancellationToken)
+            ?? throw new NotFoundException("Utilisateur introuvable.");
+
+        if (user.DeletedAt is not null || !user.IsActive)
+        {
+            throw new BadRequestException("Compte inactif.");
+        }
+
+        var result = await _identity.ResetPasswordAsync(user, request.Token, request.Password, cancellationToken);
+        if (!result.Succeeded)
+        {
+            throw new ValidationException(result.Errors.Select(e =>
+                new FluentValidation.Results.ValidationFailure(nameof(request.Password), e)));
+        }
+
+        // Un changement de mot de passe invalide toutes les sessions existantes.
+        await _refreshTokens.RevokeAllForUserAsync(user.Id, cancellationToken);
         await _profileCache.InvalidateAsync(user.Id, cancellationToken);
     }
 

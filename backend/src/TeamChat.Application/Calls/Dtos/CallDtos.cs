@@ -38,6 +38,7 @@ public sealed record CallExpiredEvent(
     Guid CallId,
     Guid CallerId,
     Guid CalleeId,
+    CallType Type,
     CallStatus Status,
     MessageDto? SystemMessage);
 

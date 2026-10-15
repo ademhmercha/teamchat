@@ -108,6 +108,7 @@ public static class DependencyInjection
         services.AddScoped<IConversationQueries, ConversationQueries>();
         services.AddScoped<IAdminGroupQueries, AdminGroupQueries>();
         services.AddScoped<IAdminStatsQueries, AdminStatsQueries>();
+        services.AddScoped<INotificationQueries, NotificationQueries>();
         services.AddScoped<IMembershipService, MembershipService>();
         services.AddScoped<ICallQueries, CallQueries>();
         services.AddScoped<IIceServerProvider, TurnIceServerProvider>();

@@ -24,6 +24,10 @@ public sealed class AdminGroupService : IAdminGroupService
     public Task<IReadOnlyList<GroupDto>> GetGroupsAsync(CancellationToken cancellationToken = default)
         => _queries.GetGroupsAsync(cancellationToken);
 
+    public async Task<GroupDto> GetGroupAsync(Guid groupId, CancellationToken cancellationToken = default)
+        => await _queries.FindGroupAsync(groupId, cancellationToken)
+           ?? throw new NotFoundException("Groupe introuvable.");
+
     public async Task<GroupDto> CreateAsync(
         Guid creatorId,
         CreateGroupRequest request,
@@ -58,6 +62,31 @@ public sealed class AdminGroupService : IAdminGroupService
             conversation.CreatedAt,
             IsArchived: false,
             conversation.Participants.Select(p => new GroupMemberDto(p.UserId, p.DisplayName, p.AvatarUrl)).ToList());
+    }
+
+    public async Task<GroupDto> RenameAsync(
+        Guid groupId,
+        RenameGroupRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var name = (request.Name ?? string.Empty).Trim();
+        if (name.Length == 0)
+        {
+            throw new BadRequestException("Le nom du groupe est obligatoire.");
+        }
+
+        if (name.Length > MaxNameLength)
+        {
+            throw new BadRequestException($"Le nom du groupe ne peut pas depasser {MaxNameLength} caracteres.");
+        }
+
+        if (!await _queries.GroupExistsAsync(groupId, cancellationToken))
+        {
+            throw new NotFoundException("Groupe introuvable.");
+        }
+
+        await _queries.RenameAsync(groupId, name, cancellationToken);
+        return await GetGroupAsync(groupId, cancellationToken);
     }
 
     public async Task<GroupOperationResult> UpdateMembersAsync(
@@ -97,7 +126,39 @@ public sealed class AdminGroupService : IAdminGroupService
         await _queries.ArchiveAsync(groupId, DateTimeOffset.UtcNow, cancellationToken);
         await _membership.InvalidateConversationAsync(groupId, cancellationToken);
 
-        return new GroupOperationResult(groupId, Array.Empty<Guid>(), Array.Empty<Guid>(), members);
+        return new GroupOperationResult(groupId, string.Empty, Array.Empty<Guid>(), Array.Empty<Guid>(), members);
+    }
+
+    public async Task<GroupOperationResult> UnarchiveAsync(
+        Guid groupId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await _queries.GroupExistsAsync(groupId, cancellationToken))
+        {
+            throw new NotFoundException("Groupe introuvable.");
+        }
+
+        var members = await _queries.GetParticipantIdsAsync(groupId, cancellationToken);
+        await _queries.UnarchiveAsync(groupId, cancellationToken);
+        await _membership.InvalidateConversationAsync(groupId, cancellationToken);
+
+        return new GroupOperationResult(groupId, string.Empty, Array.Empty<Guid>(), Array.Empty<Guid>(), members);
+    }
+
+    public async Task<GroupOperationResult> DeleteAsync(
+        Guid groupId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await _queries.GroupExistsAsync(groupId, cancellationToken))
+        {
+            throw new NotFoundException("Groupe introuvable.");
+        }
+
+        var members = await _queries.GetParticipantIdsAsync(groupId, cancellationToken);
+        await _queries.DeleteAsync(groupId, cancellationToken);
+        await _membership.InvalidateConversationAsync(groupId, cancellationToken);
+
+        return new GroupOperationResult(groupId, string.Empty, Array.Empty<Guid>(), Array.Empty<Guid>(), members);
     }
 
     private async Task EnsureUsersExistAsync(List<Guid> userIds, CancellationToken cancellationToken)

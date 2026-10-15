@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using TeamChat.Api.Hubs;
 using TeamChat.Application.Abstractions;
 using TeamChat.Application.Common;
+using TeamChat.Domain.Entities;
 
 namespace TeamChat.Api.Infrastructure;
 
@@ -57,6 +58,7 @@ public sealed class CallTimeoutService : BackgroundService
     {
         using var scope = _scopeFactory.CreateScope();
         var calls = scope.ServiceProvider.GetRequiredService<ICallService>();
+        var notifications = scope.ServiceProvider.GetRequiredService<INotificationService>();
 
         var timeout = TimeSpan.FromSeconds(Math.Max(1, _options.RingingTimeoutSeconds));
         var expired = await calls.ExpireStaleCallsAsync(timeout, cancellationToken);
@@ -70,6 +72,19 @@ public sealed class CallTimeoutService : BackgroundService
             {
                 await _hub.Clients.Group(ChatGroups.Conversation(call.SystemMessage.ConversationId))
                     .ReceiveMessage(call.SystemMessage);
+            }
+
+            if (call.Status == CallStatus.Missed)
+            {
+                try
+                {
+                    await notifications.NotifyMissedCallAsync(call.CalleeId, call.CallerId, call.Type, cancellationToken);
+                    await _hub.Clients.Group(ChatGroups.User(call.CalleeId)).NotificationsUpdated();
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogWarning(exception, "Notification d'appel manque non emise pour {CallId}", call.CallId);
+                }
             }
         }
     }

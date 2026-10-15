@@ -24,7 +24,39 @@ public sealed record ConversationListItemDto(
     DateTimeOffset? LastMessageAt,
     string? LastMessagePreview,
     int ParticipantCount,
-    int UnreadCount);
+    int UnreadCount,
+    bool Archived = false);
+
+/// <summary>Detail d'une conversation (en-tete et panneau Details).</summary>
+public sealed record ConversationDetailDto(
+    Guid Id,
+    ConversationType Type,
+    string? Name,
+    DateTimeOffset CreatedAt,
+    bool Archived,
+    IReadOnlyList<ConversationParticipantDto> Participants);
+
+/// <summary>Fichier partage dans une conversation (onglet « Fichiers » du panneau Details).</summary>
+public sealed record SharedAttachmentDto(
+    Guid MessageId,
+    long Sequence,
+    Guid AttachmentId,
+    string FileName,
+    string ContentType,
+    long SizeBytes,
+    int? DurationSec,
+    Guid SenderId,
+    string SenderDisplayName,
+    MessageType Type,
+    DateTimeOffset CreatedAt);
+
+/// <summary>Requete d'archivage cote utilisateur.</summary>
+public sealed record UpdateConversationRequest(bool Archived);
+
+/// <summary>Resultat d'un depart de groupe : liste des participants restants.</summary>
+public sealed record LeaveConversationResult(
+    Guid ConversationId,
+    IReadOnlyList<Guid> RemainingMemberIds);
 
 public sealed record MessageAttachmentDto(
     Guid Id,
@@ -65,6 +97,8 @@ public sealed record MarkAsReadRequest(Guid? MessageId);
 
 public sealed record CreateGroupRequest(string Name, IReadOnlyList<Guid> MemberIds);
 
+public sealed record RenameGroupRequest(string Name);
+
 public sealed record UpdateGroupMembersRequest(IReadOnlyList<Guid> MemberIds);
 
 public sealed record GroupMemberDto(Guid UserId, string DisplayName, string? AvatarUrl);
@@ -79,6 +113,7 @@ public sealed record GroupDto(
 /// <summary>Resultat d'une mutation de groupe : sert a synchroniser les groupes SignalR.</summary>
 public sealed record GroupOperationResult(
     Guid ConversationId,
+    string GroupName,
     IReadOnlyList<Guid> AddedUserIds,
     IReadOnlyList<Guid> RemovedUserIds,
     IReadOnlyList<Guid> CurrentMemberIds);

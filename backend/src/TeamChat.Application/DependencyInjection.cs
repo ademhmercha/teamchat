@@ -6,6 +6,8 @@ using TeamChat.Application.Attachments;
 using TeamChat.Application.Auth;
 using TeamChat.Application.Calls;
 using TeamChat.Application.Conversations;
+using TeamChat.Application.Notifications;
+using TeamChat.Application.Profile;
 using TeamChat.Application.Users;
 
 namespace TeamChat.Application;
@@ -24,6 +26,8 @@ public static class DependencyInjection
         services.AddScoped<IAttachmentService, AttachmentService>();
         services.AddScoped<ICallService, CallService>();
         services.AddScoped<IAdminStatsService, AdminStatsService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IProfileService, ProfileService>();
 
         services.AddSingleton(TimeProvider.System);
 

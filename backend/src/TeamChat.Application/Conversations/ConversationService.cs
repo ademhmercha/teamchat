@@ -1,6 +1,7 @@
 using TeamChat.Application.Abstractions;
 using TeamChat.Application.Common;
 using TeamChat.Application.Conversations.Dtos;
+using TeamChat.Domain.Entities;
 
 namespace TeamChat.Application.Conversations;
 
@@ -136,6 +137,82 @@ public sealed class ConversationService : IConversationService
         }
 
         await _queries.SetLastReadAsync(conversationId, userId, target, cancellationToken);
+    }
+
+    public async Task<ConversationDetailDto> GetDetailAsync(
+        Guid userId,
+        Guid conversationId,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureMemberAsync(conversationId, userId, cancellationToken);
+
+        return await _queries.GetConversationDetailAsync(conversationId, userId, cancellationToken)
+            ?? throw new NotFoundException("Conversation introuvable.");
+    }
+
+    public async Task<IReadOnlyList<ConversationParticipantDto>> GetMembersAsync(
+        Guid userId,
+        Guid conversationId,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureMemberAsync(conversationId, userId, cancellationToken);
+        return await _queries.GetMembersAsync(conversationId, cancellationToken);
+    }
+
+    public async Task<LeaveConversationResult> LeaveAsync(
+        Guid userId,
+        Guid conversationId,
+        CancellationToken cancellationToken = default)
+    {
+        var detail = await _queries.GetConversationDetailAsync(conversationId, userId, cancellationToken)
+            ?? throw new ForbiddenException("Vous ne faites pas partie de cette conversation.");
+
+        if (detail.Type != ConversationType.Group)
+        {
+            throw new BadRequestException("Une conversation directe ne peut pas etre quittee ; archivez-la.");
+        }
+
+        await _queries.LeaveAsync(conversationId, userId, cancellationToken);
+        await _membership.InvalidateConversationAsync(conversationId, cancellationToken);
+
+        var remaining = await _queries.GetMembersAsync(conversationId, cancellationToken);
+        return new LeaveConversationResult(conversationId, remaining.Select(m => m.UserId).ToList());
+    }
+
+    public async Task SetArchivedAsync(
+        Guid userId,
+        Guid conversationId,
+        bool archived,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureMemberAsync(conversationId, userId, cancellationToken);
+        await _queries.SetArchivedAsync(conversationId, userId, archived, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SharedAttachmentDto>> GetSharedAttachmentsAsync(
+        Guid userId,
+        Guid conversationId,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureMemberAsync(conversationId, userId, cancellationToken);
+        return await _queries.GetSharedAttachmentsAsync(conversationId, cancellationToken);
+    }
+
+    public async Task<MessageHistoryResult> SearchMessagesAsync(
+        Guid userId,
+        Guid conversationId,
+        string query,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureMemberAsync(conversationId, userId, cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return new MessageHistoryResult(Array.Empty<MessageDto>(), null, HasMore: false);
+        }
+
+        return await _queries.SearchMessagesAsync(conversationId, query, limit, cancellationToken);
     }
 
     private async Task EnsureMemberAsync(Guid conversationId, Guid userId, CancellationToken cancellationToken)

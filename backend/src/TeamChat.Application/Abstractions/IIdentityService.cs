@@ -45,4 +45,10 @@ public interface IIdentityService
         string token,
         string newPassword,
         CancellationToken cancellationToken = default);
+
+    Task<OperationResult> ChangePasswordAsync(
+        AppUser user,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken = default);
 }

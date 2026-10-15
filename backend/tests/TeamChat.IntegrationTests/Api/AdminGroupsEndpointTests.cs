@@ -103,4 +103,87 @@ public sealed class AdminGroupsEndpointTests
         var conversations = await conversationsResponse.Content.ReadFromJsonAsync<List<ConversationListItemDto>>();
         Assert.DoesNotContain(conversations!, c => c.Id == group.Id);
     }
+
+    [Fact]
+    public async Task Admin_can_get_detail_and_rename_group()
+    {
+        using var client = _fixture.Factory.CreateClient();
+        var adminToken = await ApiTestHelper.LoginAsync(client, ApiCollectionFixture.AdminEmail, ApiCollectionFixture.AdminPassword);
+        var (memberId, _) = await ApiTestHelper.ProvisionUserAndLoginAsync(_fixture, client, "grp-detail@teamchat.test");
+        var (secondId, _) = await ApiTestHelper.ProvisionUserAndLoginAsync(_fixture, client, "grp-detail2@teamchat.test");
+
+        var create = await ApiTestHelper.SendAsync(client, HttpMethod.Post, "/api/admin/groups", adminToken,
+            new { name = "Nom initial", memberIds = new[] { memberId, secondId } });
+        create.EnsureSuccessStatusCode();
+        var group = await create.Content.ReadFromJsonAsync<GroupDto>();
+
+        var detail = await ApiTestHelper.SendAsync(client, HttpMethod.Get, $"/api/admin/groups/{group!.Id}", adminToken);
+        Assert.Equal(HttpStatusCode.OK, detail.StatusCode);
+        var loaded = await detail.Content.ReadFromJsonAsync<GroupDto>();
+        Assert.Equal(3, loaded!.Members.Count);
+
+        var missing = await ApiTestHelper.SendAsync(client, HttpMethod.Get, $"/api/admin/groups/{Guid.NewGuid()}", adminToken);
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+
+        var rename = await ApiTestHelper.SendAsync(client, HttpMethod.Put, $"/api/admin/groups/{group.Id}", adminToken,
+            new { name = "Nom renomme" });
+        Assert.Equal(HttpStatusCode.OK, rename.StatusCode);
+        var renamed = await rename.Content.ReadFromJsonAsync<GroupDto>();
+        Assert.Equal("Nom renomme", renamed!.Name);
+
+        var invalid = await ApiTestHelper.SendAsync(client, HttpMethod.Put, $"/api/admin/groups/{group.Id}", adminToken,
+            new { name = "   " });
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+    }
+
+    [Fact]
+    public async Task Unarchive_restores_group_access()
+    {
+        using var client = _fixture.Factory.CreateClient();
+        var adminToken = await ApiTestHelper.LoginAsync(client, ApiCollectionFixture.AdminEmail, ApiCollectionFixture.AdminPassword);
+        var (memberId, memberToken) = await ApiTestHelper.ProvisionUserAndLoginAsync(_fixture, client, "grp-unarchive@teamchat.test");
+        var (secondId, _) = await ApiTestHelper.ProvisionUserAndLoginAsync(_fixture, client, "grp-unarchive2@teamchat.test");
+
+        var create = await ApiTestHelper.SendAsync(client, HttpMethod.Post, "/api/admin/groups", adminToken,
+            new { name = "A desarchiver", memberIds = new[] { memberId, secondId } });
+        create.EnsureSuccessStatusCode();
+        var group = await create.Content.ReadFromJsonAsync<GroupDto>();
+
+        var archive = await ApiTestHelper.SendAsync(client, HttpMethod.Delete, $"/api/admin/groups/{group!.Id}", adminToken);
+        Assert.Equal(HttpStatusCode.NoContent, archive.StatusCode);
+
+        var blocked = await ApiTestHelper.SendAsync(client, HttpMethod.Get, $"/api/conversations/{group.Id}/messages", memberToken);
+        Assert.Equal(HttpStatusCode.Forbidden, blocked.StatusCode);
+
+        var unarchive = await ApiTestHelper.SendAsync(client, HttpMethod.Post, $"/api/admin/groups/{group.Id}/unarchive", adminToken);
+        Assert.Equal(HttpStatusCode.NoContent, unarchive.StatusCode);
+
+        var restored = await ApiTestHelper.SendAsync(client, HttpMethod.Get, $"/api/conversations/{group.Id}/messages", memberToken);
+        Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
+    }
+
+    [Fact]
+    public async Task Permanent_delete_removes_group()
+    {
+        using var client = _fixture.Factory.CreateClient();
+        var adminToken = await ApiTestHelper.LoginAsync(client, ApiCollectionFixture.AdminEmail, ApiCollectionFixture.AdminPassword);
+        var (memberId, memberToken) = await ApiTestHelper.ProvisionUserAndLoginAsync(_fixture, client, "grp-delete@teamchat.test");
+        var (secondId, _) = await ApiTestHelper.ProvisionUserAndLoginAsync(_fixture, client, "grp-delete2@teamchat.test");
+
+        var create = await ApiTestHelper.SendAsync(client, HttpMethod.Post, "/api/admin/groups", adminToken,
+            new { name = "A supprimer", memberIds = new[] { memberId, secondId } });
+        create.EnsureSuccessStatusCode();
+        var group = await create.Content.ReadFromJsonAsync<GroupDto>();
+
+        var delete = await ApiTestHelper.SendAsync(client, HttpMethod.Delete, $"/api/admin/groups/{group!.Id}/permanent", adminToken);
+        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
+
+        var detail = await ApiTestHelper.SendAsync(client, HttpMethod.Get, $"/api/admin/groups/{group.Id}", adminToken);
+        Assert.Equal(HttpStatusCode.NotFound, detail.StatusCode);
+
+        var conversationsResponse = await ApiTestHelper.SendAsync(client, HttpMethod.Get, "/api/conversations", memberToken);
+        conversationsResponse.EnsureSuccessStatusCode();
+        var conversations = await conversationsResponse.Content.ReadFromJsonAsync<List<ConversationListItemDto>>();
+        Assert.DoesNotContain(conversations!, c => c.Id == group.Id);
+    }
 }

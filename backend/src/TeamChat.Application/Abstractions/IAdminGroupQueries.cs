@@ -28,6 +28,17 @@ public interface IAdminGroupQueries
         DateTimeOffset now,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Renomme le groupe (null pour archiver).</summary>
+    Task RenameAsync(
+        Guid groupId,
+        string name,
+        CancellationToken cancellationToken = default);
+
+    Task UnarchiveAsync(Guid groupId, CancellationToken cancellationToken = default);
+
+    /// <summary>Suppression definitive de la conversation (cascade participants + messages).</summary>
+    Task DeleteAsync(Guid groupId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<Guid>> GetParticipantIdsAsync(
         Guid conversationId,
         CancellationToken cancellationToken = default);

@@ -22,19 +22,22 @@ public sealed class ChatHub : Hub<IChatClient>
     private readonly IPresenceTracker _presence;
     private readonly IUserProfileCache _profiles;
     private readonly ICallService _calls;
+    private readonly INotificationService _notifications;
 
     public ChatHub(
         IConversationService conversations,
         IMembershipService membership,
         IPresenceTracker presence,
         IUserProfileCache profiles,
-        ICallService calls)
+        ICallService calls,
+        INotificationService notifications)
     {
         _conversations = conversations;
         _membership = membership;
         _presence = presence;
         _profiles = profiles;
         _calls = calls;
+        _notifications = notifications;
     }
 
     public override async Task OnConnectedAsync()
@@ -212,6 +215,19 @@ public sealed class ChatHub : Hub<IChatClient>
         {
             await Clients.Group(ChatGroups.Conversation(outcome.SystemMessage.ConversationId))
                 .ReceiveMessage(outcome.SystemMessage);
+        }
+
+        if (outcome.Status == CallStatus.Missed)
+        {
+            try
+            {
+                await _notifications.NotifyMissedCallAsync(outcome.CalleeId, outcome.CallerId, outcome.Type);
+                await Clients.Group(ChatGroups.User(outcome.CalleeId)).NotificationsUpdated();
+            }
+            catch
+            {
+                // Une notification ne doit jamais faire echouer la cloture d'appel.
+            }
         }
     }
 

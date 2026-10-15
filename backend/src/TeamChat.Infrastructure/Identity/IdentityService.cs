@@ -83,6 +83,13 @@ public sealed class IdentityService : IIdentityService
         CancellationToken cancellationToken = default)
         => Map(await _userManager.ResetPasswordAsync(user, token, newPassword));
 
+    public async Task<OperationResult> ChangePasswordAsync(
+        AppUser user,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken = default)
+        => Map(await _userManager.ChangePasswordAsync(user, currentPassword, newPassword));
+
     private static OperationResult Map(IdentityResult result)
         => result.Succeeded
             ? OperationResult.Ok()

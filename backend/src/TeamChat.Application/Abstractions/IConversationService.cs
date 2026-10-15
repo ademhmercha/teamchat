@@ -60,4 +60,43 @@ public interface IConversationService
         Guid conversationId,
         Guid? messageId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Detail d'une conversation (participants, nom, archivage) pour un membre.</summary>
+    Task<ConversationDetailDto> GetDetailAsync(
+        Guid userId,
+        Guid conversationId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Liste des participants d'une conversation (membre uniquement).</summary>
+    Task<IReadOnlyList<ConversationParticipantDto>> GetMembersAsync(
+        Guid userId,
+        Guid conversationId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Quitte un groupe. Interdit pour une conversation directe (utiliser l'archivage).</summary>
+    Task<LeaveConversationResult> LeaveAsync(
+        Guid userId,
+        Guid conversationId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Archive ou desarchive une conversation pour l'utilisateur courant.</summary>
+    Task SetArchivedAsync(
+        Guid userId,
+        Guid conversationId,
+        bool archived,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Fichiers partages dans une conversation (membre uniquement).</summary>
+    Task<IReadOnlyList<SharedAttachmentDto>> GetSharedAttachmentsAsync(
+        Guid userId,
+        Guid conversationId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Recherche dans les messages d'une conversation (membre uniquement).</summary>
+    Task<MessageHistoryResult> SearchMessagesAsync(
+        Guid userId,
+        Guid conversationId,
+        string query,
+        int limit,
+        CancellationToken cancellationToken = default);
 }

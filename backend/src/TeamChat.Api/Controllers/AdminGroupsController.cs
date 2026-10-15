@@ -15,15 +15,18 @@ namespace TeamChat.Api.Controllers;
 public sealed class AdminGroupsController : ControllerBase
 {
     private readonly IAdminGroupService _groups;
+    private readonly INotificationService _notifications;
     private readonly IHubContext<ChatHub, IChatClient> _hub;
     private readonly IPresenceTracker _presence;
 
     public AdminGroupsController(
         IAdminGroupService groups,
+        INotificationService notifications,
         IHubContext<ChatHub, IChatClient> hub,
         IPresenceTracker presence)
     {
         _groups = groups;
+        _notifications = notifications;
         _hub = hub;
         _presence = presence;
     }
@@ -31,6 +34,12 @@ public sealed class AdminGroupsController : ControllerBase
     [HttpGet]
     public Task<IReadOnlyList<GroupDto>> GetGroups(CancellationToken cancellationToken)
         => _groups.GetGroupsAsync(cancellationToken);
+
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(GroupDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public Task<GroupDto> GetGroup(Guid id, CancellationToken cancellationToken)
+        => _groups.GetGroupAsync(id, cancellationToken);
 
     [HttpPost]
     [ProducesResponseType(typeof(GroupDto), StatusCodes.Status201Created)]
@@ -42,9 +51,52 @@ public sealed class AdminGroupsController : ControllerBase
         var group = await _groups.CreateAsync(User.GetUserId(), request, cancellationToken);
 
         var members = group.Members.Select(m => m.UserId).ToList();
-        await SyncMembershipAsync(new GroupOperationResult(group.Id, members, Array.Empty<Guid>(), members));
+        await SyncMembershipAsync(new GroupOperationResult(group.Id, group.Name, members, Array.Empty<Guid>(), members));
 
         return Created($"/api/admin/groups/{group.Id}", group);
+    }
+
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(GroupDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GroupDto>> Rename(
+        Guid id,
+        [FromBody] RenameGroupRequest request,
+        CancellationToken cancellationToken)
+    {
+        var group = await _groups.RenameAsync(id, request, cancellationToken);
+        await NotifyConversationUpdatedAsync(group.Members.Select(m => m.UserId).ToList(), group.Id);
+        return group;
+    }
+
+    [HttpPost("{id:guid}/unarchive")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Unarchive(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _groups.UnarchiveAsync(id, cancellationToken);
+        await NotifyConversationUpdatedAsync(result.CurrentMemberIds, result.ConversationId);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:guid}/permanent")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeletePermanently(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _groups.DeleteAsync(id, cancellationToken);
+
+        foreach (var userId in result.CurrentMemberIds)
+        {
+            foreach (var connectionId in _presence.GetConnectionIds(userId))
+            {
+                await _hub.Groups.RemoveFromGroupAsync(connectionId, ChatGroups.Conversation(id));
+            }
+        }
+
+        await NotifyConversationUpdatedAsync(result.CurrentMemberIds, id);
+        return NoContent();
     }
 
     [HttpPut("{id:guid}/members")]
@@ -81,6 +133,8 @@ public sealed class AdminGroupsController : ControllerBase
 
     private async Task SyncMembershipAsync(GroupOperationResult result)
     {
+        var actorId = User.GetUserId();
+
         foreach (var userId in result.AddedUserIds)
         {
             foreach (var connectionId in _presence.GetConnectionIds(userId))
@@ -89,6 +143,22 @@ public sealed class AdminGroupsController : ControllerBase
             }
 
             await _hub.Clients.Group(ChatGroups.User(userId)).AddedToGroup(result.ConversationId);
+
+            if (userId == actorId)
+            {
+                continue;
+            }
+
+            try
+            {
+                await _notifications.NotifyGroupAddedAsync(
+                    userId, result.ConversationId, result.GroupName, actorId);
+                await _hub.Clients.Group(ChatGroups.User(userId)).NotificationsUpdated();
+            }
+            catch
+            {
+                // Une notification ne doit jamais faire echouer la mutation de groupe.
+            }
         }
 
         foreach (var userId in result.RemovedUserIds)

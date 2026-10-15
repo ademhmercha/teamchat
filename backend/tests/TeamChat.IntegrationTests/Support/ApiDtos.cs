@@ -48,7 +48,29 @@ public sealed record ConversationListItemDto(
     DateTimeOffset? LastMessageAt,
     string? LastMessagePreview,
     int ParticipantCount,
-    int UnreadCount);
+    int UnreadCount,
+    bool Archived = false);
+
+public sealed record ConversationDetailDto(
+    Guid Id,
+    int Type,
+    string? Name,
+    DateTimeOffset CreatedAt,
+    bool Archived,
+    IReadOnlyList<ConversationParticipantDto> Participants);
+
+public sealed record SharedAttachmentDto(
+    Guid MessageId,
+    long Sequence,
+    Guid AttachmentId,
+    string FileName,
+    string ContentType,
+    long SizeBytes,
+    int? DurationSec,
+    Guid SenderId,
+    string SenderDisplayName,
+    int Type,
+    DateTimeOffset CreatedAt);
 
 public sealed record MessageAttachmentDto(
     Guid Id,
@@ -113,6 +135,21 @@ public sealed record CallHistoryItemDto(
     DateTimeOffset StartedAt,
     int? DurationSeconds,
     bool Outgoing);
+
+public sealed record NotificationDto(
+    Guid Id,
+    int Type,
+    string Title,
+    string Body,
+    Guid? ConversationId,
+    Guid? ActorUserId,
+    string? ActorDisplayName,
+    DateTimeOffset CreatedAt,
+    bool Read);
+
+public sealed record NotificationListDto(
+    IReadOnlyList<NotificationDto> Items,
+    int UnreadCount);
 
 public sealed record DailyMessageCountDto(DateOnly Date, int Count);
 
