@@ -136,7 +136,7 @@ export class ThreadComponent {
   readonly newCount = signal(0);
   readonly copiedId = signal<string | null>(null);
 
-  readonly detailsOpen = signal(true);
+  readonly detailsOpen = signal(false);
   readonly emojiOpen = signal(false);
   readonly emojis = EMOJIS;
 
@@ -310,6 +310,23 @@ export class ThreadComponent {
   fileExt(fileName: string): string {
     const dot = fileName.lastIndexOf('.');
     return dot > 0 ? fileName.slice(dot + 1).toUpperCase().slice(0, 5) : '';
+  }
+
+  /** Tronque un nom de fichier au milieu en conservant l'extension (rapport_ann…pdf). */
+  fileLabel(fileName: string, max = 32): string {
+    if (fileName.length <= max) {
+      return fileName;
+    }
+
+    const dot = fileName.lastIndexOf('.');
+    const hasExt = dot > 0;
+    const ext = hasExt ? fileName.slice(dot) : '';
+    const base = hasExt ? fileName.slice(0, dot) : fileName;
+    const keep = Math.max(6, max - ext.length - 1);
+    const head = Math.ceil(keep * 0.6);
+    const tail = Math.floor(keep * 0.4);
+
+    return `${base.slice(0, head)}…${base.slice(base.length - tail)}${ext}`;
   }
 
   duration(seconds: number | null | undefined): string {

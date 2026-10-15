@@ -1347,3 +1347,21 @@ Rendre l'application rÃ©ellement utilisable sur tÃ©lÃ©phone : le rail de n
 ### Limites
 - Les pages Admin/Directory/Compte disposaient dÃ©jÃ  de rÃ¨gles responsives (grilles 1 colonne, tableaux en `flex-wrap`, onglets dÃ©filants) ; non revues en dÃ©tail pour le tÃ©lÃ©phone.
 
+
+
+## Retours aprÃ¨s test (desktop) â€” corrections
+
+1. **Moins de colonnes / conversation Ã©crasÃ©e** : colonne liste rÃ©duite de 320px â†’ **280px** (`conversations-layout.scss`) ; le panneau **DÃ©tails est masquÃ© par dÃ©faut** (`detailsOpen = signal(false)`) et s'ouvre via le bouton Â« i Â» ; seuil de passage du panneau DÃ©tails en overlay relevÃ© de 1200px â†’ **1280px** (la conversation n'est plus comprimÃ©e).
+2. **Noms de fichiers** : ajout de `fileLabel()` (troncature **au milieu** en conservant l'extension, ex. `rapport_annâ€¦pdf`), appliquÃ© aux cartes de fichier des messages et Ã  la liste Â« Fichiers partagÃ©s Â» ; nom complet conservÃ© dans l'infobulle (`title`). L'icÃ´ne/badge d'extension est dÃ©jÃ  prÃ©sente.
+3. **Espacement des messages** : bulles resserrÃ©es (`padding` 0.55/0.85 â†’ 0.45/0.8rem), marge entre groupes rÃ©duite (0.7 â†’ 0.5rem), hauteur mÃ©ta rÃ©duite (18 â†’ 16px). Le regroupement des messages consÃ©cutifs du mÃªme expÃ©diteur (un seul avatar par groupe) Ã©tait dÃ©jÃ  en place et vÃ©rifiÃ©.
+4. **Contraste** : `--tc-text-muted` `#6b7688` â†’ `#5f6a7d` (ratio â‰¥ 4.5:1 mÃªme sur le fond `#f6f8fb`) ; `--tc-sidebar-text-muted` `#94a3b8` â†’ `#64748b` (le libellÃ© Â« Administration Â» passait de 2.6:1 Ã  ~4.8:1).
+5. **Ã‰tat vide** : Ã©cran d'accueil propre (Â« Bienvenue sur TeamChat Â» + invitation Ã  dÃ©marrer une conversation) au lieu d'une zone vide.
+6. **Mobile** : repli des colonnes vÃ©rifiÃ© (tiroir de navigation â‰¤ 640px, tiroir de liste â‰¤ 900px) â€” dÃ©jÃ  implÃ©mentÃ©.
+
+### Validation
+| Type | RÃ©sultat |
+|---|---|
+| Build frontend (dev) | OK |
+| Build frontend (prod) | OK (272.99 kB, sans alerte) |
+| VÃ©rification visuelle | NON effectuÃ©e â€” Ã  valider par l'utilisateur |
+

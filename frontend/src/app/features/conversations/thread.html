@@ -225,7 +225,9 @@
                           }
                         </span>
                         <span class="file-meta">
-                          <span class="file-name">{{ row.message.attachment!.fileName }}</span>
+                          <span class="file-name" [attr.title]="row.message.attachment!.fileName">{{
+                            fileLabel(row.message.attachment!.fileName)
+                          }}</span>
                           <span class="file-size">{{ size(row.message.attachment!.sizeBytes) }}</span>
                         </span>
                         <app-icon name="download" [size]="16" />
@@ -446,7 +448,7 @@
                     <app-icon [name]="file.isImage ? 'image' : 'file'" [size]="16" />
                   </span>
                   <span class="sf-meta">
-                    <span class="sf-name">{{ file.fileName }}</span>
+                    <span class="sf-name" [attr.title]="file.fileName">{{ fileLabel(file.fileName) }}</span>
                     <span class="sf-size">{{ size(file.sizeBytes) }}</span>
                   </span>
                   <app-icon name="download" [size]="15" />

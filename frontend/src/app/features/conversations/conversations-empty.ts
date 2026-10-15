@@ -19,8 +19,8 @@ import { ConversationsUiService } from './conversations-ui.service';
       </button>
       <tc-empty-state
         icon="conversations"
-        title="Vos messages"
-        message="Sélectionnez une conversation à gauche ou démarrez un nouvel échange."
+        title="Bienvenue sur TeamChat"
+        message="Sélectionnez une conversation dans la liste, ou démarrez un nouvel échange avec le bouton +."
       />
     </div>
   `,
