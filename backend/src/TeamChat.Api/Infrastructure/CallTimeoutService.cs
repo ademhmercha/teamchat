@@ -57,10 +57,41 @@ public sealed class CallTimeoutService : BackgroundService
     private async Task SweepAsync(CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
+        var tenants = scope.ServiceProvider.GetRequiredService<ITenantService>();
+
+        var timeout = TimeSpan.FromSeconds(Math.Max(1, _options.RingingTimeoutSeconds));
+        var tenantIds = await tenants.GetActiveIdsAsync(cancellationToken);
+
+        foreach (var tenantId in tenantIds)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                await SweepTenantAsync(tenantId, timeout, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Erreur lors du balayage des appels expires pour la societe {TenantId}",
+                    tenantId);
+            }
+        }
+    }
+
+    private async Task SweepTenantAsync(Guid tenantId, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ICurrentTenantSetter>().SetTenant(tenantId);
+
         var calls = scope.ServiceProvider.GetRequiredService<ICallService>();
         var notifications = scope.ServiceProvider.GetRequiredService<INotificationService>();
 
-        var timeout = TimeSpan.FromSeconds(Math.Max(1, _options.RingingTimeoutSeconds));
         var expired = await calls.ExpireStaleCallsAsync(timeout, cancellationToken);
 
         foreach (var call in expired)

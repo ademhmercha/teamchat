@@ -13,7 +13,7 @@
 
 | Rôle | Pouvoirs |
 |---|---|
-| **SuperAdmin** | Rôle plateforme, hors société : administration globale (gestion des sociétés — Sprint 2) |
+| **SuperAdmin** | Rôle plateforme, hors société : administration globale des sociétés (`/api/platform/tenants` : liste, détail, renommage, activation/désactivation) |
 | **Owner** | Créateur de la société. Gère les admins **et** les membres, les groupes, voit les statistiques |
 | **Admin** | Gère les **membres** uniquement (ne peut pas créer/modifier/supprimer un admin ou l'Owner), les groupes, voit les statistiques |
 | **User** | Voit l'annuaire, recherche, écrit, envoie fichiers et vocaux, appelle |
@@ -25,6 +25,12 @@
 - À l'inscription publique, un visiteur **crée sa société** (il devient Owner, actif immédiatement) ou **rejoint** la société dont il est membre via `/login`.
 - Les données existantes sont rattachées à une **société par défaut** par la migration.
 - Définition des rôles de gestion par société : Owner (admins + membres) > Admin (membres uniquement) ; garde-fou « dernier gestionnaire » par société.
+- **Points de sortie limités** : toute requête écrite/lecture passe par le filtre global ; les seuls endroits autorisés à le contourner sont le seeding et `PlatformQueries` (`IgnoreQueryFilters`), appelé uniquement par `PlatformController` protégé par `[Authorize(Roles = Roles.SuperAdmin)]`.
+- **Endpoints plateforme (SuperAdmin)** : `GET /api/platform/tenants`, `GET /api/platform/tenants/{id}`, `PATCH /api/platform/tenants/{id}` avec `{ name?, isActive? }` (un champ au moins, nom 1..100 caractères).
+- **Société désactivée** : `AuthService.EnsureTenantActiveAsync` refuse connexion, renouvellement et connexion Google (401 « Societe desactivee. »).
+- **Avatar réservé à la société** : `GET /api/users/{id}/avatar` est authentifié (le filtre global = même société). Le frontend doit donc l'appeler avec le token (réglage Sprint 3).
+- **Traitements d'arrière-plan** : `CallTimeoutService` boucle sur les sociétés actives (`ITenantService.GetActiveIdsAsync`) et résout la société dans un scope dédié (`ICurrentTenantSetter.SetTenant`) pour que `StampTenant` attribue le bon `TenantId`.
+- **Clés de cache** : `tc:v1:t:{tenant}:user:{userId}` (profil utilisateur), `tc:v1:t:{tenant}:directory:...`, `tc:v1:t:{tenant}:admin:stats`.
 
 ### Fonctionnalités (périmètre complet)
 

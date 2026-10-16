@@ -108,6 +108,7 @@ public static class DependencyInjection
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
         services.AddScoped<IUserQueries, UserQueries>();
+        services.AddScoped<IPlatformQueries, PlatformQueries>();
         services.AddScoped<IUserProfileCache, UserProfileCache>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();

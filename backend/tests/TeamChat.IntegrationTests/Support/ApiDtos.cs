@@ -164,3 +164,14 @@ public sealed record AdminStatsDto(
     int MessagesLast7Days,
     IReadOnlyList<DailyMessageCountDto> MessagesPerDay,
     IReadOnlyList<ActiveGroupDto> TopGroups);
+
+public sealed record PlatformTenantDto(
+    Guid Id,
+    string Name,
+    string Slug,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    int UserCount,
+    int ActiveUserCount,
+    int GroupCount,
+    int MessageCount);

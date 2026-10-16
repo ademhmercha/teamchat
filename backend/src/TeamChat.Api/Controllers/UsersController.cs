@@ -70,7 +70,6 @@ public sealed class UsersController : ControllerBase
         return NoContent();
     }
 
-    [AllowAnonymous]
     [HttpGet("{id:guid}/avatar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

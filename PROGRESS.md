@@ -12,7 +12,8 @@
 - [x] **Sprint 4 : Fichiers et messages vocaux** - termine, valide et fusionne sur `main` (branche `sprint-4-files`)
 - [x] **Sprint 5 : Appels audio, video et partage d'ecran** - termine, valide et fusionne sur `main` (branche `sprint-5-calls`)
 - [~] **Sprint 6 : Dashboard admin, qualite, deploiement** - en cours (backend + frontend realises, en attente de validation)
-- [~] **Multi-societes - Sprint 1 : fondations backend** - code + tests verts, en attente de validation (voir section dediee)
+- [x] **Multi-societes - Sprint 1 : fondations backend** - termine et valide (voir section dediee)
+- [~] **Multi-societes - Sprint 2 : audit d'isolation + plateforme SuperAdmin** - code + tests verts, en attente de validation (voir section dediee)
 
 ---
 
@@ -1410,3 +1411,62 @@ Date : 2026-10-16
 | T2 | Email unique global, sans restriction de domaine | Un compte = une societe, pas de selecteur au login |
 | T3 | Super-admin global hors societe | Besoin plateforme |
 | T4 | Societe resolue dans le scope HTTP (middleware) et pour le hub (filtre) | HybridCache execute les fabriques hors HttpContext |
+
+---
+
+## Multi-societes - Sprint 2 : audit d'isolation + plateforme SuperAdmin (CLAUDE.md mis a jour)
+
+Date : 2026-10-16
+
+### Perimetre (valide par l'utilisateur : A + B + C)
+- [x] A : cloture des fuites entre societes
+- [x] B : endpoints plateforme (SuperAdmin) minimaux
+- [x] C : tests d'integration
+
+### Audit des fuites identifiees puis corrigees
+| # | Fuite | Gravite | Correction |
+|---|---|---|---|
+| F1 | Conversation directe creee avec un utilisateur d'une autre societe (`ConversationService.GetOrCreateDirectAsync` sans validation) | Elevee | `EnsureSameTenantUserAsync` via `IUserQueries.GetProfileAsync` (filtre global) -> 404 |
+| F2 | Appel demarre vers un utilisateur d'une autre societe (`CallService` via le cache de profil) | Elevee | Corrige par F3 : cache profile par societe -> `BadRequest "Destinataire introuvable."` avant creation |
+| F3 | Cache de profil global `tc:v1:user:{id}` -> collision entre societes | Elevee | `CacheKeys.User(tenantId,userId)` = `tc:v1:t:{tenant}:user:{userId}` ; `UserProfileCache` injecte `ICurrentTenant` |
+| F4 | `CallTimeoutService` (BackgroundService) sans societe courante -> `StampTenant` no-op -> entites creees avec `TenantId=Guid.Empty` | Moyenne | Balayage par societe : `ITenantService.GetActiveIdsAsync()` + un scope par societe via `ICurrentTenantSetter.SetTenant` |
+| F5 | `GET /api/users/{id}/avatar` `[AllowAnonymous]` -> lecture d'avatar d'une autre societe par GUID | Faible | Endpoint authentifie (filtre global = meme societe). Frontend a revoir au Sprint 3 (decision T6) |
+
+### Anomalies ecartees (deja correctement scolpes)
+- `IUserDirectoryService.SearchAsync` (corrige au Sprint 1), `IAdminUserService.List/SearchAsync` + `CountActiveAdminsAsync`,
+  groupes (`IAdminGroupQueries.CountExistingUsersAsync` filtre), pieces jointes, appartenance aux conversations,
+  detail appels/messages, login/refresh/Google (comptes existants + bypass conscient), seeding.
+- `IgnoreQueryFilters` n'existait nulle part avant le Sprint 2 : aucune porte de sortie non filtree n'existait.
+
+### B : administration plateforme
+- `IPlatformQueries` + `PlatformQueries` (seul usage de `IgnoreQueryFilters` : compteurs agreges par societe).
+- `IPlatformService` + `PlatformService` (nom 1..100 caracteres, au moins un champ a mettre a jour).
+- `ITenantService` : `GetActiveIdsAsync`, `IsActiveAsync`, `UpdateAsync` (renomme / active / desactive).
+- `PlatformController` : `GET`, `GET {id}`, `PATCH {id}` sous `[Authorize(Roles = Roles.SuperAdmin)]`.
+- Enforcement : `AuthService.EnsureTenantActiveAsync` appele sur `LoginAsync`, `RefreshAsync` et `LoginWithGoogleAsync`
+  -> une societe desactivee ne permet plus ni connexion ni renouvellement de session (401 "Societe desactivee.").
+
+### Decisions Sprint 2
+| # | Decision | Raison |
+|---|---|---|
+| T5 | Bypass plateforme isole dans `PlatformQueries` (`IgnoreQueryFilters`) plutot qu'un flag ambient elve | Portee limitee au controlleur SuperAdmin, testable, aucune fuite via les chemins metier |
+| T6 | Avatar restreint a la meme societe (endpoint authentifie) | Choix utilisateur ; casse l'affichage `<img>` anonyme jusqu'au Sprint 3 (a charger avec token) |
+| T7 | Endpoints plateforme minimaux (liste, detail, renommage, activation) | Choix utilisateur ; pas de gestion des utilisateurs au niveau plateforme pour l'instant |
+
+### Validation
+| Type | Resultat |
+|---|---|
+| Build backend | OK (0 erreur / 0 avertissement) |
+| Tests unitaires | OK (12/12) |
+| Tests integration | OK (104/104, dont 6 nouveaux `Sprint2IsolationTests`) |
+
+### Points connus / non verifies
+- `CallTimeoutService` par societe : compile et logique en place, mais non couvert par test d'integration (le balayage
+  tourne en arriere-plan avec `SweepSeconds` configure ; pas de test automatise de l'expiration).
+- Frontend : l'avatar anonyme est casse intentionnellement (T6) ; a corriger au Sprint 3 avec `Authorization`.
+- Le compte `admin@teamchat.local` de la base de production n'a pas ete modifie ; les nouvelles routes plateforme
+  exigent un compte `SuperAdmin`.
+
+### Prochaines etapes
+- Sprint 3 : routes publiques d'authentification (`/` landing, `/login`, `/register`), garde de connexion,
+  avatar charge avec token, gestion du nom de societe par l'Owner, console SuperAdmin (liste/activation).

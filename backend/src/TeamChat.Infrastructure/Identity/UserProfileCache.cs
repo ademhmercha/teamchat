@@ -15,17 +15,19 @@ public sealed class UserProfileCache : IUserProfileCache
 
     private readonly ICacheService _cache;
     private readonly IIdentityService _identity;
+    private readonly ICurrentTenant _tenant;
 
-    public UserProfileCache(ICacheService cache, IIdentityService identity)
+    public UserProfileCache(ICacheService cache, IIdentityService identity, ICurrentTenant tenant)
     {
         _cache = cache;
         _identity = identity;
+        _tenant = tenant;
     }
 
     public async Task<UserAccessProfile?> GetAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var profile = await _cache.GetOrCreateAsync(
-            CacheKeys.User(userId),
+            CacheKeys.User(_tenant.TenantId, userId),
             async token =>
             {
                 var user = await _identity.FindByIdAsync(userId, token);

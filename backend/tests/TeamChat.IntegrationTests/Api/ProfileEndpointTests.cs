@@ -135,7 +135,7 @@ public sealed class ProfileEndpointTests
         var profile = await upload.Content.ReadFromJsonAsync<Support.UserProfileDto>();
         Assert.False(string.IsNullOrWhiteSpace(profile!.AvatarUrl));
 
-        var served = await client.GetAsync($"/api/users/{userId}/avatar");
+        var served = await ApiTestHelper.SendAsync(client, HttpMethod.Get, $"/api/users/{userId}/avatar", token);
         Assert.Equal(HttpStatusCode.OK, served.StatusCode);
         Assert.Equal("image/png", served.Content.Headers.ContentType?.MediaType);
     }
@@ -164,7 +164,7 @@ public sealed class ProfileEndpointTests
         var removed = await ApiTestHelper.SendAsync(client, HttpMethod.Delete, "/api/users/me/avatar", token);
         Assert.Equal(HttpStatusCode.NoContent, removed.StatusCode);
 
-        var served = await client.GetAsync($"/api/users/{userId}/avatar");
+        var served = await ApiTestHelper.SendAsync(client, HttpMethod.Get, $"/api/users/{userId}/avatar", token);
         Assert.Equal(HttpStatusCode.NotFound, served.StatusCode);
     }
 

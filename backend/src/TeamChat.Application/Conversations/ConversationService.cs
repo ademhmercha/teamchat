@@ -11,11 +11,16 @@ public sealed class ConversationService : IConversationService
 
     private readonly IConversationQueries _queries;
     private readonly IMembershipService _membership;
+    private readonly IUserQueries _users;
 
-    public ConversationService(IConversationQueries queries, IMembershipService membership)
+    public ConversationService(
+        IConversationQueries queries,
+        IMembershipService membership,
+        IUserQueries users)
     {
         _queries = queries;
         _membership = membership;
+        _users = users;
     }
 
     public async Task<ConversationDto> GetOrCreateDirectAsync(
@@ -27,6 +32,8 @@ public sealed class ConversationService : IConversationService
         {
             throw new BadRequestException("Impossible de creer une conversation avec soi-meme.");
         }
+
+        await EnsureSameTenantUserAsync(otherUserId, cancellationToken);
 
         var existing = await _queries.FindDirectConversationAsync(userId, otherUserId, cancellationToken);
         if (existing is not null)
@@ -220,6 +227,19 @@ public sealed class ConversationService : IConversationService
         if (!await _membership.IsMemberAsync(conversationId, userId, cancellationToken))
         {
             throw new ForbiddenException("Vous ne faites pas partie de cette conversation.");
+        }
+    }
+
+    /// <summary>
+    /// Verifie que l'utilisateur cible existe, est actif et appartient a la meme
+    /// societe (le filtre global exclut les autres societes).
+    /// </summary>
+    private async Task EnsureSameTenantUserAsync(Guid otherUserId, CancellationToken cancellationToken)
+    {
+        var target = await _users.GetProfileAsync(otherUserId, cancellationToken);
+        if (target is null || !target.IsActive)
+        {
+            throw new NotFoundException("Utilisateur introuvable.");
         }
     }
 

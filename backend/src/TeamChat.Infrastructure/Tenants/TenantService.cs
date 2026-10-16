@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TeamChat.Application.Abstractions;
+using TeamChat.Application.Common;
 using TeamChat.Application.Tenants.Dtos;
 using TeamChat.Domain.Entities;
 using TeamChat.Infrastructure.Persistence;
@@ -40,6 +41,37 @@ public sealed class TenantService : ITenantService
         var tenant = await _db.Tenants.AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
         return tenant is null ? null : ToDto(tenant);
+    }
+
+    public async Task<IReadOnlyList<Guid>> GetActiveIdsAsync(CancellationToken cancellationToken = default)
+        => await _db.Tenants.AsNoTracking()
+            .Where(t => t.IsActive)
+            .Select(t => t.Id)
+            .ToListAsync(cancellationToken);
+
+    public Task<bool> IsActiveAsync(Guid id, CancellationToken cancellationToken = default)
+        => _db.Tenants.AsNoTracking().AnyAsync(t => t.Id == id && t.IsActive, cancellationToken);
+
+    public async Task UpdateAsync(
+        Guid id,
+        string? name,
+        bool? isActive,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
+            ?? throw new NotFoundException("Societe introuvable.");
+
+        if (name is not null)
+        {
+            tenant.Name = name;
+        }
+
+        if (isActive is { } active)
+        {
+            tenant.IsActive = active;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
     }
 
     private static string BuildSlug(string name)

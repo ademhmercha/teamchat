@@ -93,6 +93,8 @@ public sealed class AuthService : IAuthService
             throw new UnauthorizedException("Compte desactive.");
         }
 
+        await EnsureTenantActiveAsync(user, cancellationToken);
+
         var outcome = await _identity.CheckPasswordAsync(user, request.Password, lockoutOnFailure: true, cancellationToken);
 
         switch (outcome)
@@ -123,6 +125,8 @@ public sealed class AuthService : IAuthService
         {
             throw new UnauthorizedException("Compte desactive.");
         }
+
+        await EnsureTenantActiveAsync(user, cancellationToken);
 
         return await IssueTokensAsync(user, cancellationToken);
     }
@@ -157,6 +161,8 @@ public sealed class AuthService : IAuthService
         {
             throw new UnauthorizedException("Compte desactive.");
         }
+
+        await EnsureTenantActiveAsync(user, cancellationToken);
 
         var roles = await _identity.GetRolesAsync(user, cancellationToken);
         var access = _jwt.CreateAccessToken(user, roles);
@@ -260,6 +266,14 @@ public sealed class AuthService : IAuthService
         // Un changement de mot de passe invalide toutes les sessions existantes.
         await _refreshTokens.RevokeAllForUserAsync(user.Id, cancellationToken);
         await _profileCache.InvalidateAsync(user.Id, cancellationToken);
+    }
+
+    private async Task EnsureTenantActiveAsync(AppUser user, CancellationToken cancellationToken)
+    {
+        if (user.TenantId is { } tenantId && !await _tenants.IsActiveAsync(tenantId, cancellationToken))
+        {
+            throw new UnauthorizedException("Societe desactivee.");
+        }
     }
 
     private async Task<AuthResult> IssueTokensAsync(AppUser user, CancellationToken cancellationToken)

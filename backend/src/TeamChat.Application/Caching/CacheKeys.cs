@@ -12,7 +12,8 @@ public static class CacheKeys
 
     private static readonly string Root = $"{Prefix}:{Version}";
 
-    public static string User(Guid userId) => $"{Root}:user:{userId}";
+    public static string User(Guid? tenantId, Guid userId) =>
+        $"{Root}:t:{TenantKey(tenantId)}:user:{userId}";
 
     public static string UserTag(Guid userId) => $"{Root}:user:{userId}";
 

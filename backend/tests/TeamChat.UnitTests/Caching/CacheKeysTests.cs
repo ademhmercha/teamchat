@@ -5,13 +5,22 @@ namespace TeamChat.UnitTests.Caching;
 public sealed class CacheKeysTests
 {
     [Fact]
-    public void User_key_is_prefixed_versioned_and_contains_identifier()
+    public void User_key_is_tenant_scoped_versioned_and_contains_identifier()
+    {
+        var tenantId = Guid.NewGuid();
+        var id = Guid.NewGuid();
+
+        var key = CacheKeys.User(tenantId, id);
+
+        Assert.Equal($"tc:v1:t:{tenantId}:user:{id}", key);
+    }
+
+    [Fact]
+    public void User_key_uses_placeholder_when_tenant_is_absent()
     {
         var id = Guid.NewGuid();
 
-        var key = CacheKeys.User(id);
-
-        Assert.Equal($"tc:v1:user:{id}", key);
+        Assert.Equal($"tc:v1:t:_:user:{id}", CacheKeys.User(null, id));
     }
 
     [Fact]
