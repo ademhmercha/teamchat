@@ -95,7 +95,7 @@ export class LoginComponent implements OnInit {
   }
 
   private redirectAfterLogin(): void {
-    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/app';
     void this.router.navigateByUrl(returnUrl);
   }
 

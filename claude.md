@@ -27,10 +27,12 @@
 - Définition des rôles de gestion par société : Owner (admins + membres) > Admin (membres uniquement) ; garde-fou « dernier gestionnaire » par société.
 - **Points de sortie limités** : toute requête écrite/lecture passe par le filtre global ; les seuls endroits autorisés à le contourner sont le seeding et `PlatformQueries` (`IgnoreQueryFilters`), appelé uniquement par `PlatformController` protégé par `[Authorize(Roles = Roles.SuperAdmin)]`.
 - **Endpoints plateforme (SuperAdmin)** : `GET /api/platform/tenants`, `GET /api/platform/tenants/{id}`, `PATCH /api/platform/tenants/{id}` avec `{ name?, isActive? }` (un champ au moins, nom 1..100 caractères).
+- **Renommage de la société (Owner)** : `PATCH /api/company` avec `{ name }` (`[Authorize(Roles = Roles.Owner)]`, validateur FluentValidation 1..100) via `ICompanyService.RenameAsync` ; un Admin reçoit 403.
 - **Société désactivée** : `AuthService.EnsureTenantActiveAsync` refuse connexion, renouvellement et connexion Google (401 « Societe desactivee. »).
-- **Avatar réservé à la société** : `GET /api/users/{id}/avatar` est authentifié (le filtre global = même société). Le frontend doit donc l'appeler avec le token (réglage Sprint 3).
+- **Avatar réservé à la société** : `GET /api/users/{id}/avatar` est authentifié (le filtre global = même société). Le frontend l'affiche en récupérant l'image via `HttpClient` (Bearer de l'intercepteur) puis un object URL (`shared/ui/avatar.ts`).
 - **Traitements d'arrière-plan** : `CallTimeoutService` boucle sur les sociétés actives (`ITenantService.GetActiveIdsAsync`) et résout la société dans un scope dédié (`ICurrentTenantSetter.SetTenant`) pour que `StampTenant` attribue le bon `TenantId`.
 - **Clés de cache** : `tc:v1:t:{tenant}:user:{userId}` (profil utilisateur), `tc:v1:t:{tenant}:directory:...`, `tc:v1:t:{tenant}:admin:stats`.
+- **Routage frontend** : pages publiques `/` (landing), `/register` (création de société), `/login` ; le reste de l'application vit sous `/app/*` (coquille protégée par `authGuard`), avec gardes `adminGuard` (Owner/Admin) et `superAdminGuard` (console `/app/platform`) ; anciennes URL redirigées vers `/app/*`.
 
 ### Fonctionnalités (périmètre complet)
 

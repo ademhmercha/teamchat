@@ -5,6 +5,7 @@ using TeamChat.Application.Admin;
 using TeamChat.Application.Attachments;
 using TeamChat.Application.Auth;
 using TeamChat.Application.Calls;
+using TeamChat.Application.Company;
 using TeamChat.Application.Conversations;
 using TeamChat.Application.Notifications;
 using TeamChat.Application.Platform;
@@ -30,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IPlatformService, PlatformService>();
+        services.AddScoped<ICompanyService, CompanyService>();
 
         services.AddSingleton(TimeProvider.System);
 

@@ -17,7 +17,30 @@ export class AuthService {
   readonly accessToken = this._accessToken.asReadonly();
   readonly user = this._user.asReadonly();
   readonly isAuthenticated = computed(() => this._accessToken() !== null);
-  readonly isAdmin = computed(() => this._user()?.role === 'Admin');
+  readonly isAdmin = computed(() => {
+    const role = this._user()?.role;
+    return role === 'Owner' || role === 'Admin';
+  });
+  readonly isOwner = computed(() => this._user()?.role === 'Owner');
+  readonly isSuperAdmin = computed(() => this._user()?.role === 'SuperAdmin');
+
+  registerCompany(
+    companyName: string,
+    displayName: string,
+    email: string,
+    password: string,
+  ): Observable<UserProfile | null> {
+    return this.http
+      .post<AuthResponse>(
+        `${this.baseUrl}/register-company`,
+        { companyName, displayName, email, password },
+        { withCredentials: true },
+      )
+      .pipe(
+        tap((response) => this.setSession(response)),
+        map((response) => response.user),
+      );
+  }
 
   login(email: string, password: string): Observable<UserProfile | null> {
     return this.http
@@ -119,6 +142,10 @@ export class AuthService {
 
   changePassword(currentPassword: string, newPassword: string): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/change-password`, { currentPassword, newPassword });
+  }
+
+  updateTenantName(tenantName: string): void {
+    this._user.update((user) => (user ? { ...user, tenantName } : user));
   }
 
   clearSession(): void {

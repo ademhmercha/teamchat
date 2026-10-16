@@ -1,7 +1,17 @@
 import { Routes } from '@angular/router';
-import { adminGuard, authGuard, guestGuard } from './core/auth/auth.guard';
+import { adminGuard, authGuard, guestGuard, superAdminGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
+  {
+    path: '',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./features/landing/landing').then((m) => m.LandingComponent),
+  },
+  {
+    path: 'register',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./features/register/register').then((m) => m.RegisterComponent),
+  },
   {
     path: 'login',
     canActivate: [guestGuard],
@@ -24,7 +34,7 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/set-password').then((m) => m.SetPasswordComponent),
   },
   {
-    path: '',
+    path: 'app',
     canActivate: [authGuard],
     loadComponent: () => import('./layout/shell/shell').then((m) => m.ShellComponent),
     children: [
@@ -81,7 +91,22 @@ export const routes: Routes = [
           },
         ],
       },
+      {
+        path: 'platform',
+        canActivate: [superAdminGuard],
+        loadComponent: () =>
+          import('./features/platform/platform').then((m) => m.PlatformComponent),
+      },
     ],
+  },
+  // Redirections des anciennes URL (avant le prefixe /app) conservees en signets.
+  { path: 'directory', redirectTo: '/app/directory' },
+  { path: 'account', redirectTo: '/app/account' },
+  { path: 'admin', redirectTo: '/app/admin' },
+  { path: 'conversations', redirectTo: '/app/conversations' },
+  {
+    path: 'conversations/:id',
+    redirectTo: ({ params }) => `/app/conversations/${params['id']}`,
   },
   { path: '**', redirectTo: '' },
 ];

@@ -1,0 +1,35 @@
+<div class="landing">
+  <div class="landing-inner">
+    <section class="hero">
+      <span class="brand-mark"><app-icon name="conversations" [size]="26" /></span>
+      <h1>TeamChat</h1>
+      <p class="tagline">
+        La messagerie d'equipe de votre societe : conversations, groupes, fichiers, appels —
+        dans un espace totalement isole.
+      </p>
+
+      <ul class="features">
+        <li><app-icon name="conversations" [size]="18" /> Messages et groupes en temps reel</li>
+        <li><app-icon name="video" [size]="18" /> Appels audio, video et partage d'ecran</li>
+        <li><app-icon name="file" [size]="18" /> Fichiers, images et messages vocaux</li>
+        <li><app-icon name="users" [size]="18" /> Annuaire et annonce de presence</li>
+      </ul>
+    </section>
+
+    <section class="cta-card">
+      <h2>Bienvenue</h2>
+      <p>Votre societe utilise deja TeamChat ? Connectez-vous. Sinon, creez votre espace.</p>
+
+      <tc-button variant="primary" [block]="true" icon="plus" (clicked)="go('/register')">
+        Créer ma société
+      </tc-button>
+      <tc-button variant="secondary" [block]="true" (clicked)="go('/login')">
+        Se connecter
+      </tc-button>
+
+      <p class="hint">
+        L'Owner cree la societe et invite ensuite ses collaborateurs.
+      </p>
+    </section>
+  </div>
+</div>

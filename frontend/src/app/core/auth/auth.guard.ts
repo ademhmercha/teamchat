@@ -26,7 +26,22 @@ export const adminGuard: CanActivateFn = () => {
         return router.createUrlTree(['/login']);
       }
 
-      return auth.isAdmin() ? true : router.createUrlTree(['/']);
+      return auth.isAdmin() ? true : router.createUrlTree(['/app']);
+    }),
+  );
+};
+
+export const superAdminGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  return auth.ensureSession().pipe(
+    map((authenticated) => {
+      if (!authenticated) {
+        return router.createUrlTree(['/login']);
+      }
+
+      return auth.isSuperAdmin() ? true : router.createUrlTree(['/app']);
     }),
   );
 };
@@ -35,5 +50,5 @@ export const guestGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  return auth.isAuthenticated() ? router.createUrlTree(['/']) : true;
+  return auth.isAuthenticated() ? router.createUrlTree(['/app']) : true;
 };

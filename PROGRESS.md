@@ -14,6 +14,7 @@
 - [~] **Sprint 6 : Dashboard admin, qualite, deploiement** - en cours (backend + frontend realises, en attente de validation)
 - [x] **Multi-societes - Sprint 1 : fondations backend** - termine et valide (voir section dediee)
 - [~] **Multi-societes - Sprint 2 : audit d'isolation + plateforme SuperAdmin** - code + tests verts, en attente de validation (voir section dediee)
+- [~] **Multi-societes - Sprint 3 : routage public, avatar, nom de societe, console SuperAdmin** - en cours (backend + frontend realises, tests verts, en attente de validation ; voir section dediee)
 
 ---
 
@@ -1470,3 +1471,55 @@ Date : 2026-10-16
 ### Prochaines etapes
 - Sprint 3 : routes publiques d'authentification (`/` landing, `/login`, `/register`), garde de connexion,
   avatar charge avec token, gestion du nom de societe par l'Owner, console SuperAdmin (liste/activation).
+
+---
+
+## Multi-societes - Sprint 3 : routage public, avatar, nom de societe, console SuperAdmin (CLAUDE.md mis a jour)
+
+Date : 2026-10-16
+
+### Perimetre (valide par l'utilisateur)
+- [x] Application deplacee sous `/app/*` (avec redirections des anciennes URL) ; pages publiques `/` (landing), `/register` (creation de societe), `/login`.
+- [x] Renommage du nom de societe par l'Owner : `PATCH /api/company` + bloc "Societe" sur `/account`.
+- [x] Console SuperAdmin `/app/platform` (liste des societes, renommage, activation/desactivation).
+- [x] Avatar reaffiche avec le jeton (fini le `<img>` anonyme casse du Sprint 2, decision T6).
+
+### Backend (`PATCH /api/company`)
+- `ICompanyService` + `CompanyService.RenameAsync(Guid userId, string name)` : localise l'utilisateur (`IIdentityService.FindByIdAsync`),
+  refuse si aucune societe (`BadRequestException`), nettoie et borne le nom (1..100), appelle
+  `ITenantService.UpdateAsync(tenantId, clean, null)` et renvoie un `TenantDto`.
+- `RenameCompanyRequest(string Name)` + `RenameCompanyRequestValidator` (NotEmpty, MaximumLength 100) ; validation invoquee
+  automatiquement par le `ValidationFilter` (FluentValidation).
+- `CompanyController` : `[Authorize(Roles = Roles.Owner)]`, `[Route("api/company")]`, `[HttpPatch]`
+  (seul l'Owner peut renommer ; un Admin obtient 403).
+- DI : `AddScoped<ICompanyService, CompanyService>()`.
+
+### Frontend
+- Routage (`app.routes.ts`) reecrit : landing `''` (guestGuard), `register`, `login`, mot de passe oublie/reinitialisation/acceptation,
+  coquille `app` (authGuard) avec enfants `directory`/`account`/`conversations`(+`/conversations/:id`)/`admin`(adminGuard)/`platform`(superAdminGuard) ;
+  redirections des anciennes URL (`/directory`, `/account`, `/admin`, `/conversations`, `/conversations/:id`) ; `**` -> `''`.
+- Gardes : `adminGuard` et `guestGuard` redirigent vers `/app` ; nouveau `superAdminGuard`.
+- Auth : `isAdmin` = Owner|Admin, nouveaux `isOwner`, `isSuperAdmin`, `registerCompany(...)`, `updateTenantName(...)` ;
+  `UserProfile` etendu (`tenantId?`, `tenantName?`).
+- Pages publiques : landing (`features/landing`), inscription (`features/register`, validators alignes sur la politique backend) ;
+  lien "Creer ma societe" sur `/login`.
+- Avatar (`shared/ui/avatar.ts`) : si l'URL pointe vers l'API, l'image est recuperee via `HttpClient` (Bearer ajoute par l'intercepteur)
+  puis exposee en object URL (revocation a la destruction) ; sinon `<img>` direct.
+- Compte (`features/account`) : bloc "Societe" reserve a l'Owner (`CompanyService.rename` -> `auth.updateTenantName`).
+- Console plateforme (`features/platform` + `core/api/platform.service.ts`) : tableau des societes (membres actifs/total, groupes,
+  messages, statut), renommage en ligne, activation/desactivation.
+- Navigation : liens de la coquille, espace admin et annuaire pointant vers `/app/*` ; entree "Plateforme" visible pour le SuperAdmin.
+
+### Validation
+| Type | Resultat |
+|---|---|
+| Build backend | OK (0 erreur / 0 avertissement) |
+| Build frontend prod | OK (0 erreur / 0 avertissement, chunks `landing`/`register`/`platform` generes) |
+| Tests unitaires | OK (12/12) |
+| Tests integration | OK (108/108, dont 4 nouveaux `CompanyEndpointTests`) |
+
+### Points connus / non verifies
+- Verification navigateur non effectuee (pas de navigateur automatise) : parcours landing -> inscription -> app, avatar avec
+  jeton, renommage societe et console plateforme a valider visuellement par l'utilisateur.
+- Les redirections d'anciennes URL utilisent des chemins fonctionnels (`conversations/:id`) - a re-verifier apres deploiement.
+- Le compte `admin@teamchat.local` de production n'a toujours pas de role SuperAdmin (la console `/app/platform` exige `SuperAdmin`).

@@ -1,0 +1,106 @@
+<div class="platform">
+  <header class="page-header">
+    <div>
+      <h1>Sociétés</h1>
+      <p>Toutes les sociétés de la plateforme TeamChat. Réservé au super-administrateur.</p>
+    </div>
+    <tc-button variant="secondary" (click)="load()" [disabled]="loading()">
+      Actualiser
+    </tc-button>
+  </header>
+
+  @if (error(); as message) {
+    <div class="alert" role="alert">{{ message }}</div>
+  }
+  @if (message(); as info) {
+    <div class="notice" role="status">{{ info }}</div>
+  }
+
+  @if (loading()) {
+    <div class="state" role="status">Chargement des sociétés…</div>
+  } @else if (tenants().length === 0) {
+    <div class="state">Aucune société enregistrée.</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="grid">
+        <thead>
+          <tr>
+            <th>Société</th>
+            <th>Identifiant</th>
+            <th class="num">Membres</th>
+            <th class="num">Groupes</th>
+            <th class="num">Messages</th>
+            <th>Créée le</th>
+            <th>Statut</th>
+            <th class="actions-col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (tenant of tenants(); track tenant.id) {
+            <tr [class.inactive]="!tenant.isActive">
+              <td class="name-cell">
+                @if (editingId() === tenant.id) {
+                  <input
+                    class="name-input"
+                    type="text"
+                    maxlength="100"
+                    [value]="draftName()"
+                    (input)="onDraftInput($event)"
+                  />
+                } @else {
+                  <span class="name">{{ tenant.name }}</span>
+                }
+              </td>
+              <td class="slug">{{ tenant.slug }}</td>
+              <td class="num">
+                <span class="count-strong">{{ tenant.activeUserCount }}</span>
+                <span class="count-muted">/{{ tenant.userCount }}</span>
+              </td>
+              <td class="num">{{ tenant.groupCount }}</td>
+              <td class="num">{{ tenant.messageCount }}</td>
+              <td>{{ formatDate(tenant.createdAt) }}</td>
+              <td>
+                <tc-badge [variant]="tenant.isActive ? 'success' : 'danger'">
+                  {{ tenant.isActive ? 'Active' : 'Désactivée' }}
+                </tc-badge>
+              </td>
+              <td class="actions">
+                @if (editingId() === tenant.id) {
+                  <tc-button
+                    variant="primary"
+                    size="sm"
+                    icon="check"
+                    [loading]="savingId() === tenant.id"
+                    (click)="saveName(tenant)"
+                  >
+                    Enregistrer
+                  </tc-button>
+                  <tc-button variant="ghost" size="sm" (click)="cancelEdit()">Annuler</tc-button>
+                } @else {
+                  <tc-button
+                    variant="secondary"
+                    size="sm"
+                    icon="edit"
+                    [disabled]="savingId() === tenant.id || togglingId() === tenant.id"
+                    (click)="startEdit(tenant)"
+                  >
+                    Renommer
+                  </tc-button>
+                  <tc-button
+                    [variant]="tenant.isActive ? 'danger' : 'primary'"
+                    size="sm"
+                    [loading]="togglingId() === tenant.id"
+                    [disabled]="savingId() === tenant.id"
+                    (click)="toggleActive(tenant)"
+                  >
+                    {{ tenant.isActive ? 'Désactiver' : 'Activer' }}
+                  </tc-button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

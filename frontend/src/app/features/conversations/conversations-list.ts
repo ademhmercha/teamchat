@@ -153,7 +153,7 @@ export class ConversationsListComponent {
   startConversation(user: UserListItem): void {
     this.closePicker();
     this.conversations.createDirect(user.id).subscribe((conversation) => {
-      void this.router.navigate(['/conversations', conversation.id]);
+      void this.router.navigate(['/app/conversations', conversation.id]);
     });
   }
 

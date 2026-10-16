@@ -5,6 +5,8 @@ export interface UserProfile {
   avatarUrl: string | null;
   role: string;
   isActive: boolean;
+  tenantId?: string | null;
+  tenantName?: string | null;
 }
 
 export interface UserListItem {

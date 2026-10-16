@@ -1,4 +1,6 @@
-import { Component, computed, input } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Component, OnDestroy, computed, effect, inject, input, signal } from '@angular/core';
+import { environment } from '../../../environments/environment';
 
 export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -9,8 +11,8 @@ export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
       "'tc-avatar tc-avatar--' + size() + (group() ? ' tc-avatar--group' : '') + (online() === true ? ' tc-avatar--online' : '')",
   },
   template: `
-    @if (src()) {
-      <img class="tc-avatar__img" [src]="src()" [alt]="name() || 'Avatar'" loading="lazy" />
+    @if (imageSrc()) {
+      <img class="tc-avatar__img" [src]="imageSrc()" [alt]="name() || 'Avatar'" loading="lazy" />
     } @else {
       <span class="tc-avatar__initials" aria-hidden="true">{{ initials() }}</span>
     }
@@ -89,12 +91,32 @@ export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
     }
   `,
 })
-export class AvatarComponent {
+export class AvatarComponent implements OnDestroy {
+  private readonly http = inject(HttpClient);
+
   readonly name = input('');
   readonly src = input<string | null>(null);
   readonly size = input<AvatarSize>('md');
   readonly group = input(false);
   readonly online = input<boolean | null>(null);
+
+  private readonly _resolved = signal<string | null>(null);
+  private objectUrl: string | null = null;
+  private requested: string | null = null;
+
+  /**
+   * L'endpoint d'avatar de l'API exige un jeton : une balise <img> ne peut pas
+   * l'envoyer. On recupere donc l'image via HttpClient (qui ajoute le Bearer
+   * grace a l'intercepteur) et on expose un object URL local.
+   */
+  readonly imageSrc = computed(() => {
+    const src = this.src();
+    if (!src) {
+      return null;
+    }
+
+    return this.needsAuth(src) ? this._resolved() : src;
+  });
 
   readonly initials = computed(() => {
     const value = this.name().trim();
@@ -107,4 +129,53 @@ export class AvatarComponent {
       .map((part) => part[0]?.toUpperCase() ?? '')
       .join('');
   });
+
+  constructor() {
+    effect(() => {
+      const src = this.src();
+
+      if (!src || !this.needsAuth(src)) {
+        this.release();
+        return;
+      }
+
+      if (src === this.requested) {
+        return;
+      }
+
+      this.requested = src;
+      this.release();
+
+      this.http.get(src, { responseType: 'blob' }).subscribe({
+        next: (blob) => {
+          if (this.requested !== src) {
+            return;
+          }
+          this.objectUrl = URL.createObjectURL(blob);
+          this._resolved.set(this.objectUrl);
+        },
+        error: () => {
+          if (this.requested === src) {
+            this._resolved.set(null);
+          }
+        },
+      });
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.release();
+  }
+
+  private needsAuth(src: string): boolean {
+    return src.startsWith(environment.apiBaseUrl) || src.includes('/api/');
+  }
+
+  private release(): void {
+    if (this.objectUrl) {
+      URL.revokeObjectURL(this.objectUrl);
+      this.objectUrl = null;
+    }
+    this._resolved.set(null);
+  }
 }

@@ -18,15 +18,15 @@
     </div>
 
     <nav class="nav" aria-label="Navigation principale">
-      <a routerLink="/conversations" routerLinkActive="active" class="nav-link" tcTooltip="Messages">
+      <a routerLink="/app/conversations" routerLinkActive="active" class="nav-link" tcTooltip="Messages">
         <app-icon name="conversations" [size]="19" />
         <span class="nav-label">Messages</span>
       </a>
-      <a routerLink="/directory" routerLinkActive="active" class="nav-link" tcTooltip="Annuaire">
+      <a routerLink="/app/directory" routerLinkActive="active" class="nav-link" tcTooltip="Annuaire">
         <app-icon name="directory" [size]="19" />
         <span class="nav-label">Annuaire</span>
       </a>
-      <a routerLink="/account" routerLinkActive="active" class="nav-link" tcTooltip="Mon compte">
+      <a routerLink="/app/account" routerLinkActive="active" class="nav-link" tcTooltip="Mon compte">
         <app-icon name="user" [size]="19" />
         <span class="nav-label">Mon compte</span>
       </a>
@@ -36,7 +36,7 @@
       <nav class="nav nav-admin" aria-label="Administration">
         <span class="nav-title">Administration</span>
         <a
-          routerLink="/admin"
+          routerLink="/app/admin"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: true }"
           class="nav-link"
@@ -45,13 +45,23 @@
           <app-icon name="dashboard" [size]="19" />
           <span class="nav-label">Tableau de bord</span>
         </a>
-        <a routerLink="/admin/users" routerLinkActive="active" class="nav-link" tcTooltip="Utilisateurs">
+        <a routerLink="/app/admin/users" routerLinkActive="active" class="nav-link" tcTooltip="Utilisateurs">
           <app-icon name="users" [size]="19" />
           <span class="nav-label">Utilisateurs</span>
         </a>
-        <a routerLink="/admin/groups" routerLinkActive="active" class="nav-link" tcTooltip="Groupes">
+        <a routerLink="/app/admin/groups" routerLinkActive="active" class="nav-link" tcTooltip="Groupes">
           <app-icon name="conversations" [size]="19" />
           <span class="nav-label">Groupes</span>
+        </a>
+      </nav>
+    }
+
+    @if (isSuperAdmin()) {
+      <nav class="nav nav-admin" aria-label="Plateforme">
+        <span class="nav-title">Plateforme</span>
+        <a routerLink="/app/platform" routerLinkActive="active" class="nav-link" tcTooltip="Sociétés">
+          <app-icon name="dashboard" [size]="19" />
+          <span class="nav-label">Sociétés</span>
         </a>
       </nav>
     }

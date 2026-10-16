@@ -36,6 +36,7 @@ export class ShellComponent {
 
   readonly user = this.auth.user;
   readonly isAdmin = this.auth.isAdmin;
+  readonly isSuperAdmin = this.auth.isSuperAdmin;
   readonly searchTerm = signal('');
   readonly shortcutHint = /Mac|iPhone|iPad/i.test(navigator.platform) ? '⌘K' : 'Ctrl K';
 
@@ -107,7 +108,7 @@ export class ShellComponent {
     this.notificationsOpen.set(false);
 
     if (notification.conversationId) {
-      void this.router.navigate(['/conversations', notification.conversationId]);
+      void this.router.navigate(['/app/conversations', notification.conversationId]);
     }
   }
 
@@ -156,7 +157,7 @@ export class ShellComponent {
     event.preventDefault();
     const term = this.searchTerm().trim();
     this.searchTerm.set('');
-    void this.router.navigate(['/directory'], { queryParams: term ? { q: term } : {} });
+    void this.router.navigate(['/app/directory'], { queryParams: term ? { q: term } : {} });
   }
 
   @HostListener('window:keydown', ['$event'])

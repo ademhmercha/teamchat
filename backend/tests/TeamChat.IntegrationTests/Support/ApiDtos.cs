@@ -175,3 +175,10 @@ public sealed record PlatformTenantDto(
     int ActiveUserCount,
     int GroupCount,
     int MessageCount);
+
+public sealed record TenantDto(
+    Guid Id,
+    string Name,
+    string Slug,
+    bool IsActive,
+    DateTimeOffset CreatedAt);

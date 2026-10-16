@@ -88,7 +88,7 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
       }
 
       <section class="cards">
-        <a class="card-link" routerLink="/admin/users">
+        <a class="card-link" routerLink="/app/admin/users">
           <span class="card-link-icon"><app-icon name="users" [size]="22" /></span>
           <div class="card-link-body">
             <span class="card-title">Utilisateurs</span>
@@ -96,7 +96,7 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
           </div>
           <span class="card-chevron"><app-icon name="chevron-right" [size]="18" /></span>
         </a>
-        <a class="card-link" routerLink="/admin/groups">
+        <a class="card-link" routerLink="/app/admin/groups">
           <span class="card-link-icon"><app-icon name="conversations" [size]="22" /></span>
           <div class="card-link-body">
             <span class="card-title">Groupes</span>

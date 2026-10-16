@@ -8,6 +8,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
+import { CompanyService } from '../../core/api/company.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { AvatarComponent } from '../../shared/ui/avatar';
 import { ButtonComponent } from '../../shared/ui/button';
@@ -29,9 +30,15 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
 export class AccountComponent {
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly auth = inject(AuthService);
+  private readonly companyService = inject(CompanyService);
   private readonly router = inject(Router);
 
   readonly user = this.auth.user;
+  readonly isOwner = this.auth.isOwner;
+
+  readonly companySaving = signal(false);
+  readonly companyMessage = signal<string | null>(null);
+  readonly companyError = signal<string | null>(null);
 
   readonly profileSaving = signal(false);
   readonly profileMessage = signal<string | null>(null);
@@ -51,6 +58,10 @@ export class AccountComponent {
 
   readonly profileForm = this.formBuilder.group({
     displayName: [this.user()?.displayName ?? '', [Validators.required, Validators.maxLength(100)]],
+  });
+
+  readonly companyForm = this.formBuilder.group({
+    name: [this.user()?.tenantName ?? '', [Validators.required, Validators.maxLength(100)]],
   });
 
   readonly passwordForm = this.formBuilder.group(
@@ -81,6 +92,31 @@ export class AccountComponent {
       error: (error: HttpErrorResponse) => {
         this.profileError.set(this.readError(error, 'Mise a jour impossible.'));
         this.profileSaving.set(false);
+      },
+    });
+  }
+
+  saveCompany(): void {
+    if (this.companyForm.invalid) {
+      this.companyForm.markAllAsTouched();
+      return;
+    }
+
+    this.companySaving.set(true);
+    this.companyMessage.set(null);
+    this.companyError.set(null);
+    const { name } = this.companyForm.getRawValue();
+
+    this.companyService.rename(name.trim()).subscribe({
+      next: (tenant) => {
+        this.auth.updateTenantName(tenant.name);
+        this.companyForm.controls.name.setValue(tenant.name);
+        this.companyMessage.set('Societe mise a jour.');
+        this.companySaving.set(false);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.companyError.set(this.readError(error, 'Mise a jour impossible.'));
+        this.companySaving.set(false);
       },
     });
   }

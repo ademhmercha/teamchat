@@ -606,7 +606,7 @@ export class ThreadComponent {
     this.conversations.leave(conversationId).subscribe({
       next: () => {
         this.leaveBusy.set(false);
-        void this.router.navigate(['/conversations']);
+        void this.router.navigate(['/app/conversations']);
       },
       error: () => this.leaveBusy.set(false),
     });

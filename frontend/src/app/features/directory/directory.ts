@@ -115,7 +115,7 @@ export class DirectoryComponent {
       .createDirect(user.id)
       .pipe(finalize(() => this.startingId.set(null)))
       .subscribe({
-        next: (conversation) => void this.router.navigate(['/conversations', conversation.id]),
+        next: (conversation) => void this.router.navigate(['/app/conversations', conversation.id]),
         error: (error: HttpErrorResponse) => this.error.set(this.readErrorMessage(error)),
       });
   }

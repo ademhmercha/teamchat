@@ -129,6 +129,22 @@
   }
 }
 
+.signup-link {
+  margin: 0;
+  text-align: center;
+  color: var(--tc-text-muted);
+  font-size: 0.87rem;
+
+  a {
+    color: var(--tc-primary);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
 @media (max-width: 420px) {
   .login-page {
     padding: 1rem;

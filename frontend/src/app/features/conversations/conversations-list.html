@@ -121,7 +121,7 @@
             <a
               class="conversation-row"
               [class.unread]="item.unreadCount > 0"
-              [routerLink]="['/conversations', item.id]"
+              [routerLink]="['/app/conversations', item.id]"
               routerLinkActive="active"
               #rla="routerLinkActive"
               [attr.aria-current]="rla.isActive ? 'page' : null"
