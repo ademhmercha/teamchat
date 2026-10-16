@@ -109,38 +109,6 @@
   }
 }
 
-.avatar {
-  position: relative;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: var(--tc-gradient-soft);
-  color: var(--tc-accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 650;
-  font-size: 0.86rem;
-  flex-shrink: 0;
-
-  &.avatar-lg {
-    width: 76px;
-    height: 76px;
-    font-size: 1.4rem;
-  }
-}
-
-.presence-dot {
-  position: absolute;
-  bottom: 1px;
-  right: 1px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--tc-success);
-  border: 2px solid var(--tc-surface);
-}
-
 .peer-info {
   display: flex;
   flex-direction: column;
@@ -257,19 +225,6 @@
 .avatar-slot {
   width: 36px;
   flex-shrink: 0;
-}
-
-.msg-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--tc-gradient-soft);
-  color: var(--tc-accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 650;
-  font-size: 0.72rem;
 }
 
 .msg-body {
@@ -1110,11 +1065,6 @@
     gap: 0.55rem;
   }
 
-  .avatar {
-    width: 38px;
-    height: 38px;
-  }
-
   .header-actions {
     gap: 0.3rem;
   }
@@ -1266,20 +1216,6 @@
   display: flex;
   align-items: center;
   gap: 0.55rem;
-}
-
-.member-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.9rem;
-  height: 1.9rem;
-  flex-shrink: 0;
-  border-radius: var(--tc-radius-pill);
-  background: var(--tc-primary-soft);
-  color: var(--tc-primary);
-  font-size: 0.72rem;
-  font-weight: 700;
 }
 
 .member-name {

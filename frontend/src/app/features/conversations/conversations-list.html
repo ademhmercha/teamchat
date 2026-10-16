@@ -129,6 +129,7 @@
             >
               <tc-avatar
                 [name]="title(item)"
+                [src]="isGroup(item) ? null : item.otherAvatarUrl"
                 [group]="isGroup(item)"
                 [online]="isOnline(item) ? true : null"
               />
@@ -183,7 +184,7 @@
     } @else {
       @for (user of pickerUsers(); track user.id) {
         <button type="button" class="user-row" (click)="startConversation(user)">
-          <tc-avatar [name]="user.displayName" size="sm" />
+          <tc-avatar [name]="user.displayName" [src]="user.avatarUrl" size="sm" />
           <div class="user-info">
             <span class="user-name">{{ user.displayName }}</span>
             <span class="user-email">{{ user.email }}</span>

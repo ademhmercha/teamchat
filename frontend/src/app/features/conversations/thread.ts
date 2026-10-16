@@ -17,8 +17,9 @@ import {
   MessageDto,
   SharedAttachmentDto,
 } from '../../core/models/conversation.models';
-import { formatDuration, formatFileSize, initialsOf, shortTime } from '../../core/utils/display';
+import { formatDuration, formatFileSize, shortTime } from '../../core/utils/display';
 import { IconComponent } from '../../shared/icon/icon';
+import { AvatarComponent } from '../../shared/ui/avatar';
 import { EmptyStateComponent } from '../../shared/ui/empty-state';
 import { LightboxComponent } from '../../shared/ui/lightbox';
 import { ConversationsUiService } from './conversations-ui.service';
@@ -74,7 +75,14 @@ interface SharedFile {
 
 @Component({
   selector: 'app-thread',
-  imports: [FormsModule, IconComponent, EmptyStateComponent, VoicePlayerComponent, LightboxComponent],
+  imports: [
+    FormsModule,
+    IconComponent,
+    AvatarComponent,
+    EmptyStateComponent,
+    VoicePlayerComponent,
+    LightboxComponent,
+  ],
   templateUrl: './thread.html',
   styleUrl: './thread.scss',
 })
@@ -459,15 +467,13 @@ export class ThreadComponent {
       : (conversation.otherDisplayName ?? 'Conversation');
   }
 
-  headerInitials(): string {
-    const conversation = this.conversation();
-    if (!conversation) {
-      return '?';
+  /** Avatar de l'en-tête : un groupe n'a pas d'image, seules les conversations directes en ont une. */
+  getHeaderAvatarUrl(): string | null {
+    if (this.isGroup()) {
+      return null;
     }
 
-    return initialsOf(
-      conversation.type === 1 ? (conversation.name ?? 'Groupe') : (conversation.otherDisplayName ?? '?'),
-    );
+    return this.conversation()?.otherAvatarUrl ?? null;
   }
 
   participantCount(): number {
@@ -518,10 +524,6 @@ export class ThreadComponent {
     void this.chat.deleteMessage(message.id).catch(() => undefined);
   }
 
-  peerInitials(): string {
-    return initialsOf(this.conversation()?.otherDisplayName ?? '?');
-  }
-
   peerOnline(): boolean {
     const otherUserId = this.conversation()?.otherUserId;
     return otherUserId !== null && otherUserId !== undefined && this.chat.isOnline(otherUserId);
@@ -551,10 +553,6 @@ export class ThreadComponent {
 
   time(message: MessageDto): string {
     return shortTime(message.createdAt);
-  }
-
-  initialsOfName(name: string | null | undefined): string {
-    return initialsOf(name ?? '?');
   }
 
   toggleDetails(): void {

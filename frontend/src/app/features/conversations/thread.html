@@ -15,12 +15,12 @@
 
       @if (conversation()) {
         <button type="button" class="peer" (click)="toggleDetails()" title="Afficher les détails">
-          <div class="avatar">
-            {{ headerInitials() }}
-            @if (!isGroup() && peerOnline()) {
-              <span class="presence-dot" aria-label="En ligne"></span>
-            }
-          </div>
+          <tc-avatar
+            [name]="conversationTitle()"
+            [src]="getHeaderAvatarUrl()"
+            [group]="isGroup()"
+            [online]="!isGroup() && peerOnline() ? true : null"
+          />
           <div class="peer-info">
             <span class="peer-name">{{ conversationTitle() }}</span>
             @if (isGroup()) {
@@ -145,7 +145,11 @@
               @if (!row.own) {
                 <div class="avatar-slot">
                   @if (!row.grouped) {
-                    <div class="msg-avatar">{{ initialsOfName(row.message.senderDisplayName) }}</div>
+                    <tc-avatar
+                      [name]="row.message.senderDisplayName"
+                      [src]="row.message.senderAvatarUrl"
+                      size="sm"
+                    />
                   }
                 </div>
               }
@@ -390,12 +394,13 @@
 
       <div class="details-body">
         <div class="details-profile">
-          <div class="avatar avatar-lg">
-            {{ headerInitials() }}
-            @if (!isGroup() && peerOnline()) {
-              <span class="presence-dot" aria-label="En ligne"></span>
-            }
-          </div>
+          <tc-avatar
+            [name]="conversationTitle()"
+            [src]="getHeaderAvatarUrl()"
+            [group]="isGroup()"
+            [online]="!isGroup() && peerOnline() ? true : null"
+            size="xl"
+          />
           <span class="details-name">{{ conversationTitle() }}</span>
           <span class="details-sub">
             @if (isGroup()) {
@@ -428,7 +433,7 @@
             <div class="member-list">
               @for (member of members(); track member.userId) {
                 <div class="member-row">
-                  <div class="member-avatar">{{ initialsOfName(member.displayName) }}</div>
+                  <tc-avatar [name]="member.displayName" [src]="member.avatarUrl" size="sm" />
                   <span class="member-name">{{ member.displayName }}</span>
                 </div>
               }
