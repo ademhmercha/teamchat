@@ -1,6 +1,5 @@
 import { Component, ElementRef, effect, inject, viewChild } from '@angular/core';
 import { CallService } from '../../core/calls/call.service';
-import { initialsOf } from '../../core/utils/display';
 import { AvatarComponent } from '../../shared/ui/avatar';
 import { IconComponent } from '../../shared/icon/icon';
 
@@ -35,11 +34,6 @@ export class CallOverlayComponent {
         }
       }
     });
-  }
-
-  initials(): string {
-    const incoming = this.call.incoming();
-    return initialsOf(incoming?.callerDisplayName ?? this.call.peerName());
   }
 
   toggleFullscreen(): void {

@@ -1571,3 +1571,43 @@ et peut modifier ses donnees/mot de passe ensuite via `/account`.
 - Le champ mot de passe est affiche en clair (`type="text"`) pour que l'admin puisse le communiquer ; a basculer
   en `type="password"` avec bouton d'oeil si souhaite.
 - L'auto-service « mot de passe oublie » (`/api/auth/forgot-password`) reste base sur l'email (toujours no-op sans SMTP).
+
+## Appels et chat - Avatars dans l'overlay d'appel + ameliorations UX rapides
+
+Date : 2026-10-16
+
+### Perimetre
+- [x] Avatars des participants dans l'overlay d'appel (appel entrant, placeholder distant sans video, widget minimise).
+- [x] Quick wins chat : fermeture du selecteur d'emojis (clic exterieur + Echap + a l'envoi), focus auto du compositeur,
+      bouton flottant « Nouveaux messages », `aria-live` sur l'indicateur de saisie.
+
+### Backend
+- `CallSessionDto` (`Application/Calls/Dtos/CallDtos.cs`) : ajout de `string? CallerAvatarUrl` et `string? CalleeAvatarUrl`.
+- `CallService.StartCallAsync` remplit `caller.AvatarUrl` / `callee.AvatarUrl` ; `BuildSessionAsync` fait de meme
+  (`caller?.AvatarUrl` / `callee?.AvatarUrl`, couvre `AcceptCallAsync`).
+
+### Frontend
+- `core/models/call.models.ts` : `CallSessionDto` etendu (`callerAvatarUrl` / `calleeAvatarUrl`).
+- `core/calls/call.service.ts` : nouvelle methode `peerAvatarUrl()` (session -> pair selon l'utilisateur courant, sinon appelant entrant).
+- `layout/shell/call-overlay.ts` : import de `AvatarComponent` (`shared/ui/avatar`) et ajout aux `imports`.
+- `layout/shell/call-overlay.html` : `<tc-avatar size="xl">` pour l'appel entrant et le placeholder distant (remplace les divs d'initiales).
+- `features/conversations/thread.ts` : `effect` de focus du compositeur au chargement ; `@HostListener` document (clic exterieur) et
+  `keydown.escape` pour fermer les emojis ; fermeture des emojis dans `send()`.
+- `features/conversations/thread.html` : bouton `new-messages-btn` quand `!atBottom() && newCount() > 0` (sinon « Revenir en bas ») ;
+  `aria-live="polite"` sur les libelles de saisie.
+- `features/conversations/thread.scss` : styles `.new-messages-btn` ; correction d'un bloc `&:disabled`/`&.danger` orphelin.
+
+### Validation
+| Type | Resultat |
+|---|---|
+| Build backend | OK (0 erreur / 0 avertissement) |
+| Build frontend prod | OK (0 erreur / 0 avertissement) |
+| Tests unitaires | OK (12/12) |
+| Tests integration | OK (108/108) |
+
+### Points connus / non verifies
+- Verification navigateur non effectuee (pas de navigateur automatise) : avatars d'appel (entrant/audio sans video/minimise)
+  et fermeture des emojis a valider visuellement par l'utilisateur.
+- Le bouton « Nouveaux messages » reutilise `jumpToLatest()` ; le texte du compteur (`newCount`) n'est plus affiche dans
+  le bouton (garde la formulation generique). A ajuster si un compteur visible est souhaite.
+- La reutilisation de l'avatar (URL API protegee) passe par `AvatarComponent` (recuperation via HttpClient + Bearer).
