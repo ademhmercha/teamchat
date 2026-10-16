@@ -229,24 +229,36 @@
 }
 
 .remote-video {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   background: var(--tc-black);
 }
 
 .remote-placeholder {
-  flex: 1;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.6rem;
   background: var(--tc-surface-2);
+}
+
+.remote-placeholder .placeholder-name {
+  font-size: 1.05rem;
+  font-weight: 600;
 }
 
 .local-video {
   position: absolute;
   right: 12px;
   bottom: 12px;
+  z-index: 3;
   width: 128px;
   height: 96px;
   object-fit: cover;
@@ -254,19 +266,40 @@
   background: var(--tc-surface-2);
   border: 1px solid var(--tc-glass-border);
   box-shadow: var(--tc-shadow);
+  cursor: pointer;
 }
 
 .call-info {
   position: absolute;
   left: 14px;
   top: 14px;
+  z-index: 2;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
   background: var(--tc-scrim);
   backdrop-filter: blur(6px);
   color: var(--tc-on-accent);
-  padding: 0.4rem 0.7rem;
-  border-radius: 10px;
+  padding: 0.4rem 0.7rem 0.4rem 0.4rem;
+  border-radius: 999px;
+  max-width: calc(100% - 28px);
+
+  .call-info-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .call-name,
+  .call-subtitle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .call-subtitle {
+    color: rgba(255, 255, 255, 0.75);
+  }
 }
 
 .call-controls {
@@ -294,6 +327,48 @@
     text-decoration: underline;
     cursor: pointer;
     font-size: 0.82rem;
+  }
+}
+
+// Plein ecran : le widget d'appel remplace l'app, controles toujours accessibles.
+.call-overlay:fullscreen,
+.call-overlay.fullscreen {
+  background: var(--tc-black);
+  padding: 0;
+
+  .call-card {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    background: var(--tc-black);
+  }
+
+  .call-card.video {
+    background: var(--tc-black);
+  }
+
+  .video-area {
+    flex: 1;
+    aspect-ratio: auto;
+    height: auto;
+  }
+
+  .video-area.audio-only {
+    height: auto;
+    flex: 1;
+  }
+
+  .call-controls {
+    padding: 0.85rem 1rem 1.15rem;
+  }
+
+  .local-video {
+    right: 1rem;
+    bottom: 1rem;
   }
 }
 

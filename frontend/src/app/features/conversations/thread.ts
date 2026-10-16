@@ -556,7 +556,12 @@ export class ThreadComponent {
       return;
     }
 
-    void this.calls.startCall(otherUserId, conversation?.otherDisplayName ?? 'Contact', type);
+    void this.calls.startCall(
+      otherUserId,
+      conversation?.otherDisplayName ?? 'Contact',
+      type,
+      conversation?.otherAvatarUrl ?? null,
+    );
   }
 
   time(message: MessageDto): string {

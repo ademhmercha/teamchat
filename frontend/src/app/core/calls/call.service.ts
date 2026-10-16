@@ -56,6 +56,9 @@ export class CallService {
   /** La video distante (partage d'ecran ou camera) est agrandie dans la fenetre. */
   readonly enlarged = signal(false);
 
+  /** Le navigateur supporte-t-il le partage d'ecran ? (faux sur mobile). */
+  readonly canScreenShare = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getDisplayMedia;
+
   /** Une piste video locale est-elle active (camera ou partage d'ecran) ? */
   readonly localHasVideo = computed(() => this.cameraOn() || this.screenSharing());
   /** Faut-il afficher une zone video (locale ou distante) ? */
@@ -105,7 +108,7 @@ export class CallService {
     return this.callType() === CallType.Video;
   }
 
-  async startCall(calleeId: string, calleeName: string, type: number): Promise<void> {
+  async startCall(calleeId: string, calleeName: string, type: number, calleeAvatarUrl: string | null = null): Promise<void> {
     if (this.phase() !== 'idle') {
       return;
     }
@@ -120,6 +123,8 @@ export class CallService {
       callerDisplayName: this.auth.user()?.displayName ?? '',
       calleeId,
       calleeDisplayName: calleeName,
+      callerAvatarUrl: this.auth.user()?.avatarUrl ?? null,
+      calleeAvatarUrl,
       type,
       status: CallStatus.Ringing,
       conversationId: '',

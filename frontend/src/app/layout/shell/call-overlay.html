@@ -1,8 +1,10 @@
 @if (call.visible()) {
   <div
+    #callRoot
     class="call-overlay"
     [class.minimized]="call.minimized() && call.phase() === 'active'"
     [class.enlarged]="call.enlarged()"
+    [class.fullscreen]="fullscreen()"
     role="dialog"
     aria-modal="true"
   >
@@ -36,18 +38,34 @@
         </div>
       } @else {
         <div class="video-area" [class.audio-only]="!call.showVideo()">
-          @if (call.remoteHasVideo()) {
-            <video #remoteVideo class="remote-video" autoplay playsinline></video>
-          } @else {
+          <video #remoteVideo class="remote-video" autoplay playsinline></video>
+          @if (!call.remoteHasVideo()) {
             <div class="remote-placeholder">
               <tc-avatar [name]="call.peerName()" [src]="call.peerAvatarUrl()" size="xl" />
+              <span class="placeholder-name">{{ call.peerName() }}</span>
+              <span class="call-subtitle">{{ call.statusText() }}</span>
             </div>
           }
-          <video #localVideo class="local-video" autoplay playsinline muted></video>
-          <div class="call-info">
-            <span class="call-name">{{ call.peerName() }}</span>
-            <span class="call-subtitle">{{ call.statusText() }}</span>
-          </div>
+          @if (call.localHasVideo()) {
+            <video
+              #localVideo
+              class="local-video"
+              autoplay
+              playsinline
+              muted
+              title="Double-cliquer pour agrandir"
+              (dblclick)="toggleLocalFullscreen()"
+            ></video>
+          }
+          @if (call.remoteHasVideo()) {
+            <div class="call-info">
+              <tc-avatar [name]="call.peerName()" [src]="call.peerAvatarUrl()" size="sm" />
+              <div class="call-info-text">
+                <span class="call-name">{{ call.peerName() }}</span>
+                <span class="call-subtitle">{{ call.statusText() }}</span>
+              </div>
+            </div>
+          }
         </div>
 
         <div class="call-controls">
@@ -72,15 +90,17 @@
           </button>
 
           @if (!call.minimized()) {
-            <button
-              type="button"
-              class="circle-btn"
-              [class.active]="call.screenSharing()"
-              (click)="call.toggleScreenShare()"
-              [title]="call.screenSharing() ? 'Arrêter le partage' : 'Partager l\'écran'"
-            >
-              <app-icon name="screen-share" [size]="20" />
-            </button>
+            @if (call.canScreenShare) {
+              <button
+                type="button"
+                class="circle-btn"
+                [class.active]="call.screenSharing()"
+                (click)="call.toggleScreenShare()"
+                [title]="call.screenSharing() ? 'Arrêter le partage' : 'Partager l\'écran'"
+              >
+                <app-icon name="screen-share" [size]="20" />
+              </button>
+            }
 
             @if (call.remoteHasVideo()) {
               <button
@@ -92,11 +112,17 @@
               >
                 <app-icon name="maximize" [size]="20" />
               </button>
-
-              <button type="button" class="circle-btn" (click)="toggleFullscreen()" title="Plein écran">
-                <app-icon name="fullscreen" [size]="20" />
-              </button>
             }
+
+            <button
+              type="button"
+              class="circle-btn"
+              [class.active]="fullscreen()"
+              (click)="toggleFullscreen()"
+              [title]="fullscreen() ? 'Quitter le plein écran' : 'Plein écran'"
+            >
+              <app-icon name="fullscreen" [size]="20" />
+            </button>
           }
 
           <button

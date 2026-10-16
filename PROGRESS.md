@@ -1611,3 +1611,43 @@ Date : 2026-10-16
 - Le bouton « Nouveaux messages » reutilise `jumpToLatest()` ; le texte du compteur (`newCount`) n'est plus affiche dans
   le bouton (garde la formulation generique). A ajuster si un compteur visible est souhaite.
 - La reutilisation de l'avatar (URL API protegee) passe par `AvatarComponent` (recuperation via HttpClient + Bearer).
+
+## Appels - Corrections d'experience (audio, video, plein ecran, partage d'ecran)
+
+Date : 2026-10-16
+
+### Contexte (retours utilisateur)
+- Impossible de partager l'ecran depuis un telephone (bouton affiche alors que l'API n'existe pas sur mobile).
+- En appel video, l'image distante apparaissait « tres grande » et masquait toute l'application.
+- Demandes : plein ecran propre, agrandissement, et images (photos) des utilisateurs dans l'appel plutot que les initiales.
+
+### Corrections (frontend)
+- **Bug audio (majeur)** : la balise `<video>` distante n'etait montee que si `remoteHasVideo()`. En appel audio, aucun
+  element ne restituait le flux distant (son absent). La balise `<video #remoteVideo>` est desormais **toujours** montee en
+  phase active ; le placeholder (avatar) la recouvre en surimpression (`position:absolute`). Le son distant est donc rendu
+  dans tous les cas.
+- **Zoom excessif de la video distante** : `object-fit` de `.remote-video` passe de `cover` a `contain` (une source portrait
+  n'est plus rognee/zoomee ; letterbox sur fond noir).
+- **Plein ecran** : la visee fullscreen passe du `<video>` brut a la **racine de l'appel** (`#callRoot`), les controles restent
+  donc accessibles. Repli iOS (`webkitEnterFullscreen`) quand `requestFullscreen` n'est pas dispo. Etat `fullscreen` suivi via
+  `fullscreenchange` ; sortie automatique du plein ecran a la reduction (minimize). Double-clic sur la video locale pour
+  l'agrandir.
+- **Partage d'ecran** : nouveau `CallService.canScreenShare` (`getDisplayMedia` disponible) ; le bouton est masque sur mobile.
+- **Images des utilisateurs** : avatar agrandi (`tc-avatar size="xl"`) + nom dans le placeholder distant ; barre d'info
+  d'appel avec avatar (`size="sm"`) ; l'appelant transmet l'avatar du destinataire des l'appel sortant
+  (`startCall(..., calleeAvatarUrl)`), et son propre avatar est renseigne depuis `auth.user().avatarUrl`.
+- **Abordabilite mobile** : media query `<=560px` (carte d'appel pleine largeur, boutons 48px, PiP reduit).
+
+### Validation
+| Type | Resultat |
+|---|---|
+| Build frontend prod | OK (0 erreur / 0 avertissement) |
+| Tests frontend (Vitest, headless/jsdom) | OK (1/1, `npx ng test --watch=false`) |
+
+### Points connus / non verifies
+- Verification navigateur/appareil non effectuee (pas d'appareil mobile automatise) : audio en appel audio, son/video en
+  appel video, plein ecran (desktop + iOS) et partage d'ecran a valider manuellement par l'utilisateur.
+- Les appels traversant un NAT symetrique (reseau mobile) peuvent encore echouer sans serveur TURN ; `IIceServerProvider`
+  renvoie STUN par defaut (`/api/calls/ice-servers`). Un TURN sera necessaire pour une fiabilite totale en mobilite.
+- Le plein ecran d'un `<div>` n'est pas supporte par iOS Safari : repli sur le plein ecran natif de l'element `<video>`
+  (controles d'appel alors masques, comportement impose par le navigateur).
