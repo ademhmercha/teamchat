@@ -16,7 +16,7 @@
       @if (call.phase() === 'incoming') {
         <div class="incoming-body">
           <div class="avatar-ring">
-            <div class="avatar">{{ initials() }}</div>
+            <tc-avatar [name]="call.incoming()?.callerDisplayName ?? call.peerName()" [src]="call.peerAvatarUrl()" size="xl" />
           </div>
           <div class="call-name">{{ call.incoming()?.callerDisplayName }}</div>
           <div class="call-subtitle">Appel {{ call.isVideo() ? 'vidéo' : 'audio' }} entrant…</div>
@@ -40,7 +40,7 @@
             <video #remoteVideo class="remote-video" autoplay playsinline></video>
           } @else {
             <div class="remote-placeholder">
-              <div class="avatar">{{ initials() }}</div>
+              <tc-avatar [name]="call.peerName()" [src]="call.peerAvatarUrl()" size="xl" />
             </div>
           }
           <video #localVideo class="local-video" autoplay playsinline muted></video>

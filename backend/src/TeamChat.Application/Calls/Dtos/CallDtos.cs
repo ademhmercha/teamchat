@@ -13,6 +13,8 @@ public sealed record CallSessionDto(
     string CallerDisplayName,
     Guid CalleeId,
     string CalleeDisplayName,
+    string? CallerAvatarUrl,
+    string? CalleeAvatarUrl,
     CallType Type,
     CallStatus Status,
     Guid ConversationId,

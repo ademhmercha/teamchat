@@ -31,7 +31,7 @@
               <span class="group-meta">Hors ligne</span>
             }
             @if (otherTypingName(); as typingName) {
-              <span class="typing-banner">{{ typingName }} écrit…</span>
+              <span class="typing-banner" aria-live="polite">{{ typingName }} écrit…</span>
             }
           </div>
         </button>
@@ -288,14 +288,14 @@
       }
     </div>
 
-    @if (!atBottom()) {
+    @if (!atBottom() && newCount() > 0) {
+      <button type="button" class="new-messages-btn" (click)="jumpToLatest(); newCount.set(0)">
+        Nouveaux messages ↓
+      </button>
+    } @else if (!atBottom()) {
       <button type="button" class="jump-latest" (click)="jumpToLatest()">
         <app-icon name="arrow-down" [size]="16" />
-        @if (newCount() > 0) {
-          <span>{{ newCount() }} nouveau{{ newCount() > 1 ? 'x' : '' }} message{{ newCount() > 1 ? 's' : '' }}</span>
-        } @else {
-          <span>Revenir en bas</span>
-        }
+        <span>Revenir en bas</span>
       </button>
     }
 

@@ -1,11 +1,12 @@
 import { Component, ElementRef, effect, inject, viewChild } from '@angular/core';
 import { CallService } from '../../core/calls/call.service';
 import { initialsOf } from '../../core/utils/display';
+import { AvatarComponent } from '../../shared/ui/avatar';
 import { IconComponent } from '../../shared/icon/icon';
 
 @Component({
   selector: 'app-call-overlay',
-  imports: [IconComponent],
+  imports: [IconComponent, AvatarComponent],
   templateUrl: './call-overlay.html',
   styleUrl: './call-overlay.scss',
 })

@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, computed, effect, inject, signal, viewChild, HostListener } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -231,6 +231,13 @@ export class ThreadComponent {
       }
     });
 
+    effect(() => {
+      const id = this.conversationId();
+      if (id) {
+        queueMicrotask(() => this.composerInput()?.nativeElement?.focus());
+      }
+    });
+
     this.route.paramMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       const id = params.get('id');
       if (id && id !== this.conversationId()) {
@@ -387,6 +394,7 @@ export class ThreadComponent {
     }
 
     this.sending.set(true);
+    this.emojiOpen.set(false);
     this.chat
       .sendMessage(conversationId, content)
       .then(() => {
@@ -668,6 +676,21 @@ export class ThreadComponent {
 
   toggleEmoji(): void {
     this.emojiOpen.update((open) => !open);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const wrap = document.querySelector('.emoji-wrap');
+    if (wrap && !wrap.contains(event.target as Node)) {
+      this.emojiOpen.set(false);
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.emojiOpen()) {
+      this.emojiOpen.set(false);
+    }
   }
 
   insertEmoji(emoji: string): void {

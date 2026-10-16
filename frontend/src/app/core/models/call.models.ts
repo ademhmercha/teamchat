@@ -18,6 +18,8 @@ export interface CallSessionDto {
   callerDisplayName: string;
   calleeId: string;
   calleeDisplayName: string;
+  callerAvatarUrl?: string | null;
+  calleeAvatarUrl?: string | null;
   type: number;
   status: number;
   conversationId: string;

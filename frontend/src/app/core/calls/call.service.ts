@@ -86,6 +86,17 @@ export class CallService {
     return this.incoming()?.callerDisplayName ?? 'Appel';
   }
 
+  peerAvatarUrl(): string | null {
+    const session = this.session();
+    if (session) {
+      return session.callerId === this.currentUserId
+        ? session.calleeAvatarUrl ?? null
+        : session.callerAvatarUrl ?? null;
+    }
+    const incoming = this.incoming();
+    return incoming?.callerAvatarUrl ?? null;
+  }
+
   callType(): number {
     return this.session()?.type ?? this.incoming()?.type ?? CallType.Audio;
   }
