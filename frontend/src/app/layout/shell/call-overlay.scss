@@ -296,3 +296,42 @@
     font-size: 0.82rem;
   }
 }
+
+@media (max-width: 560px) {
+  .call-card {
+    width: calc(100vw - 1rem);
+    padding: 1.6rem 1rem 1rem;
+    gap: 0.6rem;
+
+    &.video {
+      width: calc(100vw - 1rem);
+    }
+  }
+
+  .call-controls {
+    gap: 0.5rem;
+    padding: 0.85rem 0.35rem 0.35rem;
+  }
+
+  .circle-btn {
+    width: 48px;
+    height: 48px;
+  }
+
+  .call-actions {
+    gap: 1.75rem;
+  }
+
+  .local-video {
+    width: 104px;
+    height: 78px;
+  }
+
+  .call-overlay.minimized {
+    padding: 0.75rem;
+
+    .call-card {
+      width: min(300px, calc(100vw - 1.5rem));
+    }
+  }
+}
