@@ -12,10 +12,9 @@ public interface IAdminUserService
         int pageSize,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Cree un utilisateur et envoie une invitation (lien contenant un token de definition de mot de passe).</summary>
+    /// <summary>Cree un utilisateur actif avec le mot de passe fourni par l'administrateur (aucun email).</summary>
     Task<UserProfileDto> CreateAsync(
         CreateUserRequest request,
-        string inviteBaseUrl,
         CancellationToken cancellationToken = default);
 
     /// <summary>Met a jour le nom, le role et l'activation. La desactivation invalide le cache et revoque les tokens.</summary>
@@ -30,9 +29,9 @@ public interface IAdminUserService
     /// </summary>
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
-    /// <summary>Reinitialise le mot de passe d'un compte via une nouvelle invitation par email.</summary>
+    /// <summary>Definit directement un nouveau mot de passe pour un compte (aucun email).</summary>
     Task ResetPasswordAsync(
         Guid id,
-        string inviteBaseUrl,
+        ResetUserPasswordRequest request,
         CancellationToken cancellationToken = default);
 }

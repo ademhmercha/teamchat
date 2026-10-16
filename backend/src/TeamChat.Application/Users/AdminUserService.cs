@@ -20,7 +20,6 @@ public sealed class AdminUserService : IAdminUserService
     private readonly IMembershipService _membership;
     private readonly IUserSessionTerminator _sessions;
     private readonly ICacheService _cache;
-    private readonly IEmailSender _email;
     private readonly ICurrentUser _currentUser;
     private readonly ICurrentTenant _tenant;
 
@@ -32,7 +31,6 @@ public sealed class AdminUserService : IAdminUserService
         IMembershipService membership,
         IUserSessionTerminator sessions,
         ICacheService cache,
-        IEmailSender email,
         ICurrentUser currentUser,
         ICurrentTenant tenant)
     {
@@ -43,7 +41,6 @@ public sealed class AdminUserService : IAdminUserService
         _membership = membership;
         _sessions = sessions;
         _cache = cache;
-        _email = email;
         _currentUser = currentUser;
         _tenant = tenant;
     }
@@ -57,7 +54,6 @@ public sealed class AdminUserService : IAdminUserService
 
     public async Task<UserProfileDto> CreateAsync(
         CreateUserRequest request,
-        string inviteBaseUrl,
         CancellationToken cancellationToken = default)
     {
         if (!Roles.TenantRoles.Contains(request.Role))
@@ -90,19 +86,12 @@ public sealed class AdminUserService : IAdminUserService
             DisplayName = request.DisplayName.Trim(),
             TenantId = tenantId,
             IsActive = true,
+            EmailConfirmed = true,
             CreatedAt = DateTimeOffset.UtcNow,
         };
 
-        EnsureSuccess(await _identity.CreateAsync(user, cancellationToken));
+        EnsureSuccess(await _identity.CreateAsync(user, request.Password, cancellationToken));
         EnsureSuccess(await _identity.SetRolesAsync(user, new[] { request.Role }, cancellationToken));
-
-        var token = await _identity.GeneratePasswordResetTokenAsync(user, cancellationToken);
-        var link = $"{inviteBaseUrl}?userId={user.Id}&token={Uri.EscapeDataString(token)}";
-        await _email.SendAsync(
-            user.Email!,
-            "Invitation a rejoindre TeamChat",
-            $"Bonjour {user.DisplayName}, definissez votre mot de passe : {link}",
-            cancellationToken);
 
         await InvalidateAsync(user.Id, cancellationToken);
 
@@ -238,7 +227,7 @@ public sealed class AdminUserService : IAdminUserService
 
     public async Task ResetPasswordAsync(
         Guid id,
-        string inviteBaseUrl,
+        ResetUserPasswordRequest request,
         CancellationToken cancellationToken = default)
     {
         var user = await _identity.FindByIdAsync(id, cancellationToken);
@@ -248,12 +237,7 @@ public sealed class AdminUserService : IAdminUserService
         }
 
         var token = await _identity.GeneratePasswordResetTokenAsync(user, cancellationToken);
-        var link = $"{inviteBaseUrl}?userId={user.Id}&token={Uri.EscapeDataString(token)}";
-        await _email.SendAsync(
-            user.Email!,
-            "Reinitialisation de votre mot de passe TeamChat",
-            $"Bonjour {user.DisplayName}, definissez un nouveau mot de passe : {link}",
-            cancellationToken);
+        EnsureSuccess(await _identity.ResetPasswordAsync(user, token, request.Password, cancellationToken));
     }
 
     /// <summary>Interdit toute action qui supprimerait le dernier administrateur actif.</summary>

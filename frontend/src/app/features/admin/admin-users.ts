@@ -71,6 +71,13 @@ export class AdminUsersComponent {
   readonly newEmail = signal('');
   readonly newDisplayName = signal('');
   readonly newRole = signal('User');
+  readonly newPassword = signal('');
+
+  readonly resetOpen = signal(false);
+  readonly resetTarget = signal<UserProfile | null>(null);
+  readonly resetPassword = signal('');
+  readonly resetSaving = signal(false);
+  readonly resetError = signal<string | null>(null);
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -112,6 +119,7 @@ export class AdminUsersComponent {
     this.newEmail.set('');
     this.newDisplayName.set('');
     this.newRole.set('User');
+    this.newPassword.set('');
     this.formError.set(null);
     this.editorOpen.set(true);
   }
@@ -123,19 +131,27 @@ export class AdminUsersComponent {
   save(): void {
     const email = this.newEmail().trim();
     const displayName = this.newDisplayName().trim();
+    const password = this.newPassword();
 
     if (!email || !displayName) {
       this.formError.set("L'email et le nom sont obligatoires.");
       return;
     }
 
+    const passwordProblem = this.passwordError(password);
+    if (passwordProblem) {
+      this.formError.set(passwordProblem);
+      return;
+    }
+
     this.saving.set(true);
     this.formError.set(null);
 
-    this.admin.create({ email, displayName, role: this.newRole() }).subscribe({
+    this.admin.create({ email, displayName, role: this.newRole(), password }).subscribe({
       next: () => {
         this.saving.set(false);
         this.closeEditor();
+        this.flash(`Compte de ${displayName} créé.`);
         this.load();
       },
       error: (error: HttpErrorResponse) => {
@@ -182,20 +198,42 @@ export class AdminUsersComponent {
   }
 
   requestReset(user: UserProfile): void {
-    if (!confirm(`Envoyer un nouveau lien de mot de passe à ${user.displayName} ?`)) {
+    this.resetTarget.set(user);
+    this.resetPassword.set('');
+    this.resetError.set(null);
+    this.resetOpen.set(true);
+  }
+
+  closeReset(): void {
+    this.resetOpen.set(false);
+    this.resetTarget.set(null);
+  }
+
+  confirmReset(): void {
+    const user = this.resetTarget();
+    if (!user) {
       return;
     }
 
-    this.busyId.set(user.id);
-    this.error.set(null);
-    this.admin.resetPassword(user.id).subscribe({
+    const password = this.resetPassword();
+    const passwordProblem = this.passwordError(password);
+    if (passwordProblem) {
+      this.resetError.set(passwordProblem);
+      return;
+    }
+
+    this.resetSaving.set(true);
+    this.resetError.set(null);
+
+    this.admin.resetPassword(user.id, password).subscribe({
       next: () => {
-        this.busyId.set(null);
-        this.flash(`Lien de réinitialisation envoyé à ${user.email}.`);
+        this.resetSaving.set(false);
+        this.closeReset();
+        this.flash(`Mot de passe de ${user.displayName} mis à jour.`);
       },
       error: (error: HttpErrorResponse) => {
-        this.busyId.set(null);
-        this.error.set(this.readErrorMessage(error));
+        this.resetSaving.set(false);
+        this.resetError.set(this.readErrorMessage(error));
       },
     });
   }
@@ -247,6 +285,22 @@ export class AdminUsersComponent {
         this.loading.set(false);
       },
     });
+  }
+
+  private passwordError(password: string): string | null {
+    if (password.length < 8) {
+      return 'Le mot de passe doit contenir au moins 8 caractères.';
+    }
+
+    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password)) {
+      return 'Le mot de passe doit contenir une minuscule et une majuscule.';
+    }
+
+    if (!/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+      return 'Le mot de passe doit contenir un chiffre et un caractère spécial.';
+    }
+
+    return null;
   }
 
   private readErrorMessage(error: HttpErrorResponse): string {

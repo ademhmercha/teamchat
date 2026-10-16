@@ -1523,3 +1523,51 @@ Date : 2026-10-16
   jeton, renommage societe et console plateforme a valider visuellement par l'utilisateur.
 - Les redirections d'anciennes URL utilisent des chemins fonctionnels (`conversations/:id`) - a re-verifier apres deploiement.
 - Le compte `admin@teamchat.local` de production n'a toujours pas de role SuperAdmin (la console `/app/platform` exige `SuperAdmin`).
+
+## Multi-societes - Ajustement : creation de compte par l'admin avec mot de passe (sans email)
+
+Date : 2026-10-16
+
+### Contexte
+L'admin creait un compte actif puis un lien d'invitation etait « envoye » par `DevEmailSender`
+(no-op qui journalise seulement dans la console backend, sans vrai email), et le lien pointait vers
+l'hote de l'API. Resultat : message « invite » mais aucun email recu. Demande utilisateur : l'admin
+definit lui-meme le mot de passe (aucun envoi d'email) ; l'utilisateur se connecte avec ces identifiants
+et peut modifier ses donnees/mot de passe ensuite via `/account`.
+
+### Decisions (validees par l'utilisateur)
+- Portee : creation **et** reinitialisation admin definissent directement le mot de passe (plus aucun email).
+- Politique de mot de passe : identique a l'inscription (8+, minuscule, majuscule, chiffre, caractere special).
+
+### Backend
+- `CreateUserRequest` : ajout de `string Password` ; `CreateUserRequestValidator` valide la politique.
+- Nouveau `ResetUserPasswordRequest(string Password)` + `ResetUserPasswordRequestValidator`.
+- `AdminUserService.CreateAsync(CreateUserRequest)` : l'utilisateur est cree actif (`EmailConfirmed = true`)
+  via `IIdentityService.CreateAsync(user, password)` ; suppression de la generation de token + envoi d'email.
+- `IAdminUserService.ResetPasswordAsync(Guid, ResetUserPasswordRequest)` : genere un token de reset et
+  definit le mot de passe via `IIdentityService.ResetPasswordAsync` (aucun email).
+- `IEmailSender` retire du constructeur de `AdminUserService` (plus aucun usage).
+- `AdminUsersController` : `POST /api/admin/users` (plus de `inviteBaseUrl`) et
+  `POST /api/admin/users/{id}/reset-password` accepte desormais un corps `{ password }`.
+
+### Frontend
+- `admin.models.ts` : `CreateUserRequest` etendu (`password`), nouveau `ResetUserPasswordRequest`.
+- `AdminUsersService.resetPassword(id, password)` envoie le mot de passe.
+- Ecran `admin-users` : champ « Mot de passe » dans la modale de creation (libelle « Creer le compte »,
+  texte d'aide mis a jour), et nouvelle modale « Reinitialiser le mot de passe » avec saisie directe
+  (remplace l'ancien `confirm` + email). Validation mot de passe cote client alignee sur la politique.
+
+### Validation
+| Type | Resultat |
+|---|---|
+| Build backend | OK (0 erreur / 0 avertissement) |
+| Build frontend prod | OK (0 erreur / 0 avertissement) |
+| Tests unitaires | OK (12/12) |
+| Tests integration | OK (108/108 ; `Reset_password_existing_user_sets_new_password` verifie la connexion avec le nouveau mot de passe) |
+
+### Points connus / non verifies
+- Verification navigateur non effectuee (pas de navigateur automatise) : creation d'un compte avec mot de passe
+  puis connexion, et reinitialisation directe a valider visuellement par l'utilisateur.
+- Le champ mot de passe est affiche en clair (`type="text"`) pour que l'admin puisse le communiquer ; a basculer
+  en `type="password"` avec bouton d'oeil si souhaite.
+- L'auto-service « mot de passe oublie » (`/api/auth/forgot-password`) reste base sur l'email (toujours no-op sans SMTP).

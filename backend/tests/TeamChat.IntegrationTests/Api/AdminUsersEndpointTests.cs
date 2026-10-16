@@ -13,6 +13,9 @@ namespace TeamChat.IntegrationTests.Api;
 [Collection("api")]
 public sealed class AdminUsersEndpointTests
 {
+    /// <summary>Mot de passe imposé par la politique : 8+, minuscule, majuscule, chiffre, caractère spécial.</summary>
+    private const string CreateUserPassword = "Password123!";
+
     private readonly ApiCollectionFixture _fixture;
 
     public AdminUsersEndpointTests(ApiCollectionFixture fixture)
@@ -137,7 +140,7 @@ public sealed class AdminUsersEndpointTests
         {
             Content = new StringContent(
                 System.Text.Json.JsonSerializer.Serialize(
-                    new { email, displayName, role },
+                    new { email, displayName, role, password = CreateUserPassword },
                     new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)),
                 System.Text.Encoding.UTF8,
                 "application/json"),

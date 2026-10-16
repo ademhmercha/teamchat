@@ -36,8 +36,7 @@ public sealed class AdminUsersController : ControllerBase
         [FromBody] CreateUserRequest request,
         CancellationToken cancellationToken)
     {
-        var inviteBaseUrl = $"{Request.Scheme}://{Request.Host}/accept-invite";
-        var profile = await _admin.CreateAsync(request, inviteBaseUrl, cancellationToken);
+        var profile = await _admin.CreateAsync(request, cancellationToken);
         return CreatedAtAction(nameof(UsersController.Get), "Users", new { id = profile.Id }, profile);
     }
 
@@ -56,10 +55,12 @@ public sealed class AdminUsersController : ControllerBase
     }
 
     [HttpPost("{id:guid}/reset-password")]
-    public async Task<IActionResult> ResetPassword(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> ResetPassword(
+        Guid id,
+        [FromBody] ResetUserPasswordRequest request,
+        CancellationToken cancellationToken)
     {
-        var inviteBaseUrl = $"{Request.Scheme}://{Request.Host}/accept-invite";
-        await _admin.ResetPasswordAsync(id, inviteBaseUrl, cancellationToken);
+        await _admin.ResetPasswordAsync(id, request, cancellationToken);
         return NoContent();
     }
 }

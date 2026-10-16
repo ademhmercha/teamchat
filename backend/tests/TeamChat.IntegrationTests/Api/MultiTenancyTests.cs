@@ -193,7 +193,7 @@ public sealed class MultiTenancyTests
         HttpClient client, string token, string email, string displayName, string role)
         => ApiTestHelper.SendAsync(
             client, HttpMethod.Post, "/api/admin/users", token,
-            new CreateUserRequest(email, displayName, role));
+            new CreateUserRequest(email, displayName, role, MemberPassword));
 
     private async Task SetPasswordAsync(Guid userId, string password)
     {

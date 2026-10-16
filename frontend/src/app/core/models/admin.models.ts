@@ -23,6 +23,11 @@ export interface CreateUserRequest {
   email: string;
   displayName: string;
   role: string;
+  password: string;
+}
+
+export interface ResetUserPasswordRequest {
+  password: string;
 }
 
 export interface UpdateUserRequest {

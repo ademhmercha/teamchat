@@ -70,7 +70,7 @@
       <tc-empty-state
         icon="users"
         title="Aucun utilisateur"
-        message="Créez le premier compte pour inviter un collègue."
+        message="Créez le premier compte de votre société."
       />
     } @else if (filtered().length === 0) {
       <div class="state">Aucun compte ne correspond à ces filtres.</div>
@@ -194,12 +194,56 @@
     </select>
   </label>
 
-  <p class="hint">Un email d'invitation sera envoyé pour définir le mot de passe.</p>
+  <label class="field">
+    <span>Mot de passe</span>
+    <input
+      type="text"
+      autocomplete="new-password"
+      [value]="newPassword()"
+      (input)="newPassword.set($any($event.target).value)"
+      placeholder="8+ caractères, majuscule, chiffre, spécial"
+    />
+  </label>
+
+  <p class="hint">
+    Le compte sera actif immédiatement. Communiquez ces identifiants à l'utilisateur : il pourra
+    changer son mot de passe depuis son espace personnel.
+  </p>
 
   <div class="modal-actions">
     <button type="button" class="ghost" (click)="closeEditor()">Annuler</button>
     <button type="button" class="primary" [disabled]="saving()" (click)="save()">
-      {{ saving() ? 'Envoi…' : 'Créer et inviter' }}
+      {{ saving() ? 'Création…' : 'Créer le compte' }}
+    </button>
+  </div>
+</tc-modal>
+
+<tc-modal [open]="resetOpen()" title="Réinitialiser le mot de passe" (closed)="closeReset()">
+  @if (resetError(); as message) {
+    <div class="alert" role="alert">{{ message }}</div>
+  }
+
+  <p class="hint">
+    Nouveau mot de passe pour
+    <strong>{{ resetTarget()?.displayName }}</strong> ({{ resetTarget()?.email }}).
+  </p>
+
+  <label class="field">
+    <span>Nouveau mot de passe</span>
+    <input
+      type="text"
+      autocomplete="new-password"
+      [value]="resetPassword()"
+      (input)="resetPassword.set($any($event.target).value)"
+      placeholder="8+ caractères, majuscule, chiffre, spécial"
+      data-autofocus
+    />
+  </label>
+
+  <div class="modal-actions">
+    <button type="button" class="ghost" (click)="closeReset()">Annuler</button>
+    <button type="button" class="primary" [disabled]="resetSaving()" (click)="confirmReset()">
+      {{ resetSaving() ? 'Enregistrement…' : 'Définir le mot de passe' }}
     </button>
   </div>
 </tc-modal>

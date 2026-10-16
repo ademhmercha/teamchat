@@ -72,7 +72,7 @@ public sealed class CompanyEndpointTests
         var adminEmail = "admin-rename-guard@teamchat.test";
         var created = await ApiTestHelper.SendAsync(
             client, HttpMethod.Post, "/api/admin/users", owner.Token,
-            new CreateUserRequest(adminEmail, "Admin Rename", Roles.Admin));
+            new CreateUserRequest(adminEmail, "Admin Rename", Roles.Admin, MemberPassword));
         created.EnsureSuccessStatusCode();
         var adminProfile = await created.Content.ReadFromJsonAsync<UserProfileDto>();
         await SetPasswordAsync(adminProfile!.Id, MemberPassword);

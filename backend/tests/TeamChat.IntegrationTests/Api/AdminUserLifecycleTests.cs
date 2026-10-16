@@ -82,17 +82,25 @@ public sealed class AdminUserLifecycleTests
     }
 
     [Fact]
-    public async Task Reset_password_existing_user_returns_204()
+    public async Task Reset_password_existing_user_sets_new_password()
     {
         using var client = _fixture.Factory.CreateClient();
-        var (userId, _) = await ApiTestHelper.ProvisionUserAndLoginAsync(
-            _fixture, client, $"reset{Guid.NewGuid():N}@teamchat.test");
+        var email = $"reset{Guid.NewGuid():N}@teamchat.test";
+        var (userId, _) = await ApiTestHelper.ProvisionUserAndLoginAsync(_fixture, client, email);
         var adminToken = await AdminTokenAsync(client);
 
+        const string newPassword = "Nouveau123!";
         var reset = await ApiTestHelper.SendAsync(
-            client, HttpMethod.Post, $"/api/admin/users/{userId}/reset-password", adminToken);
+            client,
+            HttpMethod.Post,
+            $"/api/admin/users/{userId}/reset-password",
+            adminToken,
+            new { password = newPassword });
 
         Assert.Equal(HttpStatusCode.NoContent, reset.StatusCode);
+
+        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, newPassword));
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
     }
 
     [Fact]
@@ -102,7 +110,11 @@ public sealed class AdminUserLifecycleTests
         var adminToken = await AdminTokenAsync(client);
 
         var reset = await ApiTestHelper.SendAsync(
-            client, HttpMethod.Post, $"/api/admin/users/{Guid.NewGuid()}/reset-password", adminToken);
+            client,
+            HttpMethod.Post,
+            $"/api/admin/users/{Guid.NewGuid()}/reset-password",
+            adminToken,
+            new { password = "Nouveau123!" });
 
         Assert.Equal(HttpStatusCode.NotFound, reset.StatusCode);
     }
@@ -115,7 +127,11 @@ public sealed class AdminUserLifecycleTests
             _fixture, client, $"novice{Guid.NewGuid():N}@teamchat.test");
 
         var reset = await ApiTestHelper.SendAsync(
-            client, HttpMethod.Post, $"/api/admin/users/{userId}/reset-password", userToken);
+            client,
+            HttpMethod.Post,
+            $"/api/admin/users/{userId}/reset-password",
+            userToken,
+            new { password = "Nouveau123!" });
 
         Assert.Equal(HttpStatusCode.Forbidden, reset.StatusCode);
     }

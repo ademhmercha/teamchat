@@ -176,8 +176,9 @@ Toutes les routes sont préfixées `/api` et exigent un JWT, sauf `auth/*`.
 |---|---|---|
 | GET | `/users?search=&page=&pageSize=` | Annuaire (utilisateurs actifs, avec statut de présence) |
 | GET | `/users/{id}` | Profil |
-| POST | `/admin/users` | **Admin** : crée un utilisateur / envoie une invitation |
+| POST | `/admin/users` | **Admin** : crée un utilisateur avec mot de passe (aucun email) |
 | PATCH | `/admin/users/{id}` | **Admin** : rôle, activation, nom |
+| POST | `/admin/users/{id}/reset-password` | **Admin** : définit un nouveau mot de passe (corps `{ password }`) |
 
 ### Conversations et messages
 | Méthode | Route | Description |
@@ -322,7 +323,7 @@ Chaque sprint a une **définition de terminé**. Ne passe au suivant qu'après m
 - [ ] Identity + JWT + refresh token avec rotation
 - [ ] Endpoints `auth/*` (login, refresh, logout, me)
 - [ ] Connexion Google (`/auth/google`)
-- [ ] Création d'utilisateur par l'admin + invitation (lien avec token ; l'envoi d'email peut être un `IEmailSender` factice qui journalise le lien en dev)
+- [ ] Création d'utilisateur par l'admin avec mot de passe saisi directement (aucun email) ; l'utilisateur peut ensuite changer son mot de passe via son profil
 - [ ] `GET /users` avec recherche et pagination, liste des utilisateurs actifs **mise en cache (60 s)** et invalidée à chaque modification d'utilisateur
 - [ ] Profil minimal de l'utilisateur (rôle, `IsActive`) en cache 1 min, vérifié à chaque requête authentifiée ; invalidé à la désactivation
 - [ ] Rate limiting sur le login

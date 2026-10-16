@@ -131,7 +131,6 @@ public sealed class AdminUserServiceTests
             new FakeMembershipService(),
             sessions,
             new FakeCacheService(),
-            new FakeEmailSender(),
             new FakeCurrentUser(Roles.Owner),
             new FakeCurrentTenant());
         return identity;
@@ -285,16 +284,5 @@ public sealed class AdminUserServiceTests
 
         public ValueTask RemoveByTagAsync(string tag, CancellationToken cancellationToken = default)
             => ValueTask.CompletedTask;
-    }
-
-    private sealed class FakeEmailSender : IEmailSender
-    {
-        public List<(string To, string Subject)> Sent { get; } = new();
-
-        public Task SendAsync(string to, string subject, string body, CancellationToken cancellationToken = default)
-        {
-            Sent.Add((to, subject));
-            return Task.CompletedTask;
-        }
     }
 }

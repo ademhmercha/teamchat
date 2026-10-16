@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { CreateUserRequest, UpdateUserRequest } from '../models/admin.models';
+import { CreateUserRequest, ResetUserPasswordRequest, UpdateUserRequest } from '../models/admin.models';
 import { PagedResult, UserProfile } from '../models/user.models';
 
 @Injectable({ providedIn: 'root' })
@@ -31,7 +31,8 @@ export class AdminUsersService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
-  resetPassword(id: string): Observable<void> {
-    return this.http.post<void>(`${this.baseUrl}/${id}/reset-password`, {});
+  resetPassword(id: string, password: string): Observable<void> {
+    const body: ResetUserPasswordRequest = { password };
+    return this.http.post<void>(`${this.baseUrl}/${id}/reset-password`, body);
   }
 }
