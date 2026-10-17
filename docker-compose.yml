@@ -46,6 +46,12 @@ services:
       Admin__SeedPassword: ${Admin__SeedPassword:-}
       Storage__Provider: ${Storage__Provider:-Local}
       Storage__LocalPath: /app/uploads
+      # TURN : meme secret que le service `coturn` (profil `turn`). `TURN_URLS` est l'URL
+      # joignable par le NAVIGATEUR (localhost en dev, IP/domaine public en prod), pas le
+      # nom de service Docker.
+      Turn__StunUrls: ${Turn__StunUrls:-stun:stun.l.google.com:19302}
+      Turn__Urls: ${TURN_URLS:-turn:localhost:3478}
+      Turn__Secret: ${TURN_SECRET:-teamchat_turn_dev_only}
     ports:
       - "${API_PORT:-8080}:8080"
     volumes:

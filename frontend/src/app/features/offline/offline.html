@@ -1,0 +1,17 @@
+<div class="offline">
+  <div class="offline-card">
+    <span class="offline-icon"><app-icon name="wifi-off" [size]="34" /></span>
+    <h1>Vous etes hors ligne</h1>
+    <p>
+      TeamChat a besoin d'une connexion reseau pour synchroniser vos messages.
+      Verifiez votre connexion Wi-Fi ou mobile : la page se rechargera automatiquement
+      des que le reseau revient.
+    </p>
+
+    <tc-button variant="primary" icon="refresh" (clicked)="retry()">
+      Reessayer
+    </tc-button>
+
+    <p class="hint">Astuce : installez TeamChat pour un acces plus rapide depuis votre ecran d'accueil.</p>
+  </div>
+</div>

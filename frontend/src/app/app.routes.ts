@@ -1,7 +1,12 @@
 import { Routes } from '@angular/router';
 import { adminGuard, authGuard, guestGuard, superAdminGuard } from './core/auth/auth.guard';
+import { offlineGuard } from './core/pwa/offline.guard';
 
 export const routes: Routes = [
+  {
+    path: 'offline',
+    loadComponent: () => import('./features/offline/offline').then((m) => m.OfflineComponent),
+  },
   {
     path: '',
     canActivate: [guestGuard],
@@ -9,33 +14,33 @@ export const routes: Routes = [
   },
   {
     path: 'register',
-    canActivate: [guestGuard],
+    canActivate: [offlineGuard, guestGuard],
     loadComponent: () => import('./features/register/register').then((m) => m.RegisterComponent),
   },
   {
     path: 'login',
-    canActivate: [guestGuard],
+    canActivate: [offlineGuard, guestGuard],
     loadComponent: () => import('./features/login/login').then((m) => m.LoginComponent),
   },
   {
     path: 'forgot-password',
-    canActivate: [guestGuard],
+    canActivate: [offlineGuard, guestGuard],
     loadComponent: () =>
       import('./features/auth/forgot-password').then((m) => m.ForgotPasswordComponent),
   },
   {
     path: 'reset-password',
-    canActivate: [guestGuard],
+    canActivate: [offlineGuard, guestGuard],
     loadComponent: () => import('./features/auth/set-password').then((m) => m.SetPasswordComponent),
   },
   {
     path: 'accept-invite',
-    canActivate: [guestGuard],
+    canActivate: [offlineGuard, guestGuard],
     loadComponent: () => import('./features/auth/set-password').then((m) => m.SetPasswordComponent),
   },
   {
     path: 'app',
-    canActivate: [authGuard],
+    canActivate: [offlineGuard, authGuard],
     loadComponent: () => import('./layout/shell/shell').then((m) => m.ShellComponent),
     children: [
       { path: '', redirectTo: 'directory', pathMatch: 'full' },

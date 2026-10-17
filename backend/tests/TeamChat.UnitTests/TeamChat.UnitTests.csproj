@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\TeamChat.Domain\TeamChat.Domain.csproj" />
     <ProjectReference Include="..\..\src\TeamChat.Application\TeamChat.Application.csproj" />
+    <ProjectReference Include="..\..\src\TeamChat.Infrastructure\TeamChat.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

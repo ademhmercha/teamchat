@@ -86,6 +86,19 @@
   </aside>
 
   <div class="main">
+    @if (!online()) {
+      <div class="app-banner offline" role="status">
+        <app-icon name="wifi-off" [size]="16" />
+        <span>Vous êtes hors ligne. Vérifiez votre connexion : certaines actions peuvent échouer.</span>
+      </div>
+    }
+    @if (updateAvailable()) {
+      <div class="app-banner update" role="status">
+        <app-icon name="refresh" [size]="16" />
+        <span>Une nouvelle version est disponible.</span>
+        <button type="button" class="banner-action" (click)="reloadForUpdate()">Recharger</button>
+      </div>
+    }
     <header class="topbar">
       <div class="topbar-left">
         <button
@@ -115,6 +128,17 @@
       </div>
 
       <div class="topbar-actions">
+        @if (canInstall()) {
+          <button
+            type="button"
+            class="topbar-icon"
+            tcTooltip="Installer l'application"
+            aria-label="Installer l'application"
+            (click)="installApp()"
+          >
+            <app-icon name="download" [size]="19" />
+          </button>
+        }
         <div #notificationsPanel class="notifications">
           <button
             type="button"

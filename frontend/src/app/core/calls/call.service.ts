@@ -136,7 +136,7 @@ export class CallService {
       const session = await this.chat.callUser(calleeId, type);
       this.session.set(session);
     } catch (error) {
-      this.fail(this.messageFrom(error));
+      this.fail(this.mediaErrorMessage(error, type === CallType.Video ? 'camera' : 'microphone'));
     }
   }
 
@@ -158,7 +158,7 @@ export class CallService {
       this.addLocalTracks();
       this.incoming.set(null);
     } catch (error) {
-      this.fail(this.messageFrom(error));
+      this.fail(this.mediaErrorMessage(error, call.type === CallType.Video ? 'camera' : 'microphone'));
     }
   }
 
@@ -204,7 +204,7 @@ export class CallService {
     }
 
     try {
-      const media = await navigator.mediaDevices.getUserMedia({ video: true });
+      const media = await navigator.mediaDevices.getUserMedia({ video: this.videoConstraints() });
       const track = media.getVideoTracks()[0] ?? null;
       if (!track) {
         return;
@@ -213,8 +213,8 @@ export class CallService {
       this.cameraTrack = track;
       await this.applyVideoTrack(track);
       this.cameraOn.set(true);
-    } catch {
-      this.error.set('Camera indisponible ou acces refuse.');
+    } catch (error) {
+      this.error.set(this.mediaErrorMessage(error, 'camera'));
     }
   }
 
@@ -464,15 +464,64 @@ export class CallService {
   }
 
   private async prepareLocalMedia(type: number): Promise<void> {
-    if (this.localStream || !navigator.mediaDevices?.getUserMedia) {
+    if (this.localStream) {
       return;
     }
 
-    const constraints: MediaStreamConstraints = { audio: true, video: type === CallType.Video };
-    this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error('Ce navigateur ne prend pas en charge les appels.');
+    }
+
+    const wantsVideo = type === CallType.Video;
+
+    try {
+      this.localStream = await navigator.mediaDevices.getUserMedia(this.mediaConstraints(wantsVideo));
+    } catch (error) {
+      if (!wantsVideo) {
+        throw error;
+      }
+
+      // La camera est indisponible/refusee : on poursuit en audio seul plutot que d'echouer.
+      this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.error.set('Camera indisponible : appel demarre en audio seul.');
+    }
+
     this.cameraTrack = this.localStream.getVideoTracks()[0] ?? null;
-    this.cameraOn.set(type === CallType.Video);
+    this.cameraOn.set(wantsVideo && !!this.cameraTrack);
     this.localStreamSignal.set(new MediaStream(this.localStream.getTracks()));
+  }
+
+  /** Contraintes de capture : camera avant explicite (facingMode "user"). */
+  private mediaConstraints(video: boolean): MediaStreamConstraints {
+    return {
+      audio: true,
+      video: video ? this.videoConstraints() : false,
+    };
+  }
+
+  private videoConstraints(): MediaTrackConstraints {
+    return { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } };
+  }
+
+  /** Traduit les erreurs getUserMedia (DOMException) en messages clairs pour l'utilisateur. */
+  private mediaErrorMessage(error: unknown, kind: 'microphone' | 'camera'): string {
+    if (error instanceof DOMException) {
+      switch (error.name) {
+        case 'NotAllowedError':
+        case 'SecurityError':
+          return `Acces ${kind === 'microphone' ? 'au micro' : 'a la camera'} refuse. Autorisez-le dans les reglages du navigateur.`;
+        case 'NotFoundError':
+        case 'DevicesNotFoundError':
+          return kind === 'microphone' ? 'Aucun microphone detecte.' : 'Aucune camera detectee.';
+        case 'NotReadableError':
+        case 'TrackStartError':
+          return 'Le peripherique est deja utilise par une autre application.';
+        case 'OverconstrainedError':
+          return 'Le peripherique ne correspond pas aux parametres demandes.';
+      }
+    }
+
+    return this.messageFrom(error);
   }
 
   private async ensurePeer(): Promise<RTCPeerConnection> {
@@ -507,8 +556,58 @@ export class CallService {
       }
     };
 
+    // Sans serveur ICE joignable l'appel ne s'etablit pas : on remonte l'etat a l'utilisateur.
+    peer.oniceconnectionstatechange = () => this.handleIceConnectionState(peer.iceConnectionState);
+    peer.onconnectionstatechange = () => this.handleConnectionState(peer.connectionState);
+
     this.peer = peer;
     return peer;
+  }
+
+  private handleIceConnectionState(state: RTCIceConnectionState): void {
+    if (state === 'failed') {
+      this.onTransportFailure();
+    }
+  }
+
+  private handleConnectionState(state: RTCPeerConnectionState): void {
+    switch (state) {
+      case 'connecting':
+        if (this.phase() === 'active') {
+          this.statusText.set('Connexion…');
+        }
+        break;
+      case 'connected':
+        if (this.phase() === 'active') {
+          this.statusText.set('En communication');
+        }
+        break;
+      case 'disconnected':
+        if (this.phase() === 'active') {
+          this.statusText.set('Connexion instable…');
+        }
+        break;
+      case 'failed':
+        this.onTransportFailure();
+        break;
+    }
+  }
+
+  /** La connexion media n'a pas pu s'etablir (ou est tombee) : on termine proprement l'appel. */
+  private onTransportFailure(): void {
+    if (this.phase() === 'idle' || this.phase() === 'ended') {
+      return;
+    }
+
+    this.error.set(
+      'La connexion a echoue. Verifiez votre reseau ; un serveur TURN est parfois necessaire derriere un NAT strict.',
+    );
+
+    const session = this.session();
+    if (session?.callId) {
+      void this.chat.endCall(session.callId).catch(() => undefined);
+    }
+    this.finish('Appel termine');
   }
 
   private addLocalTracks(): void {

@@ -77,6 +77,38 @@ L'espace `/admin` (role `Admin`) propose :
 La desactivation d'un compte revoque les tokens, invalide les caches (profil, annuaire, appartenances)
 et ferme les sessions temps reel (SignalR) via un evenement `ForceLogout`.
 
+## Appels WebRTC (STUN / TURN)
+
+Les appels audio/video utilisent WebRTC. La signalisation passe par SignalR ; l'API fournit
+la liste des serveurs ICE via `GET /api/calls/ice-servers`.
+
+- **STUN** (par defaut) : suffit sur la plupart des reseaux. Le navigateur decouvre son
+  adresse publique via `Turn__StunUrls` (defaut `stun:stun.l.google.com:19302`).
+- **TURN** (recommande en production) : necessaire derriere un NAT symetrique (reseau mobile,
+  entreprise stricte). L'API ne renvoie TURN que si `Turn__Urls` **et** `Turn__Secret` sont
+  definis, avec des identifiants **temporaires** generes par requete (HMAC-SHA1, mecanisme
+  "TURN REST API" de coturn) — aucun secret statique n'est expose au client.
+
+Lancer un serveur TURN local avec le profil Compose `turn` :
+
+```bash
+# TURN_URLS = URL joignable par le navigateur ; TURN_SECRET doit valoir Turn__Secret.
+TURN_URLS=turn:localhost:3478 TURN_SECRET=un-secret-long \
+  docker compose --profile turn up -d
+```
+
+Variables associees (voir [`.env.example`](./.env.example)) :
+
+| Variable | Role |
+|---|---|
+| `Turn__StunUrls` | URLs STUN (separees par des virgules) |
+| `Turn__Urls` | URLs TURN distribuees au navigateur (vide = pas de TURN) |
+| `Turn__Secret` | Secret partage avec coturn (`--static-auth-secret`) |
+| `TURN_SECRET` / `TURN_REALM` / `TURN_PORT` / `TURN_URLS` | Reglages du service `coturn` du compose |
+
+En production, herberger coturn sur un **VPS** (les hebergeurs web classiques ne gerent pas
+l'UDP) et exposer les ports 3478 (UDP/TCP) + la plage de relais UDP (49160-49200 par defaut).
+
 ## Deploiement (fichiers prepares)
 
 Aucun deploiement automatique n'est effectue par le depot ; les fichiers suivants servent de base.

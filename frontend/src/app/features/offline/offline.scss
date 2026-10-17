@@ -1,0 +1,59 @@
+.offline {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--tc-bg);
+  color: var(--tc-text);
+}
+
+.offline-card {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2.25rem 1.75rem;
+  text-align: center;
+  background: var(--tc-surface);
+  border: 1px solid var(--tc-border);
+  border-radius: var(--tc-radius-lg);
+  box-shadow: var(--tc-shadow);
+
+  h1 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--tc-text-soft);
+  }
+
+  tc-button {
+    margin-top: 0.5rem;
+    width: 100%;
+  }
+}
+
+.offline-icon {
+  width: 68px;
+  height: 68px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--tc-radius-pill);
+  background: var(--tc-primary-soft);
+  color: var(--tc-primary);
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: var(--tc-text-muted);
+}

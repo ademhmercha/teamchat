@@ -1651,3 +1651,79 @@ Date : 2026-10-16
   renvoie STUN par defaut (`/api/calls/ice-servers`). Un TURN sera necessaire pour une fiabilite totale en mobilite.
 - Le plein ecran d'un `<div>` n'est pas supporte par iOS Safari : repli sur le plein ecran natif de l'element `<video>`
   (controles d'appel alors masques, comportement impose par le navigateur).
+
+## Périmètre « le nécessaire » : caméra avant, TURN réel, PWA, page hors-ligne
+
+Date : 2026-10-17
+
+### Périmètre validé (4 chantiers)
+- [x] 1. Caméra avant explicite + robustesse d'appel
+- [x] 2. Support / configuration TURN réel
+- [x] 3. UX PWA complète (installation, mise à jour, raccourcis)
+- [x] 4. Page hors-ligne / repli
+
+### 1. Caméra avant + robustesse (`frontend/src/app/core/calls/call.service.ts`)
+- Contraintes de capture centralisées : `mediaConstraints(video)` / `videoConstraints()`
+  (`facingMode: 'user'` explicite + `1280x720` ideal) : la **caméra avant** est demandée nommément.
+- `prepareLocalMedia` : si `getUserMedia` indisponible -> erreur claire ; **repli audio seul** si la
+  caméra est refusée/indisponible en appel vidéo (au lieu d'échouer), avec avertissement affiché.
+- `mediaErrorMessage(error, 'microphone' | 'camera')` : traduction des `DOMException`
+  (`NotAllowedError`/`SecurityError`, `NotFoundError`, `NotReadableError`, `OverconstrainedError`).
+- Robustesse transport : `oniceconnectionstatechange` / `onconnectionstatechange` ->
+  `handleIceConnectionState` / `handleConnectionState` (statut « Connexion… / En communication /
+  Connexion instable… ») et `onTransportFailure()` (message réseau/TURN + fin propre de l'appel).
+- `startCall` **et** `acceptIncoming` routent désormais leurs échecs média via `mediaErrorMessage`.
+
+### 2. TURN réel
+- `docker-compose.yml` : le service `api` reçoit `Turn__StunUrls`, `Turn__Urls`, `Turn__Secret`,
+  `Turn__Realm`, `Turn__CredentialTtlSeconds` ; service `coturn` (profil `turn`) existant conservé.
+- `.env.example` : section TURN complétée (`TURN_URLS`, `TURN_REALM`, `TURN_PORT`, `TURN_SECRET`).
+- `README.md` : nouvelle section « Appels WebRTC (STUN / TURN) » (activation, variables, depannage).
+- Tests : `backend/tests/TeamChat.UnitTests/Calls/TurnIceServerProviderTests.cs` (4 tests : STUN seul,
+  TURN avec HMAC-SHA1 TURN REST API, TTL/expiration, entrées invalides) + référence Infrastructure
+  ajoutée au csproj de tests. `TurnIceServerProvider`/`TurnOptions` inchangés (déjà implémentés).
+
+### 3. UX PWA complète
+- Déjà en place (session précédente) : dépendance `@angular/service-worker`, `provideServiceWorker`
+  (`app.config.ts`), `ngsw-config.json`, `manifest.webmanifest`, icônes `public/icons/`, balises
+  PWA dans `index.html`.
+- Ajouté : `core/pwa/pwa.service.ts` (`beforeinstallprompt` -> invite d'installation ;
+  `SwUpdate.versionUpdates` -> « nouvelle version disponible » + rechargement).
+- `manifest.webmanifest` : `shortcuts` (« Conversations », « Annuaire »).
+- `ngsw-config.json` : `navigationRequestStrategy: "performance"` (coquille servie instantanément hors ligne).
+- `layout/shell` : bouton d'installation (icône `download`) dans la barre du haut quand disponible,
+  bandeau « nouvelle version » avec bouton « Recharger ».
+
+### 4. Page hors-ligne / repli
+- `core/pwa/connectivity.service.ts` : signal `online` (`navigator.onLine` + événements `online`/`offline`), `markOffline()`.
+- `core/pwa/offline.guard.ts` + routes : `offlineGuard` en tête des gardes de `/app/*` et des routes de
+  connexion/inscription (court-circuite les appels réseau `authGuard` quand hors ligne).
+- `features/offline/offline.{ts,html,scss}` : page de repli (icône `wifi-off`, bouton « Réessayer »),
+  **retour automatique** vers `/app` au rétablissement du réseau ; route publique `/offline` non gardée.
+- `layout/shell` : bandeau hors-ligne (`role="status"`) affiché pendant les coupures transitoires.
+- `core/auth/auth.interceptor.ts` : gestion `status === 0` (erreur réseau) -> `markOffline()` +
+  redirection vers `/offline` si l'on est dans `/app`.
+- Nouvelles icônes `wifi-off` et `refresh` (`shared/icon/icon.ts`).
+
+### Validation (réelle, exécutée)
+| Type | Commande | Résultat |
+|---|---|---|
+| Tests backend (unitaires) | `dotnet test backend/tests/TeamChat.UnitTests/TeamChat.UnitTests.csproj --nologo` | OK, **16/16** (dont 4 TURN) |
+| Build frontend prod | `npm run build -- --configuration production` (dans `frontend/`) | OK, **0 erreur**, chunk `offline` + `ngsw.json` générés |
+
+### Points connus / non vérifiés
+- **Vérification navigateur non effectuée** (pas de navigateur automatisé) : invite d'installation,
+  mise à jour du service worker, redirection hors-ligne, sélection de la **caméra avant** et repli
+  audio à valider manuellement par l'utilisateur.
+- TURN **non testé de bout en bout** contre un vrai `coturn` (configuration et tests unitaires seuls).
+- Tests frontend (`ng test`) **non exécutés** sur ce périmètre ; seul le build (typecheck + templates) a été lancé.
+- Le repli audio d'un appel vidéo réutilise la bannière d'erreur (message d'avertissement), pas un style dédié.
+
+### Décisions
+| # | Décision | Raison |
+|---|---|---|
+| N1 | Demander explicitement `facingMode: 'user'` | Garantir la caméra avant (mobile multi-capteurs). |
+| N2 | En vidéo, repli **audio seul** si la caméra échoue | Permettre l'appel plutôt que d'échouer totalement. |
+| N3 | `offlineGuard` posé sur les routes **racines** uniquement | Ne pas interrompre la navigation interne (garde parent non réexécutée) ; le bandeau couvre les coupures transitoires. |
+| N4 | Invitation d'installation et mise à jour via `beforeinstallprompt` + `SwUpdate` (sans lib externe) | Natif navigateur, aucune dépendance supplémentaire. |
+| N5 | `navigationRequestStrategy: "performance"` | Affichage immédiat de la coquille en mode hors-ligne. |

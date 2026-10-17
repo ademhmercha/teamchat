@@ -5,6 +5,8 @@ import { filter } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ChatService } from '../../core/chat/chat.service';
 import { NotificationsService } from '../../core/api/notifications.service';
+import { ConnectivityService } from '../../core/pwa/connectivity.service';
+import { PwaService } from '../../core/pwa/pwa.service';
 import { NotificationDto } from '../../core/models/notification.models';
 import { listTime } from '../../core/utils/display';
 import { IconComponent } from '../../shared/icon/icon';
@@ -33,10 +35,15 @@ export class ShellComponent {
   private readonly router = inject(Router);
   private readonly chat = inject(ChatService);
   private readonly notificationsApi = inject(NotificationsService);
+  private readonly connectivity = inject(ConnectivityService);
+  private readonly pwa = inject(PwaService);
 
   readonly user = this.auth.user;
   readonly isAdmin = this.auth.isAdmin;
   readonly isSuperAdmin = this.auth.isSuperAdmin;
+  readonly online = this.connectivity.online;
+  readonly canInstall = this.pwa.canInstall;
+  readonly updateAvailable = this.pwa.updateAvailable;
   readonly searchTerm = signal('');
   readonly shortcutHint = /Mac|iPhone|iPad/i.test(navigator.platform) ? '⌘K' : 'Ctrl K';
 
@@ -139,6 +146,14 @@ export class ShellComponent {
 
   closeMobileNav(): void {
     this.mobileNavOpen.set(false);
+  }
+
+  installApp(): void {
+    void this.pwa.install();
+  }
+
+  reloadForUpdate(): void {
+    this.pwa.reloadForUpdate();
   }
 
   private readRail(): boolean {

@@ -180,6 +180,49 @@
   min-height: 0;
 }
 
+.app-banner {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-bottom: 1px solid var(--tc-border);
+
+  &.offline {
+    background: var(--tc-warning-soft, #fef3c7);
+    color: var(--tc-warning, #b45309);
+  }
+
+  &.update {
+    background: var(--tc-primary-soft);
+    color: var(--tc-primary-strong);
+  }
+
+  span {
+    min-width: 0;
+  }
+}
+
+.banner-action {
+  margin-left: auto;
+  flex-shrink: 0;
+  border: 1px solid currentColor;
+  border-radius: var(--tc-radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  transition: background var(--tc-fast);
+
+  &:hover {
+    background: rgb(37 99 235 / 10%);
+  }
+}
+
 .topbar {
   height: 64px;
   flex-shrink: 0;

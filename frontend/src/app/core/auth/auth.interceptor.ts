@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { ConnectivityService } from '../pwa/connectivity.service';
 import { AuthService } from './auth.service';
 
 const AUTH_ENDPOINTS = ['/auth/login', '/auth/google', '/auth/refresh', '/auth/logout'];
@@ -10,6 +11,7 @@ const AUTH_ENDPOINTS = ['/auth/login', '/auth/google', '/auth/refresh', '/auth/l
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
+  const connectivity = inject(ConnectivityService);
 
   const isApi = request.url.startsWith(environment.apiBaseUrl);
   const isAuthEndpoint = AUTH_ENDPOINTS.some((path) => request.url.includes(path));
@@ -25,6 +27,14 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
 
   return next(outgoing).pipe(
     catchError((error: HttpErrorResponse) => {
+      if (error.status === 0) {
+        connectivity.markOffline();
+        if (router.url.startsWith('/app')) {
+          void router.navigateByUrl('/offline');
+        }
+        return throwError(() => error);
+      }
+
       if (error.status !== 401 || !isApi || isAuthEndpoint) {
         return throwError(() => error);
       }
