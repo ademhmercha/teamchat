@@ -1,35 +1,220 @@
 <div class="landing">
-  <div class="landing-inner">
-    <section class="hero">
-      <span class="brand-mark"><app-icon name="conversations" [size]="26" /></span>
-      <h1>TeamChat</h1>
-      <p class="tagline">
-        La messagerie d'equipe de votre societe : conversations, groupes, fichiers, appels —
-        dans un espace totalement isole.
-      </p>
+  <header class="topnav">
+    <button type="button" class="brand" (click)="go('/')">
+      <span class="brand-mark"><app-icon name="conversations" [size]="20" /></span>
+      <span class="brand-name">TeamChat</span>
+    </button>
 
-      <ul class="features">
-        <li><app-icon name="conversations" [size]="18" /> Messages et groupes en temps reel</li>
-        <li><app-icon name="video" [size]="18" /> Appels audio, video et partage d'ecran</li>
-        <li><app-icon name="file" [size]="18" /> Fichiers, images et messages vocaux</li>
-        <li><app-icon name="users" [size]="18" /> Annuaire et annonce de presence</li>
-      </ul>
-    </section>
+    <nav class="nav-links" aria-label="Navigation principale">
+      <button type="button" (click)="scrollTo('features')">Fonctionnalités</button>
+      <button type="button" (click)="scrollTo('security')">Sécurité</button>
+      <button type="button" (click)="scrollTo('how')">Comment ça marche</button>
+    </nav>
 
-    <section class="cta-card">
-      <h2>Bienvenue</h2>
-      <p>Votre societe utilise deja TeamChat ? Connectez-vous. Sinon, creez votre espace.</p>
-
-      <tc-button variant="primary" [block]="true" icon="plus" (clicked)="go('/register')">
+    <div class="nav-actions">
+      <tc-button variant="ghost" size="sm" (clicked)="go('/login')">Se connecter</tc-button>
+      <tc-button variant="primary" size="sm" icon="plus" (clicked)="go('/register')">
         Créer ma société
       </tc-button>
-      <tc-button variant="secondary" [block]="true" (clicked)="go('/login')">
-        Se connecter
-      </tc-button>
+    </div>
+  </header>
 
-      <p class="hint">
-        L'Owner cree la societe et invite ensuite ses collaborateurs.
-      </p>
+  <main>
+    <section class="hero container">
+      <div class="hero-copy">
+        <span class="eyebrow">
+          <app-icon name="shield" [size]="15" />
+          Espace de travail isolé pour votre société
+        </span>
+
+        <h1>
+          La messagerie et les appels de
+          <span class="accent">votre entreprise</span>, réunis.
+        </h1>
+
+        <p class="lead">
+          TeamChat centralise conversations, groupes, partage de fichiers et appels audio/vidéo
+          dans un espace 100 % dédié à votre société. Prêt en quelques minutes, accessible depuis
+          le navigateur comme sur téléphone.
+        </p>
+
+        <div class="hero-cta">
+          <tc-button variant="primary" icon="plus" (clicked)="go('/register')">
+            Créer ma société
+          </tc-button>
+          <tc-button variant="secondary" (clicked)="go('/login')">Se connecter</tc-button>
+        </div>
+
+        <ul class="hero-points">
+          <li><app-icon name="check" [size]="16" /> Aucune installation</li>
+          <li><app-icon name="check" [size]="16" /> Isolation par société</li>
+          <li><app-icon name="check" [size]="16" /> Web & mobile</li>
+        </ul>
+      </div>
+
+      <div class="hero-mock" aria-hidden="true">
+        <div class="mock-window">
+          <div class="mock-bar">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="mock-title">Équipe Produit</span>
+            <span class="mock-call"><app-icon name="video" [size]="15" /></span>
+          </div>
+
+          <div class="mock-body">
+            <div class="mock-row">
+              <span class="mock-avatar group">EP</span>
+              <div class="mock-bubble">
+                <span class="mock-name">Équipe Produit</span>
+                Point de situation à 14 h ? On valide la maquette.
+              </div>
+            </div>
+
+            <div class="mock-row me">
+              <div class="mock-bubble sent">Parfait, je partage le fichier juste après.</div>
+            </div>
+
+            <div class="mock-row">
+              <span class="mock-avatar">CM</span>
+              <div class="mock-bubble">
+                <span class="mock-file">
+                  <app-icon name="file" [size]="16" />
+                  <span class="mock-file-name">specs-v3.pdf</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="mock-typing"><span></span><span></span><span></span> Camille écrit…</div>
+          </div>
+
+          <div class="mock-input">
+            <span class="mock-input-text">Écrire un message…</span>
+            <span class="mock-input-icon"><app-icon name="paperclip" [size]="17" /></span>
+            <span class="mock-input-icon send"><app-icon name="send" [size]="16" /></span>
+          </div>
+        </div>
+
+        <div class="mock-badge">
+          <app-icon name="bolt" [size]="16" />
+          <span>Temps réel</span>
+        </div>
+      </div>
     </section>
-  </div>
+
+    <section class="highlights">
+      <div class="container highlights-grid">
+        @for (item of highlights; track item.label) {
+          <div class="highlight">
+            <span class="highlight-icon"><app-icon [name]="item.icon" [size]="20" /></span>
+            <span class="highlight-label">{{ item.label }}</span>
+            <span class="highlight-text">{{ item.text }}</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section id="features" class="section container">
+      <header class="section-head">
+        <span class="eyebrow">Fonctionnalités</span>
+        <h2>Tout ce dont votre équipe a besoin, au même endroit</h2>
+        <p>
+          Remplacez les outils dispersés par une plateforme unique, pensée pour les équipes et
+          les entreprises.
+        </p>
+      </header>
+
+      <div class="feature-grid">
+        @for (feature of features; track feature.title) {
+          <article class="feature-card">
+            <span class="feature-icon"><app-icon [name]="feature.icon" [size]="22" /></span>
+            <h3>{{ feature.title }}</h3>
+            <p>{{ feature.text }}</p>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section id="security" class="section security">
+      <div class="container security-grid">
+        <div class="security-copy">
+          <span class="eyebrow light">
+            <app-icon name="lock" [size]="15" />
+            Sécurité & cloisonnement
+          </span>
+          <h2>Les données de votre société restent chez vous</h2>
+          <p>
+            Chaque société dispose de son propre espace totalement isolé. Vos collaborateurs ne
+            voient que les utilisateurs, conversations et fichiers de votre entreprise.
+          </p>
+
+          <ul class="security-list">
+            <li>
+              <app-icon name="check" [size]="16" />
+              Espaces de travail cloisonnés entre sociétés
+            </li>
+            <li>
+              <app-icon name="check" [size]="16" />
+              Rôles Owner, Admin et Utilisateur
+            </li>
+            <li>
+              <app-icon name="check" [size]="16" />
+              Accès maîtrisé aux fichiers et pièces jointes
+            </li>
+            <li>
+              <app-icon name="check" [size]="16" />
+              Sessions révocables à tout moment
+            </li>
+          </ul>
+        </div>
+
+        <div class="security-visual" aria-hidden="true">
+          <span class="shield-badge"><app-icon name="shield" [size]="40" /></span>
+          <span class="shield-ring"></span>
+        </div>
+      </div>
+    </section>
+
+    <section id="how" class="section container">
+      <header class="section-head">
+        <span class="eyebrow">Comment ça marche</span>
+        <h2>Opérationnel en trois étapes</h2>
+      </header>
+
+      <div class="steps">
+        @for (step of steps; track step.title; let i = $index) {
+          <article class="step">
+            <span class="step-number">{{ i + 1 }}</span>
+            <span class="step-icon"><app-icon [name]="step.icon" [size]="20" /></span>
+            <h3>{{ step.title }}</h3>
+            <p>{{ step.text }}</p>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="container cta-inner">
+        <div>
+          <h2>Prêt à réunir votre équipe ?</h2>
+          <p>Créez l’espace de votre société en quelques minutes. Aucune carte bancaire requise.</p>
+        </div>
+        <div class="cta-actions">
+          <tc-button variant="primary" icon="plus" (clicked)="go('/register')">
+            Créer ma société
+          </tc-button>
+          <tc-button variant="secondary" (clicked)="go('/login')">Se connecter</tc-button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span class="footer-brand">
+        <span class="brand-mark small"><app-icon name="conversations" [size]="16" /></span>
+        TeamChat
+      </span>
+      <span class="footer-note">Messagerie et appels d’entreprise.</span>
+      <span class="footer-copy">© {{ year }} TeamChat</span>
+    </div>
+  </footer>
 </div>
