@@ -4,7 +4,6 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth/auth.service';
-import { IconComponent } from '../../shared/icon/icon';
 import { ButtonComponent } from '../../shared/ui/button';
 
 declare const google: {
@@ -18,7 +17,7 @@ declare const google: {
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, RouterLink, IconComponent, ButtonComponent],
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })

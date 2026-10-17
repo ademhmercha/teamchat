@@ -9,7 +9,6 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
-import { IconComponent } from '../../shared/icon/icon';
 import { ButtonComponent } from '../../shared/ui/button';
 
 const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/;
@@ -22,7 +21,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
 
 @Component({
   selector: 'app-set-password',
-  imports: [ReactiveFormsModule, RouterLink, IconComponent, ButtonComponent],
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent],
   templateUrl: './set-password.html',
   styleUrl: './set-password.scss',
 })

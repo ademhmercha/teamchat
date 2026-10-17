@@ -1727,3 +1727,66 @@ Date : 2026-10-17
 | N3 | `offlineGuard` posé sur les routes **racines** uniquement | Ne pas interrompre la navigation interne (garde parent non réexécutée) ; le bandeau couvre les coupures transitoires. |
 | N4 | Invitation d'installation et mise à jour via `beforeinstallprompt` + `SwUpdate` (sans lib externe) | Natif navigateur, aucune dépendance supplémentaire. |
 | N5 | `navigationRequestStrategy: "performance"` | Affichage immédiat de la coquille en mode hors-ligne. |
+
+---
+
+## Identité visuelle : intégration du logo officiel
+
+Date : 2026-10-17
+
+### Périmètre validé
+- [x] Utiliser le nouveau logo partout, **à la place** de l'ancienne marque (icône SVG générique `conversations` / `key`).
+- [x] Régénérer le favicon et l'ensemble des icônes PWA à partir du nouveau logo.
+
+### Source
+`TeamChat Collaboration Logo.png` (1254×1254, fond blanc, tracé bleu, fourni à la racine du dépôt) :
+il s'agit d'un **lockup complet** — icône (bulles de discussion) **+ wordmark « TeamChat »**. Il contient
+donc déjà le nom de marque, ce qui a conditionné l'intégration (voir Décisions L1).
+
+### Génération des actifs (scripts hors dépôt, non commités)
+- `frontend/public/logo.png` : lockup recadré sur la boîte englobante de l'artwork (marge blanche ~40 px),
+  réduit à **320×249 (~94 Ko)**. Affichage cible 26–52 px de haut (≈ 4x pour le plus grand usage).
+- `frontend/public/icons/` : `icon-{72,96,128,144,152,192,384,512}.png` + `apple-touch-icon.png` (180×180)
+  régénérés depuis le logo (fond blanc, redimensionnement haute qualité).
+- `frontend/public/favicon.ico` : réécrit en **PNG 32 bits embarqué dans l'en-tête ICO** (l'approche
+  `Icon.FromHandle` dégradait les couleurs : 766 o). Taille finale 1 458 o.
+
+### Marques remplacées (markup + styles)
+- `layout/shell` (barre latérale), `features/landing` (barre haute **et** pied de page), `features/login`,
+  `features/register`, `features/auth/forgot-password`, `features/auth/set-password` :
+  `<app-icon name="conversations">` (ou `key`) → `<img src="logo.png" alt="TeamChat" />`.
+- Suppression du texte « TeamChat » dupliqué à côté du logo : `.brand-name` retiré du markup de la coquille
+  et de la landing ; `<h1>TeamChat</h1>` de la page de connexion remplacé par `<h1 class="sr-only">TeamChat</h1>`
+  afin de conserver un titre accessible. `register` / `forgot-password` / `set-password` gardent leur `<h1>` propre.
+- Styles `.brand-mark` repensés dans `shell.scss`, `landing.scss`, `login.scss`, `register.scss` et dans le
+  mixin `auth-header` (`auth-card.scss`) : plus de carré bleu ni de gradient — simplement le logo dimensionné
+  en hauteur (34 / 38 / 26 / 52 px) sans fond (le blanc du logo se fond dans les surfaces `#ffffff`).
+
+### Nettoyage
+- `IconComponent` retiré des `imports` de `login.ts`, `register.ts`, `forgot-password.ts`, `set-password.ts`
+  (plus aucun `app-icon` dans ces templates) ; blocs CSS `.brand-name` morts supprimés, y compris leur
+  référence dans le mixin rail de `shell.scss`.
+
+### Validation (réelle, exécutée)
+| Type | Commande | Résultat |
+|---|---|---|
+| Tests backend (unitaires) | `dotnet test backend/tests/TeamChat.UnitTests/TeamChat.UnitTests.csproj --nologo` | OK, **16/16** |
+| Build frontend prod | `npm run build -- --configuration production` | OK, **0 erreur**, sans alerte de budget de style |
+| Actifs livrés | `dist/frontend/browser/` | `logo.png` (94 Ko), `favicon.ico`, `icons/*`, `index.html` inchangé |
+
+### Points connus / non vérifiés
+- **Vérification navigateur non effectuée** : rendu du logo dans la barre latérale (mode rail replié à 72 px,
+  le lockup large est réduit à ~34 px de haut), la landing, les pages d'authentification, le favicon et
+  l'installation PWA sont à valider visuellement par l'utilisateur.
+- `logo.png` (~94 Ko) est chargé à chaque page : acceptable au vu de l'affichage, mais une compression PNG
+  (palette) ou un WebP avec repli serait à envisager si le poids devient gênant.
+- Les icônes PWA conserveront le lockup complet (icône + wordmark) : sur petit écran le wordmark sera
+  lisible mais compact — à confirmer visuellement.
+
+### Décisions
+| # | Décision | Raison |
+|---|---|---|
+| L1 | Afficher le **lockup complet** et supprimer le texte « TeamChat » adjacent | Le logo contient déjà le wordmark ; conserver le texte l'aurait dupliqué. |
+| L2 | Recadrer le lockup pour `logo.png` (fond blanc conservé, pas de transparence) | La transparence risquerait de créer des trous dans les blancs internes du tracé ; les surfaces de l'app (`--tc-surface`, `--tc-sidebar`) sont en `#ffffff`, donc fond fondu. |
+| L3 | Régénérer les icônes PWA à partir du lockup complet (pas de recadrage masquable) | Conformément à la demande « le logo partout » ; le padding blanc d'origine sert de zone de sécurité. |
+| L4 | `favicon.ico` en PNG embarqué plutôt que `Icon.FromHandle` | `GetHicon` réduisait l'icône en couleurs indexées (766 o) ; le PNG 32 bits préserve la qualité. |

@@ -33,15 +33,13 @@
   text-align: center;
 
   .brand-mark {
-    width: 52px;
-    height: 52px;
     margin: 0 auto 0.9rem;
-    border-radius: var(--tc-radius-lg);
-    background: var(--tc-primary);
-    color: var(--tc-on-accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+
+    img {
+      height: 52px;
+      width: auto;
+      display: block;
+    }
   }
 
   h1 {

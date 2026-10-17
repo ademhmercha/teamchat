@@ -3,12 +3,11 @@ import { Component, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
-import { IconComponent } from '../../shared/icon/icon';
 import { ButtonComponent } from '../../shared/ui/button';
 
 @Component({
   selector: 'app-register',
-  imports: [ReactiveFormsModule, RouterLink, IconComponent, ButtonComponent],
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent],
   templateUrl: './register.html',
   styleUrl: './register.scss',
 })
