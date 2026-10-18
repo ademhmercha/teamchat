@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, HostListener, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { IconComponent } from '../../shared/icon/icon';
 import { ButtonComponent } from '../../shared/ui/button';
@@ -31,6 +31,7 @@ export class LandingComponent {
   private readonly router = inject(Router);
 
   readonly year = new Date().getFullYear();
+  readonly menuOpen = signal(false);
 
   readonly highlights: LandingHighlight[] = [
     { icon: 'bolt', label: 'Temps réel', text: 'Messages instantanés' },
@@ -94,7 +95,17 @@ export class LandingComponent {
     void this.router.navigateByUrl(path);
   }
 
+  toggleMenu(): void {
+    this.menuOpen.update((open) => !open);
+  }
+
   scrollTo(sectionId: string): void {
+    this.menuOpen.set(false);
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  @HostListener('window:keydown.escape')
+  onEscape(): void {
+    this.menuOpen.set(false);
   }
 }

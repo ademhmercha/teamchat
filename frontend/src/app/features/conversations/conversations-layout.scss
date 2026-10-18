@@ -36,12 +36,21 @@
     z-index: 60;
     width: min(340px, 86vw);
     transform: translateX(-100%);
-    transition: transform var(--tc-normal);
+    /* Retire le tiroir du tab order et de l'arbre d'accessibilite tant
+       qu'il est hors-champ (cf. .sidebar du shell). */
+    visibility: hidden;
+    transition:
+      transform var(--tc-normal),
+      visibility 0s linear var(--tc-normal);
     box-shadow: var(--tc-shadow-lg);
   }
 
   .conv-layout.nav-open .conv-nav {
     transform: translateX(0);
+    visibility: visible;
+    transition:
+      transform var(--tc-normal),
+      visibility 0s linear 0s;
   }
 
   .conv-layout.nav-open .drawer-scrim {

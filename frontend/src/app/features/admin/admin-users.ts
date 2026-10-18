@@ -6,6 +6,7 @@ import { UserProfile } from '../../core/models/user.models';
 import { IconComponent } from '../../shared/icon/icon';
 import { AvatarComponent } from '../../shared/ui/avatar';
 import { BadgeComponent } from '../../shared/ui/badge';
+import { ConfirmComponent } from '../../shared/ui/confirm';
 import { EmptyStateComponent } from '../../shared/ui/empty-state';
 import { ModalComponent } from '../../shared/ui/modal';
 
@@ -16,6 +17,7 @@ import { ModalComponent } from '../../shared/ui/modal';
     IconComponent,
     AvatarComponent,
     BadgeComponent,
+    ConfirmComponent,
     EmptyStateComponent,
     ModalComponent,
   ],
@@ -40,6 +42,9 @@ export class AdminUsersComponent {
   readonly sortDir = signal<'asc' | 'desc'>('asc');
   readonly page = signal(1);
   readonly pageSize = 20;
+
+  readonly pendingToggle = signal<UserProfile | null>(null);
+  readonly pendingDelete = signal<UserProfile | null>(null);
 
   readonly filtered = computed(() => {
     const role = this.roleFilter();
@@ -162,10 +167,23 @@ export class AdminUsersComponent {
   }
 
   toggleActive(user: UserProfile): void {
-    if (user.isActive && !confirm(`Désactiver le compte de ${user.displayName} ?\nCelui-ci sera déconnecté.`)) {
+    if (user.isActive) {
+      this.pendingToggle.set(user);
       return;
     }
 
+    this.applyToggle(user);
+  }
+
+  confirmToggleActive(): void {
+    const user = this.pendingToggle();
+    this.pendingToggle.set(null);
+    if (user) {
+      this.applyToggle(user);
+    }
+  }
+
+  private applyToggle(user: UserProfile): void {
     this.busyId.set(user.id);
     this.admin.update(user.id, { isActive: !user.isActive }).subscribe({
       next: (updated) => {
@@ -239,11 +257,13 @@ export class AdminUsersComponent {
   }
 
   deleteUser(user: UserProfile): void {
-    if (
-      !confirm(
-        `Supprimer le compte de ${user.displayName} ?\nLes messages seront conservés (auteur « Utilisateur supprimé »).`,
-      )
-    ) {
+    this.pendingDelete.set(user);
+  }
+
+  confirmDeleteUser(): void {
+    const user = this.pendingDelete();
+    this.pendingDelete.set(null);
+    if (!user) {
       return;
     }
 

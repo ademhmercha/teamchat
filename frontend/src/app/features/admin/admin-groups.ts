@@ -8,6 +8,7 @@ import { UserListItem } from '../../core/models/user.models';
 import { IconComponent } from '../../shared/icon/icon';
 import { AvatarComponent } from '../../shared/ui/avatar';
 import { BadgeComponent } from '../../shared/ui/badge';
+import { ConfirmComponent } from '../../shared/ui/confirm';
 import { EmptyStateComponent } from '../../shared/ui/empty-state';
 import { ModalComponent } from '../../shared/ui/modal';
 
@@ -18,6 +19,7 @@ import { ModalComponent } from '../../shared/ui/modal';
     IconComponent,
     AvatarComponent,
     BadgeComponent,
+    ConfirmComponent,
     EmptyStateComponent,
     ModalComponent,
   ],
@@ -39,6 +41,9 @@ export class AdminGroupsComponent {
   readonly selectedIds = signal<string[]>([]);
   readonly saving = signal(false);
   readonly formError = signal<string | null>(null);
+
+  readonly pendingArchive = signal<GroupDto | null>(null);
+  readonly pendingDelete = signal<GroupDto | null>(null);
 
   readonly editorTitle = computed(() =>
     this.editingGroupId() ? 'Modifier les membres' : 'Nouveau groupe',
@@ -125,7 +130,13 @@ export class AdminGroupsComponent {
   }
 
   archive(group: GroupDto): void {
-    if (!confirm(`Archiver le groupe « ${group.name} » ?`)) {
+    this.pendingArchive.set(group);
+  }
+
+  confirmArchive(): void {
+    const group = this.pendingArchive();
+    this.pendingArchive.set(null);
+    if (!group) {
       return;
     }
 
@@ -155,11 +166,13 @@ export class AdminGroupsComponent {
   }
 
   remove(group: GroupDto): void {
-    if (
-      !confirm(
-        `Supprimer définitivement le groupe « ${group.name} » ? Cette action est irréversible.`,
-      )
-    ) {
+    this.pendingDelete.set(group);
+  }
+
+  confirmRemove(): void {
+    const group = this.pendingDelete();
+    this.pendingDelete.set(null);
+    if (!group) {
       return;
     }
 

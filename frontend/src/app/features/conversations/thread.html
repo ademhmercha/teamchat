@@ -498,3 +498,21 @@
   [alt]="lightboxAlt()"
   (closed)="closeImage()"
 />
+
+<tc-confirm
+  [open]="pendingDelete() !== null"
+  title="Supprimer le message"
+  message="Ce message sera supprimé pour tous les participants."
+  confirmLabel="Supprimer"
+  (confirmed)="confirmDeleteMessage()"
+  (cancelled)="pendingDelete.set(null)"
+/>
+
+<tc-confirm
+  [open]="confirmLeaveOpen()"
+  title="Quitter le groupe"
+  message="Quitter ce groupe ? Vous ne verrez plus ses messages."
+  confirmLabel="Quitter"
+  (confirmed)="confirmLeaveConversation()"
+  (cancelled)="confirmLeaveOpen.set(false)"
+/>

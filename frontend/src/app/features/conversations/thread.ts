@@ -20,6 +20,7 @@ import {
 import { formatDuration, formatFileSize, shortTime } from '../../core/utils/display';
 import { IconComponent } from '../../shared/icon/icon';
 import { AvatarComponent } from '../../shared/ui/avatar';
+import { ConfirmComponent } from '../../shared/ui/confirm';
 import { EmptyStateComponent } from '../../shared/ui/empty-state';
 import { LightboxComponent } from '../../shared/ui/lightbox';
 import { ConversationsUiService } from './conversations-ui.service';
@@ -79,6 +80,7 @@ interface SharedFile {
     FormsModule,
     IconComponent,
     AvatarComponent,
+    ConfirmComponent,
     EmptyStateComponent,
     VoicePlayerComponent,
     LightboxComponent,
@@ -130,6 +132,9 @@ export class ThreadComponent {
   readonly highlightId = signal<string | null>(null);
   readonly archiveBusy = signal(false);
   readonly leaveBusy = signal(false);
+
+  readonly pendingDelete = signal<MessageDto | null>(null);
+  readonly confirmLeaveOpen = signal(false);
 
   readonly uploading = signal(false);
   readonly uploadProgress = signal(0);
@@ -525,7 +530,13 @@ export class ThreadComponent {
   }
 
   deleteMessage(message: MessageDto): void {
-    if (!confirm('Supprimer ce message ?')) {
+    this.pendingDelete.set(message);
+  }
+
+  confirmDeleteMessage(): void {
+    const message = this.pendingDelete();
+    this.pendingDelete.set(null);
+    if (!message) {
       return;
     }
 
@@ -609,7 +620,13 @@ export class ThreadComponent {
       return;
     }
 
-    if (!confirm('Quitter ce groupe ? Vous ne verrez plus ses messages.')) {
+    this.confirmLeaveOpen.set(true);
+  }
+
+  confirmLeaveConversation(): void {
+    this.confirmLeaveOpen.set(false);
+    const conversationId = this.conversationId();
+    if (!conversationId || this.leaveBusy()) {
       return;
     }
 

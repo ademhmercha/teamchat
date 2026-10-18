@@ -247,3 +247,21 @@
     </button>
   </div>
 </tc-modal>
+
+<tc-confirm
+  [open]="pendingToggle() !== null"
+  title="Désactiver le compte"
+  [message]="'Désactiver le compte de ' + pendingToggle()?.displayName + ' ? Celui-ci sera déconnecté.'"
+  confirmLabel="Désactiver"
+  (confirmed)="confirmToggleActive()"
+  (cancelled)="pendingToggle.set(null)"
+/>
+
+<tc-confirm
+  [open]="pendingDelete() !== null"
+  title="Supprimer le compte"
+  [message]="'Supprimer le compte de ' + pendingDelete()?.displayName + ' ? Les messages seront conservés (auteur « Utilisateur supprimé »).'"
+  confirmLabel="Supprimer"
+  (confirmed)="confirmDeleteUser()"
+  (cancelled)="pendingDelete.set(null)"
+/>

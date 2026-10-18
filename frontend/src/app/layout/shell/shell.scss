@@ -185,8 +185,8 @@
   border-bottom: 1px solid var(--tc-border);
 
   &.offline {
-    background: var(--tc-warning-soft, #fef3c7);
-    color: var(--tc-warning, #b45309);
+    background: var(--tc-warning-soft);
+    color: var(--tc-warning);
   }
 
   &.update {
@@ -213,7 +213,7 @@
   transition: background var(--tc-fast);
 
   &:hover {
-    background: rgb(37 99 235 / 10%);
+    background: rgba(var(--tc-accent-rgb), 0.1);
   }
 }
 
@@ -371,7 +371,7 @@
   background: var(--tc-surface);
   border: 1px solid var(--tc-border);
   border-radius: var(--tc-radius-lg);
-  box-shadow: var(--tc-shadow-lg, 0 12px 32px rgb(23 32 51 / 16%));
+  box-shadow: var(--tc-shadow-lg);
   overflow: hidden;
   z-index: 40;
 }
@@ -625,12 +625,22 @@
     width: min(300px, 84vw);
     padding: 12px 8px;
     transform: translateX(-100%);
-    transition: transform var(--tc-normal);
+    /* visibility: hidden retire le panneau du tab order et de l'arbre
+       d'accessibilite tant qu'il est hors-champ. Le delai empeche la
+       disparition brutale pendant l'animation de sortie. */
+    visibility: hidden;
+    transition:
+      transform var(--tc-normal),
+      visibility 0s linear var(--tc-normal);
     box-shadow: var(--tc-shadow-lg);
   }
 
   .shell.mobile-open .sidebar {
     transform: translateX(0);
+    visibility: visible;
+    transition:
+      transform var(--tc-normal),
+      visibility 0s linear 0s;
   }
 
   .shell.mobile-open .mobile-scrim {

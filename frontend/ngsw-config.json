@@ -12,6 +12,7 @@
           "/index.html",
           "/manifest.webmanifest",
           "/ngsw.json",
+          "/fonts/*.woff2",
           "/*.css",
           "/*.js"
         ]

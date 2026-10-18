@@ -1790,3 +1790,95 @@ donc déjà le nom de marque, ce qui a conditionné l'intégration (voir Décisi
 | L2 | Recadrer le lockup pour `logo.png` (fond blanc conservé, pas de transparence) | La transparence risquerait de créer des trous dans les blancs internes du tracé ; les surfaces de l'app (`--tc-surface`, `--tc-sidebar`) sont en `#ffffff`, donc fond fondu. |
 | L3 | Régénérer les icônes PWA à partir du lockup complet (pas de recadrage masquable) | Conformément à la demande « le logo partout » ; le padding blanc d'origine sert de zone de sécurité. |
 | L4 | `favicon.ico` en PNG embarqué plutôt que `Icon.FromHandle` | `GetHicon` réduisait l'icône en couleurs indexées (766 o) ; le PNG 32 bits préserve la qualité. |
+
+---
+
+## Audit design & accessibilité — Sprint A : fondations
+
+Date : 2026-10-17
+
+Issu de l'audit « y a-t-il des choses à améliorer côté design ». Périmètre validé par l'utilisateur :
+corriger en priorité les 5 points à fort impact / faible effort, puis les sujets UX globale (Sprint B),
+puis les finitions (Sprint C). Ce sprint couvre **A**.
+
+### Périmètre validé (Sprint A)
+- [x] **A1** — Charger réellement la police Inter (elle était déclarée mais jamais chargée).
+- [x] **A2** — Rendre les menus hors-champ (sidebar, nav conversations) non focusables au clavier.
+- [x] **A3** — Remplacer les `confirm()` natifs par un dialogue du design system.
+- [x] **A4** — Éliminer les dernières couleurs en dur dans les composants.
+- [x] **A5** — Landing : `sticky` cassé + navigation invisible sous 680 px.
+- [x] **A6** — Supprimer les tokens CSS morts, ajouter le token manquant `--tc-font-mono`.
+
+### A1 — Police Inter auto-hébergée
+- `styles.scss` déclarait `'Inter'` dans `font-family` mais **aucun** `@font-face` / `<link>` / `@import`
+  n'existait : le rendu dépendait de la police système.
+- Deux fichiers woff2 (subsets **latin** + **latin-ext**) copiés de `@fontsource-variable/inter` vers
+  `frontend/public/fonts/` : `inter-latin.woff2` (47 Ko), `inter-latin-ext.woff2` (83 Ko).
+  Le paquet npm a été **désinstallé** (aucune dépendance ajoutée : `package.json` / `package-lock.json` inchangés).
+- Deux blocs `@font-face` (`font-family: 'Inter Variable'`, `font-weight: 100 900`, `font-display: swap`,
+  `unicode-range` par subset) ajoutés en tête de `styles.scss`, avec URL **absolue** `/fonts/...`
+  (stable, donc `preload` possible et mise en cache hors-ligne).
+- `index.html` : `<link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>`.
+- `ngsw-config.json` : `/fonts/*.woff2` ajouté au groupe `app` (`installMode: prefetch`) → disponible hors-ligne
+  dès l'installation.
+
+### A2 — Menus hors-champ non focusables
+- `shell.scss` (`.sidebar` mobile) et `conversations-layout.scss` (`.conv-nav`) cachaient le panneau via
+  `translateX(-100%)` **sans** `visibility: hidden` : on pouvait tabuler dans un menu invisible.
+- Correction par le pattern CSS déjà employé pour le panneau Détails (`thread.scss`) : `visibility: hidden`
+  à l'état fermé, `visibility: visible` à l'état ouvert, avec transition `visibility … linear` **retardée**
+  pour ne pas couper l'animation de sortie. Aucun JavaScript ajouté.
+
+### A3 — `confirm()` natifs → `tc-confirm`
+- Nouveau composant partagé `shared/ui/confirm.ts` (`tc-confirm`), construit sur `tc-modal`
+  (piège de focus et fermeture par Échap déjà gérés). Focus initial placé sur **Annuler** (une action
+  destructive ne doit pas partir sur un Entrée réflexe).
+- 6 appels remplacés : `thread.ts` (supprimer un message, quitter un groupe), `admin-users.ts`
+  (désactiver / supprimer un compte), `admin-groups.ts` (archiver / supprimer un groupe).
+  Chaque action passe désormais par un signal « cible en attente » + méthode `confirm…()`.
+
+### A4 — Couleurs en dur → tokens
+- `shell.scss` : fallbacks hexadécimaux redondants retirés (`--tc-warning-soft`, `--tc-warning`,
+  `--tc-shadow-lg` sont bien définis) ; `rgb(37 99 235 / 10%)` → `rgba(var(--tc-accent-rgb), 0.1)`.
+- `call-overlay.scss` + `lightbox.ts` : blancs en dur → nouveaux tokens `--tc-on-overlay`,
+  `--tc-on-overlay-soft`, `--tc-on-overlay-strong`.
+- `admin-home.ts` (graphique) : fallbacks hex `#e2e8f0` / `#6b7688` retirés ; les couleurs proviennent
+  uniquement des tokens lus via `getComputedStyle`.
+
+### A5 — Landing
+- `overflow-x: hidden` (qui créait un conteneur de défilement et annulait le `sticky` de `.topnav`)
+  → `overflow-x: clip`.
+- Sous 680 px, les ancres disparaissaient sans remplacement : ajout d'un **burger** (`aria-expanded`,
+  `aria-controls`, Échap pour fermer) ouvrant un panneau déroulant contenant les 3 ancres **et** les CTA.
+  Les CTA de la barre sont masqués sur cette largeur (évite la surcharge). Le panneau reste hors-champ
+  (`visibility: hidden`) quand il est fermé.
+
+### A6 — Tokens
+- Supprimés (0 utilisation vérifiée) : `--tc-space-1..6`, `--tc-bg-soft`, `--tc-glass-strong`.
+- Ajouté : `--tc-font-mono` (utilisé par `platform.scss`, jusqu'ici absent) ; fallback inline `monospace` retiré.
+
+### Validation (réelle, exécutée)
+| Type | Commande | Résultat |
+|---|---|---|
+| Tests backend (unitaires) | `dotnet test backend/tests/TeamChat.UnitTests/TeamChat.UnitTests.csproj --nologo` | OK, **16/16** |
+| Build frontend prod (+ service worker) | `npm run build -- --configuration production` | OK, **0 erreur**, aucune alerte de budget (initial 281,66 Ko) |
+| Actifs polices livrés | `dist/frontend/browser/fonts/` | `inter-latin.woff2` (47 Ko), `inter-latin-ext.woff2` (83 Ko) ; CSS → `/fonts/inter-latin.woff2` ; `ngsw.json` les référence (prefetch) |
+
+### Points connus / non vérifiés
+- **Vérification navigateur non effectuée** (à faire par l'utilisateur) : rendu de la police Inter,
+  tabulation dans la sidebar/tiroir fermés (ne doit rien focaliser), `sticky` de la barre de la landing
+  au défilement, ouverture/fermeture du burger mobile, dialogues `tc-confirm`.
+- `admin-groups.ts:150` utilise encore un `prompt()` natif (renommage de groupe) — **hors périmètre A**,
+  signalé pour arbitrage (remplacement par un `tc-modal` de saisie).
+- `overflow-x: clip` est récent mais largement supporté (Chrome/Edge 90+, Firefox 81+, Safari 16+) ;
+  à confirmer si un débordement horizontal réapparaît, on replierait alors `hidden` sur un conteneur interne.
+
+### Décisions
+| # | Décision | Raison |
+|---|---|---|
+| A1 | Inter **auto-hébergée** dans `public/fonts/` (fichiers copiés, paquet npm retiré) | URLs stables → `preload` et cache SW ; aucun tiers ; aucun sous-ensemble inutile livré ; zéro dépendance ajoutée. |
+| A2 | Correction par `visibility: hidden` (CSS) plutôt que par `inert`/JS | Reprend le pattern déjà en place (`thread.scss`), aucun signal « mobile » à ajouter, retire le panneau du tab order et de l'arbre d'accessibilité. |
+| A3 | Dialogue `tc-confirm` bâti sur `tc-modal`, focus par défaut sur **Annuler** | Cohérence avec le design system (focus trap + Échap) et garde-fou sur les actions destructrices. |
+| A4 | Tokens `--tc-on-overlay*` pour les surfaces au-dessus d'un voile | Respecte la règle « aucune couleur en dur dans les composants ». |
+| A5 | `overflow-x: clip` + burger contenant ancres **et** CTA | `clip` ne crée pas de conteneur de défilement (préserve le `sticky`) ; le panel mobile évite la surcharge de la barre. |
+

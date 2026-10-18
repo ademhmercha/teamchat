@@ -377,9 +377,9 @@ export class AdminHomeComponent {
   private renderChart(canvas: HTMLCanvasElement, data: AdminStats): void {
     this.chart?.destroy();
     const styles = getComputedStyle(document.documentElement);
-    const accentRgb = styles.getPropertyValue('--tc-accent-rgb').trim() || '37, 99, 235';
-    const gridColor = styles.getPropertyValue('--tc-border').trim() || '#e2e8f0';
-    const tickColor = styles.getPropertyValue('--tc-text-muted').trim() || '#6b7688';
+    const accentRgb = styles.getPropertyValue('--tc-accent-rgb').trim();
+    const gridColor = styles.getPropertyValue('--tc-border').trim();
+    const tickColor = styles.getPropertyValue('--tc-text-muted').trim();
     this.chart = new Chart(canvas, {
       type: 'line',
       data: {

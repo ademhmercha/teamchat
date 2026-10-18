@@ -16,6 +16,34 @@
         Créer ma société
       </tc-button>
     </div>
+
+    <button
+      type="button"
+      class="nav-burger"
+      [attr.aria-expanded]="menuOpen()"
+      aria-controls="landing-mobile-nav"
+      [attr.aria-label]="menuOpen() ? 'Fermer le menu' : 'Ouvrir le menu'"
+      (click)="toggleMenu()"
+    >
+      <app-icon [name]="menuOpen() ? 'close' : 'menu'" [size]="22" />
+    </button>
+
+    <nav
+      id="landing-mobile-nav"
+      class="nav-mobile"
+      [class.open]="menuOpen()"
+      aria-label="Navigation mobile"
+    >
+      <button type="button" (click)="scrollTo('features')">Fonctionnalités</button>
+      <button type="button" (click)="scrollTo('security')">Sécurité</button>
+      <button type="button" (click)="scrollTo('how')">Comment ça marche</button>
+      <div class="nav-mobile-actions">
+        <tc-button variant="secondary" size="sm" (clicked)="go('/login')">Se connecter</tc-button>
+        <tc-button variant="primary" size="sm" icon="plus" (clicked)="go('/register')">
+          Créer ma société
+        </tc-button>
+      </div>
+    </nav>
   </header>
 
   <main>

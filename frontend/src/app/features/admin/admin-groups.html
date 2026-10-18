@@ -126,3 +126,21 @@
     </button>
   </div>
 </tc-modal>
+
+<tc-confirm
+  [open]="pendingArchive() !== null"
+  title="Archiver le groupe"
+  [message]="'Archiver le groupe « ' + pendingArchive()?.name + ' » ?'"
+  confirmLabel="Archiver"
+  (confirmed)="confirmArchive()"
+  (cancelled)="pendingArchive.set(null)"
+/>
+
+<tc-confirm
+  [open]="pendingDelete() !== null"
+  title="Supprimer le groupe"
+  [message]="'Supprimer définitivement le groupe « ' + pendingDelete()?.name + ' » ? Cette action est irréversible.'"
+  confirmLabel="Supprimer"
+  (confirmed)="confirmRemove()"
+  (cancelled)="pendingDelete.set(null)"
+/>

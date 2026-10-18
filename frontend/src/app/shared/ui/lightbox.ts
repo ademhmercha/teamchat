@@ -60,14 +60,14 @@ import { IconComponent } from '../icon/icon';
       height: 40px;
       border: none;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.14);
+      background: var(--tc-on-overlay-soft);
       color: var(--tc-on-accent);
       cursor: pointer;
       transition: background var(--tc-fast);
     }
 
     .tc-lightbox__close:hover {
-      background: rgba(255, 255, 255, 0.26);
+      background: var(--tc-on-overlay-strong);
     }
 
     .tc-lightbox__close:focus-visible {
