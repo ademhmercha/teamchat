@@ -9,6 +9,7 @@ import { BadgeComponent } from '../../shared/ui/badge';
 import { ConfirmComponent } from '../../shared/ui/confirm';
 import { EmptyStateComponent } from '../../shared/ui/empty-state';
 import { ModalComponent } from '../../shared/ui/modal';
+import { ToastService } from '../../shared/ui/toast';
 
 @Component({
   selector: 'app-admin-users',
@@ -26,11 +27,11 @@ import { ModalComponent } from '../../shared/ui/modal';
 })
 export class AdminUsersComponent {
   private readonly admin = inject(AdminUsersService);
+  private readonly toast = inject(ToastService);
 
   readonly roles = ['User', 'Admin'];
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-  readonly notice = signal<string | null>(null);
   readonly items = signal<UserProfile[]>([]);
   readonly search = signal('');
   readonly saving = signal(false);
@@ -192,7 +193,7 @@ export class AdminUsersComponent {
       },
       error: (error: HttpErrorResponse) => {
         this.busyId.set(null);
-        this.error.set(this.readErrorMessage(error));
+        this.toast.error(this.readErrorMessage(error));
       },
     });
   }
@@ -210,7 +211,7 @@ export class AdminUsersComponent {
       },
       error: (error: HttpErrorResponse) => {
         this.busyId.set(null);
-        this.error.set(this.readErrorMessage(error));
+        this.toast.error(this.readErrorMessage(error));
       },
     });
   }
@@ -268,7 +269,6 @@ export class AdminUsersComponent {
     }
 
     this.busyId.set(user.id);
-    this.error.set(null);
     this.admin.remove(user.id).subscribe({
       next: () => {
         this.busyId.set(null);
@@ -277,14 +277,13 @@ export class AdminUsersComponent {
       },
       error: (error: HttpErrorResponse) => {
         this.busyId.set(null);
-        this.error.set(this.readErrorMessage(error));
+        this.toast.error(this.readErrorMessage(error));
       },
     });
   }
 
   private flash(message: string): void {
-    this.notice.set(message);
-    setTimeout(() => this.notice.set(null), 4000);
+    this.toast.success(message);
   }
 
   private replace(updated: UserProfile): void {

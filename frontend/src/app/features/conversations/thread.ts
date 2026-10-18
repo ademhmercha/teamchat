@@ -3,8 +3,8 @@ import { Component, DestroyRef, ElementRef, computed, effect, inject, signal, vi
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject } from 'rxjs';
-import { debounceTime } from 'rxjs/operators';
+import { Subject, catchError, map, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { AttachmentsService } from '../../core/api/attachments.service';
 import { ConversationsService } from '../../core/api/conversations.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -23,11 +23,13 @@ import { AvatarComponent } from '../../shared/ui/avatar';
 import { ConfirmComponent } from '../../shared/ui/confirm';
 import { EmptyStateComponent } from '../../shared/ui/empty-state';
 import { LightboxComponent } from '../../shared/ui/lightbox';
+import { ToastService } from '../../shared/ui/toast';
 import { ConversationsUiService } from './conversations-ui.service';
 import { VoicePlayerComponent } from './voice-player';
 
 const TYPING_SENT_INTERVAL_MS = 1500;
 const STOP_TYPING_DELAY_MS = 1000;
+const SEARCH_DEBOUNCE_MS = 300;
 const MAX_VOICE_SECONDS = 120;
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 
@@ -96,6 +98,7 @@ export class ThreadComponent {
   private readonly chat = inject(ChatService);
   private readonly calls = inject(CallService);
   private readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   readonly ui = inject(ConversationsUiService);
 
@@ -104,7 +107,9 @@ export class ThreadComponent {
   private readonly composerInput = viewChild<ElementRef<HTMLTextAreaElement>>('composerInput');
   private readonly detailsButton = viewChild<ElementRef<HTMLButtonElement>>('detailsButton');
   private readonly drafts = new Map<string, string>();
+  private dragDepth = 0;
   private readonly stopTyping$ = new Subject<void>();
+  private readonly search$ = new Subject<string>();
   private lastTypingSent = 0;
 
   private mediaRecorder: MediaRecorder | null = null;
@@ -137,6 +142,7 @@ export class ThreadComponent {
   readonly confirmLeaveOpen = signal(false);
 
   readonly uploading = signal(false);
+  readonly dragActive = signal(false);
   readonly uploadProgress = signal(0);
   readonly recording = signal(false);
   readonly recordSeconds = signal(0);
@@ -211,6 +217,29 @@ export class ThreadComponent {
       .pipe(debounceTime(STOP_TYPING_DELAY_MS), takeUntilDestroyed())
       .subscribe(() => this.chat.stopTyping(this.conversationId() ?? ''));
 
+    this.search$
+      .pipe(
+        debounceTime(SEARCH_DEBOUNCE_MS),
+        distinctUntilChanged(),
+        switchMap((query) => {
+          const conversationId = this.conversationId();
+          if (!conversationId || query.length < 2) {
+            return of({ items: [] as MessageDto[] });
+          }
+
+          this.searching.set(true);
+          return this.conversations.searchMessages(conversationId, query).pipe(
+            map((result) => ({ items: result.items })),
+            catchError(() => of({ items: [] as MessageDto[] })),
+          );
+        }),
+        takeUntilDestroyed(),
+      )
+      .subscribe((outcome) => {
+        this.searchResults.set(outcome.items);
+        this.searching.set(false);
+      });
+
     this.chat.receiveMessage$.pipe(takeUntilDestroyed()).subscribe((message) => {
       if (message.conversationId === this.conversationId()) {
         this.appendLiveMessage(message);
@@ -253,6 +282,7 @@ export class ThreadComponent {
         this.conversationId.set(id);
         this.input.set(this.drafts.get(id) ?? '');
         this.cancelEdit();
+        this.closeSearch();
         this.reload();
         setTimeout(() => this.autoGrow());
       }
@@ -277,6 +307,123 @@ export class ThreadComponent {
     }
 
     this.uploadFile(file, file.name);
+  }
+
+  onDragEnter(event: DragEvent): void {
+    if (!this.dragHasFiles(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    this.dragDepth += 1;
+    this.dragActive.set(true);
+  }
+
+  onDragOver(event: DragEvent): void {
+    if (!this.dragHasFiles(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'copy';
+    }
+  }
+
+  onDragLeave(event: DragEvent): void {
+    if (!this.dragHasFiles(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    this.dragDepth = Math.max(0, this.dragDepth - 1);
+    if (this.dragDepth === 0) {
+      this.dragActive.set(false);
+    }
+  }
+
+  onDropFiles(event: DragEvent): void {
+    const files = Array.from(event.dataTransfer?.files ?? []);
+    if (files.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    this.resetDragState();
+    this.sendPastedOrDroppedFile(files);
+  }
+
+  onComposerPaste(event: ClipboardEvent): void {
+    const files: File[] = [];
+    for (const item of Array.from(event.clipboardData?.items ?? [])) {
+      if (item.kind !== 'file') {
+        continue;
+      }
+
+      const file = item.getAsFile();
+      if (file) {
+        files.push(file);
+      }
+    }
+
+    if (files.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    this.sendPastedOrDroppedFile(files);
+  }
+
+  @HostListener('document:dragleave', ['$event'])
+  onDocumentDragLeave(event: DragEvent): void {
+    if (!event.relatedTarget) {
+      this.resetDragState();
+    }
+  }
+
+  @HostListener('document:drop')
+  onDocumentDrop(): void {
+    this.resetDragState();
+  }
+
+  private resetDragState(): void {
+    this.dragDepth = 0;
+    this.dragActive.set(false);
+  }
+
+  private dragHasFiles(event: DragEvent): boolean {
+    return Array.from(event.dataTransfer?.types ?? []).includes('Files');
+  }
+
+  private sendPastedOrDroppedFile(files: File[]): void {
+    if (!this.conversationId()) {
+      return;
+    }
+
+    if (this.uploading()) {
+      this.toast.error('Un envoi est déjà en cours.');
+      return;
+    }
+
+    if (files.length > 1) {
+      this.toast.info('Un seul fichier à la fois.');
+    }
+
+    const file = files[0];
+    this.uploadFile(file, this.uploadNameFor(file));
+  }
+
+  private uploadNameFor(file: File): string {
+    if (file.name && file.name !== 'blob') {
+      return file.name;
+    }
+
+    const subtype = file.type.split('/')[1]?.split(';')[0];
+    if (!subtype) {
+      return 'fichier';
+    }
+
+    return file.type.startsWith('image/') ? `image.${subtype}` : `fichier.${subtype}`;
   }
 
   downloadAttachment(attachmentId: string, fileName: string): void {
@@ -526,7 +673,10 @@ export class ThreadComponent {
         this.savingEdit.set(false);
         this.cancelEdit();
       })
-      .catch(() => this.savingEdit.set(false));
+      .catch(() => {
+        this.savingEdit.set(false);
+        this.toast.error("La modification n'a pas pu être enregistrée.");
+      });
   }
 
   deleteMessage(message: MessageDto): void {
@@ -540,7 +690,9 @@ export class ThreadComponent {
       return;
     }
 
-    void this.chat.deleteMessage(message.id).catch(() => undefined);
+    void this.chat
+      .deleteMessage(message.id)
+      .catch(() => this.toast.error('La suppression du message a échoué.'));
   }
 
   peerOnline(): boolean {
@@ -610,7 +762,10 @@ export class ThreadComponent {
         this.detail.update((detail) => (detail ? { ...detail, archived: next } : detail));
         this.conversation.update((conversation) => (conversation ? { ...conversation, archived: next } : conversation));
       },
-      error: () => this.archiveBusy.set(false),
+      error: () => {
+        this.archiveBusy.set(false);
+        this.toast.error("L'opération sur la conversation a échoué.");
+      },
     });
   }
 
@@ -636,7 +791,10 @@ export class ThreadComponent {
         this.leaveBusy.set(false);
         void this.router.navigate(['/app/conversations']);
       },
-      error: () => this.leaveBusy.set(false),
+      error: () => {
+        this.leaveBusy.set(false);
+        this.toast.error('Impossible de quitter le groupe.');
+      },
     });
   }
 
@@ -647,13 +805,15 @@ export class ThreadComponent {
   closeSearch(): void {
     this.searchOpen.set(false);
     this.searchQuery.set('');
+    this.search$.next('');
     this.searchResults.set([]);
     this.searching.set(false);
   }
 
   onSearchInput(event: Event): void {
-    this.searchQuery.set((event.target as HTMLInputElement).value);
-    this.runSearch();
+    const query = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(query);
+    this.search$.next(query.trim());
   }
 
   goToResult(message: MessageDto): void {
@@ -673,27 +833,6 @@ export class ThreadComponent {
         this.highlightId.set(null);
       }
     }, 1800);
-  }
-
-  private runSearch(): void {
-    const conversationId = this.conversationId();
-    const query = this.searchQuery().trim();
-    if (!conversationId || query.length < 2) {
-      this.searchResults.set([]);
-      return;
-    }
-
-    this.searching.set(true);
-    this.conversations.searchMessages(conversationId, query).subscribe({
-      next: (result) => {
-        this.searchResults.set(result.items);
-        this.searching.set(false);
-      },
-      error: () => {
-        this.searchResults.set([]);
-        this.searching.set(false);
-      },
-    });
   }
 
   toggleEmoji(): void {

@@ -1882,3 +1882,88 @@ puis les finitions (Sprint C). Ce sprint couvre **A**.
 | A4 | Tokens `--tc-on-overlay*` pour les surfaces au-dessus d'un voile | Respecte la règle « aucune couleur en dur dans les composants ». |
 | A5 | `overflow-x: clip` + burger contenant ancres **et** CTA | `clip` ne crée pas de conteneur de défilement (préserve le `sticky`) ; le panel mobile évite la surcharge de la barre. |
 
+
+---
+
+## Sprint B — UX et qualité perçue
+
+**Statut : terminé (en attente de validation utilisateur)**
+
+### B1 - Échecs silencieux → toasts
+- Nouveau `shared/ui/toast.ts` : `ToastService` global (signal `items`) + hôte `tc-toast-host` monté
+  dans `app.html` après le `<router-outlet>` : zone unique, `role="status"` / `aria-live="polite"`,
+  variantes succès / erreur / info, 5 toasts maximum, durées 4,5 s / 5 s / 7 s, empilement en bas à
+  droite (z-index 1300). Icône `warning` ajoutée au jeu d'icônes.
+- Échecs auparavant **ignorés** (callbacks `error` vides ou `.catch(() => undefined)`) :
+  `thread.ts` (supprimer un message, éditer un message, archiver, quitter un groupe) et
+  `account.ts` (`logoutAll()`, succès et échec désormais explicites).
+- Consolidation « erreurs d'action → toast » (la bannière inline reste pour le **chargement** et le
+  **composer**) : `admin-users.ts` (bascule `active`, changement de rôle, signal `notice` supprimé),
+  `admin-groups.ts` (archiver, renommer, désarchiver, supprimer).
+
+### B2 - Glisser-déposer et collage de fichiers
+- Sur toute la zone de conversation (`.thread`) : `dragenter` / `dragover` / `dragleave` / `drop` avec
+  compteur de profondeur (pas de scintillement entre les enfants), overlay « Déposez votre fichier
+  ici » (pointillés accent, `pointer-events: none`), réinitialisation document sur `dragleave` avec
+  sortie de fenêtre et sur tout `drop`.
+- Collage (`Ctrl+V`) sur le composer : les éléments `kind === 'file'` du presse-papiers partent dans le
+  pipeline d'upload existant (`uploadFile` → `uploadBlob`), le texte reste inchangé.
+- Garde-fous : envoi déjà en cours → toast d'erreur ; plusieurs fichiers → premier seul + toast info ;
+  nom déduit du type MIME lorsque `File.name` est absent.
+
+### B3 - Recherche dans la conversation : debounce 300 ms
+- `onSearchInput` lançait `runSearch()` à **chaque frappe** (1 requête réseau par caractère saisi).
+- Remplacé par `Subject<string>` + `debounceTime(300)` + `distinctUntilChanged()` + `switchMap` (la
+  requête en cours est annulée si la suivante part) — aligné sur `conversations-list.ts` et
+  `directory.ts` ; `runSearch()` supprimé.
+- Changement de conversation et fermeture du panneau réinitialisent le sujet : aucun résultat
+  résiduel d'une autre conversation.
+
+### B4 - Rail d'administration allégé
+- Liens « Utilisateurs » et « Groupes » retirés du rail `shell.html` : l'entrée unique
+  « Tableau de bord » (`/app/admin`) mène à `admin-layout`, qui conserve ses 3 onglets.
+  Suppression d'un doublon.
+
+### B5 - PWA : manifeste et icônes
+- `id` et `start_url` → `/app/conversations` (décision 4) ; `orientation` : `portrait-primary` → `any`
+  (l'application est desktop-first).
+- `purpose` scindé : les 8 icônes existantes passent en `any` — elles **dépassent** la zone sûre
+  maskable (rayon du contenu mesuré à 116 % du cercle de 80 %) — et 2 icônes **maskable** dédiées sont
+  créées (logo ramené à 80 % du canvas sur fond blanc) : `icon-maskable-192x192.png` et
+  `icon-maskable-512x512.png`, mesurées à **94 %** du rayon limite.
+- Poids (re-encodage PNG : palette 256 couleurs + dithering ; `logo.png` 320×249 → 164×128 alors
+  qu'il n'est affiché qu'à 34-52 px) :
+  - `icon-512x512.png` : 222 Ko → **17 Ko** (objectif < 50 Ko atteint) ;
+  - `logo.png` : 92 Ko → **21 Ko** ;
+  - jeu complet icônes + logo : ≈ 600 Ko → **93 Ko** ;
+  - qualité mesurée contre les originaux git : erreur max ≤ 11/255, erreur moyenne ≈ 1,2,
+    **0,00 % de pixels** avec écart > 16.
+- `ngsw-config.json` : `/logo.png` ajouté explicitement au groupe `assets` — le motif `/**/*.png`
+  ne couvre pas les fichiers de racine tels que `/logo.png`.
+
+### Validation (réelle, exécutée)
+| Type | Commande | Résultat |
+|---|---|---|
+| Tests backend | `dotnet test --nologo` (dans `backend/`) | OK, **16 unitaires + 108 intégration = 124/124** |
+| Build frontend prod (+ service worker) | `npm run build -- --configuration production` | OK, **0 erreur**, aucune alerte de budget (initial 296,69 Ko) |
+| Contrôle de la distribution | `dist/frontend/browser/` | `ngsw.json` référence les icônes maskable et `logo.png` ; manifeste `start_url=/app/conversations`, `orientation=any` ; icônes livrées |
+
+### Points connus / non vérifiés
+- **Vérification navigateur non effectuée** : overlay de glisser-déposer, collage d'image, debounce de
+  recherche, toasts (empilement et débordement mobile), allègement du rail admin, rendu des icônes
+  maskable (Android/iOS).
+- **Incertitude assumée sur les icônes** : elles sont quantifiées à 256 couleurs ; les métriques sont
+  très bonnes mais **aucune vérification visuelle n'a été possible** (pas d'aperçu d'image).
+  Restaurables par `git checkout -- frontend/public/icons frontend/public/logo.png`.
+- `prompt()` natif toujours présent pour le renommage de groupe (`admin-groups.ts`) — signalé en A.
+- La bannière inline `error` de `thread.ts` reste utilisée pour l'envoi, l'upload et le micro
+  (erreur persistante à côté du composer), en complément des toasts.
+
+### Décisions
+| # | Décision | Raison |
+|---|---|---|
+| B1 | Toasts pour les issues d'action ; bannière inline pour chargement et composer | Une erreur d'action est éphémère, une erreur de chargement ou d'envoi doit rester visible jusqu'à nouvelle tentative. |
+| B2 | Écoute sur le conteneur `.thread` + compteur de profondeur | Le dépôt fonctionne partout dans la conversation, sans scintillement à travers les éléments enfants. |
+| B3 | `switchMap` en plus du `debounceTime` | La réponse d'une recherche obsolète ne peut plus écraser la recherche courante. |
+| B4 | Rail admin réduit à une seule entrée | Supprime le doublon avec les onglets de `admin-layout`. |
+| B5 | Maskable sur fond **blanc**, contenu ramené à 80 % | Cohérent avec `background_color: #ffffff` et l'existant (icônes opaques sur blanc) ; respecte la zone sûre sans refonte graphique. |

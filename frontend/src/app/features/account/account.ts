@@ -12,6 +12,7 @@ import { CompanyService } from '../../core/api/company.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { AvatarComponent } from '../../shared/ui/avatar';
 import { ButtonComponent } from '../../shared/ui/button';
+import { ToastService } from '../../shared/ui/toast';
 
 const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/;
 
@@ -32,6 +33,7 @@ export class AccountComponent {
   private readonly auth = inject(AuthService);
   private readonly companyService = inject(CompanyService);
   private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
   readonly user = this.auth.user;
   readonly isOwner = this.auth.isOwner;
@@ -195,9 +197,13 @@ export class AccountComponent {
   logoutAll(): void {
     this.loggingOutAll.set(true);
     this.auth.logoutAll().subscribe({
-      next: () => void this.router.navigate(['/login']),
+      next: () => {
+        this.toast.success('Toutes les sessions sont fermées.');
+        void this.router.navigate(['/login']);
+      },
       error: () => {
         this.loggingOutAll.set(false);
+        this.toast.error("La déconnexion des autres sessions a échoué.");
         void this.router.navigate(['/login']);
       },
     });

@@ -11,6 +11,7 @@ import { BadgeComponent } from '../../shared/ui/badge';
 import { ConfirmComponent } from '../../shared/ui/confirm';
 import { EmptyStateComponent } from '../../shared/ui/empty-state';
 import { ModalComponent } from '../../shared/ui/modal';
+import { ToastService } from '../../shared/ui/toast';
 
 @Component({
   selector: 'app-admin-groups',
@@ -29,6 +30,7 @@ import { ModalComponent } from '../../shared/ui/modal';
 export class AdminGroupsComponent {
   private readonly groups = inject(AdminGroupsService);
   private readonly users = inject(UsersService);
+  private readonly toast = inject(ToastService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -142,7 +144,7 @@ export class AdminGroupsComponent {
 
     this.groups.archiveGroup(group.id).subscribe({
       next: () => this.load(),
-      error: (error: HttpErrorResponse) => this.error.set(this.readErrorMessage(error)),
+      error: (error: HttpErrorResponse) => this.toast.error(this.readErrorMessage(error)),
     });
   }
 
@@ -154,14 +156,14 @@ export class AdminGroupsComponent {
 
     this.groups.renameGroup(group.id, name).subscribe({
       next: () => this.load(),
-      error: (error: HttpErrorResponse) => this.error.set(this.readErrorMessage(error)),
+      error: (error: HttpErrorResponse) => this.toast.error(this.readErrorMessage(error)),
     });
   }
 
   unarchive(group: GroupDto): void {
     this.groups.unarchiveGroup(group.id).subscribe({
       next: () => this.load(),
-      error: (error: HttpErrorResponse) => this.error.set(this.readErrorMessage(error)),
+      error: (error: HttpErrorResponse) => this.toast.error(this.readErrorMessage(error)),
     });
   }
 
@@ -178,7 +180,7 @@ export class AdminGroupsComponent {
 
     this.groups.deleteGroup(group.id).subscribe({
       next: () => this.load(),
-      error: (error: HttpErrorResponse) => this.error.set(this.readErrorMessage(error)),
+      error: (error: HttpErrorResponse) => this.toast.error(this.readErrorMessage(error)),
     });
   }
 

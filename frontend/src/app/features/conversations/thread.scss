@@ -1248,3 +1248,33 @@
     background: var(--tc-surface-2);
   }
 }
+
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: rgba(var(--tc-accent-rgb), 0.16);
+  backdrop-filter: blur(3px);
+  pointer-events: none;
+  animation: tc-fade-in var(--tc-fast);
+}
+
+.drop-card {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  padding: 1.4rem 2rem;
+  border: 2px dashed var(--tc-accent);
+  border-radius: var(--tc-radius-lg);
+  background: var(--tc-surface);
+  color: var(--tc-text);
+  box-shadow: var(--tc-shadow-lg);
+
+  p {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+}
