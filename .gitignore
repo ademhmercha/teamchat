@@ -59,3 +59,4 @@ crash.log
 *.auto.tfvars
 secrets.tfvars
 # (.terraform.lock.hcl est committe)
+*.tfplan
