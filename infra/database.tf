@@ -30,10 +30,14 @@ resource "aws_db_instance" "main" {
   publicly_accessible    = false
   multi_az               = false
 
-  backup_retention_period    = 7
+  # Free plan : retention limitee (1 jour) ; passer a 7 apres le passage au plan payant.
+  backup_retention_period    = var.rds_backup_retention_days
   auto_minor_version_upgrade = true
 
+  # Reglages au plus simple (Free plan) : ni Performance Insights, ni monitoring avance,
+  # ni autoscaling du stockage (max_allocated_storage volontairement absent).
   performance_insights_enabled = false
+  monitoring_interval          = 0
 
   deletion_protection       = var.db_deletion_protection
   skip_final_snapshot       = var.db_skip_final_snapshot

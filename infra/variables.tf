@@ -26,6 +26,17 @@ variable "db_instance_class" {
   default = "db.t4g.micro"
 }
 
+variable "rds_backup_retention_days" {
+  description = "Retention des sauvegardes automatiques RDS (jours). Free plan : 1 ; passer a 7 apres le passage au plan payant."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.rds_backup_retention_days >= 0 && var.rds_backup_retention_days <= 35
+    error_message = "rds_backup_retention_days doit etre compris entre 0 et 35."
+  }
+}
+
 variable "db_deletion_protection" {
   description = "Empeche la suppression de la base (passer a false avant un terraform destroy)."
   type        = bool

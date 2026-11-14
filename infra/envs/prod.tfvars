@@ -7,8 +7,10 @@
 environment = "prod"
 aws_region  = "eu-north-1"
 
-db_instance_class      = "db.t4g.micro"
-db_deletion_protection = true
-db_skip_final_snapshot = false
+db_instance_class = "db.t4g.micro"
+# 7 apres passage au plan payant (le Free plan refuse une retention plus longue)
+rds_backup_retention_days = 1
+db_deletion_protection    = true
+db_skip_final_snapshot    = false
 
 instance_type = "t3.micro"

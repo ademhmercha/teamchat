@@ -28,7 +28,7 @@ Toute l'infrastructure de production est decrite en Terraform (region eu-north-1
 |---|---|
 | `infra/bootstrap/` | Bucket S3 du state (versioning, chiffre, prive), state local, lance une seule fois |
 | `network.tf` | VPC par defaut ; groupes de securite EC2 (port 80 depuis CloudFront seulement, pas de SSH) et RDS (5432 depuis l'EC2) |
-| `database.tf` | RDS PostgreSQL 16, `db.t4g.micro`, 20 Go gp3, prive, chiffre, sauvegardes 7 jours |
+| `database.tf` | RDS PostgreSQL 16, `db.t4g.micro`, 20 Go gp3, prive, chiffre, sauvegardes 1 jour (Free plan ; `rds_backup_retention_days = 7` apres passage au plan payant) |
 | `storage.tf` | Buckets frontend (OAC) et uploads (versioning, anciennes versions purgees a 30 jours) |
 | `ecr.tf` | Depot `teamchat-api` (scan a l'envoi, 10 images conservees) |
 | `ssm.tf` | Parametres `/teamchat/<env>/...` (nom du parametre = nom de la variable d'environnement) |
