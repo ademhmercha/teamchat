@@ -19,7 +19,7 @@ terraform {
 
 variable "aws_region" {
   type    = string
-  default = "eu-west-1"
+  default = "eu-north-1"
 }
 
 provider "aws" {

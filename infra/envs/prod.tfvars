@@ -5,7 +5,7 @@
 #   TF_VAR_admin_seed_password
 #   TF_VAR_google_client_id
 environment = "prod"
-aws_region  = "eu-west-1"
+aws_region  = "eu-north-1"
 
 db_instance_class      = "db.t4g.micro"
 db_deletion_protection = true

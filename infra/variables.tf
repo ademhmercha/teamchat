@@ -1,6 +1,6 @@
 variable "aws_region" {
   type    = string
-  default = "eu-west-1"
+  default = "eu-north-1"
 }
 
 variable "environment" {
@@ -43,6 +43,26 @@ variable "db_skip_final_snapshot" {
 variable "instance_type" {
   type    = string
   default = "t3.micro"
+}
+
+# ---- Ressources us-east-1 (optionnelles, voir us_east_1.tf) ----
+
+variable "enable_us_east_1_resources" {
+  description = "Cree les ressources imposees en us-east-1 (certificat ACM, alarme CloudFront). Desactive : le compte peut bloquer cette region."
+  type        = bool
+  default     = false
+}
+
+variable "custom_domain" {
+  description = "Domaine personnalise de l'application (ex. chat.exemple.com) : cree un certificat ACM si enable_us_east_1_resources = true."
+  type        = string
+  default     = ""
+}
+
+variable "alert_email" {
+  description = "Adresse qui recoit l'alarme CloudFront 5xx (obligatoire si enable_us_east_1_resources = true)."
+  type        = string
+  default     = ""
 }
 
 # ---- Emails (SES) ----

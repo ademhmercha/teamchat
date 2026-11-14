@@ -22,7 +22,7 @@ GitHub (pull request) -> CodeBuild teamchat-ci (aws/buildspec-ci.yml), statut af
 
 ## Infrastructure : Terraform (`infra/`)
 
-Toute l'infrastructure de production est decrite en Terraform (region eu-west-1, tags `Project` et `Environment`).
+Toute l'infrastructure de production est decrite en Terraform (region eu-north-1, tags `Project` et `Environment`).
 
 | Fichier | Contenu |
 |---|---|
@@ -59,6 +59,23 @@ Les secrets (`admin_seed_password`, `google_client_id`) ne vont jamais dans un f
 variables `TF_VAR_*` ou fichier `*.auto.tfvars` local (ignore par git). Les valeurs sensibles
 (mot de passe RDS, secret JWT) sont aussi dans le state, d'ou le bucket prive et chiffre.
 
+### Region : eu-north-1 (Stockholm)
+
+Le compte est en Free plan : une SCP refuse la creation de ressources hors de `eu-north-1`.
+Tout le projet y est donc deploye. Les services de la region et du compte :
+`t3.micro`, `db.t4g.micro` (PostgreSQL 16), CodeBuild/CodePipeline/CodeDeploy, SES et ECR y sont proposes ;
+verifie-le sur ton compte (lecture seule) :
+
+```bash
+aws ec2 describe-instance-type-offerings --region eu-north-1 --filters Name=instance-type,Values=t3.micro
+aws rds describe-orderable-db-instance-options --region eu-north-1 --engine postgres --engine-version 16   --db-instance-class db.t4g.micro --query 'OrderableDBInstanceOptions[0].DBInstanceClass'
+```
+
+Ressources imposees en **us-east-1** (optionnelles, `enable_us_east_1_resources = false` par defaut, voir `infra/us_east_1.tf`) :
+certificat ACM d'un domaine personnalise pour CloudFront (`custom_domain`) et alarme 5xx CloudFront + sujet SNS (`alert_email`).
+Les ressources CloudFront elles-memes et IAM sont des services globaux : si la SCP les refuse aussi, le `apply` le dira
+(erreur `AccessDenied` explicite) ; il faudra alors demander l'exemption a AWS Support.
+
 ### Etapes manuelles restantes
 
 1. **Budget** : AWS Budgets, budget mensuel avec alerte email (a faire avant tout `apply`).
@@ -85,7 +102,7 @@ pg_restore --no-owner --no-acl -d "<url-postgres-rds>" teamchat.dump
 Les fichiers deja envoyes sur Railway (stockage local) sont a copier dans le bucket uploads
 en conservant les memes cles.
 
-## Couts indicatifs (eu-west-1)
+## Couts indicatifs (eu-north-1)
 
 EC2 t3.micro ~7,5 $/mois, RDS db.t4g.micro + 20 Go ~15 $/mois, IPv4 publique ~3,6 $/mois,
 S3/CloudFront/ECR/CloudWatch ~1 $/mois, CodePipeline/CodeBuild quelques centimes.
@@ -93,7 +110,7 @@ Arreter l'EC2 et la base RDS quand le projet n'est pas utilise.
 
 ## Amazon SES (emails)
 
-- Verifier l'adresse (ou le domaine) d'expediteur dans SES, region `eu-west-1`.
+- Verifier l'adresse (ou le domaine) d'expediteur dans SES, region `eu-north-1`.
 - Un compte SES neuf est en **sandbox** : envoi uniquement vers des adresses verifiees, 200 mails/jour.
   Demander l'acces production (SES > Account dashboard) avant d'ecrire a de vrais utilisateurs.
 - Un echec d'envoi est journalise (CloudWatch `/teamchat/api`) sans faire echouer la requete.

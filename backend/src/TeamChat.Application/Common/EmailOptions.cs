@@ -12,8 +12,8 @@ public sealed class EmailOptions
 
     public string FromName { get; set; } = "TeamChat";
 
-    /// <summary>Region SES (ex. eu-west-1).</summary>
-    public string Region { get; set; } = "eu-west-1";
+    /// <summary>Region SES (ex. eu-north-1).</summary>
+    public string Region { get; set; } = "eu-north-1";
 }
 
 /// <summary>Configuration generale de l'application (section "App").</summary>
