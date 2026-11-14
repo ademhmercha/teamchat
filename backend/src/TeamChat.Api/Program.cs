@@ -173,9 +173,6 @@ app.UseWebSockets();
 
 app.MapControllers();
 
-// Sonde de sante (CodeDeploy ValidateService, supervision).
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
-
 if (!app.Environment.IsProduction())
 {
     app.MapOpenApi();
