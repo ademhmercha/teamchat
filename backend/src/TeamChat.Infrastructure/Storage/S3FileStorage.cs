@@ -1,4 +1,5 @@
 using System.Net;
+using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
@@ -21,18 +22,28 @@ public sealed class S3FileStorage : IFileStorage
     {
         var s3 = options.Value.S3;
 
-        var config = new AmazonS3Config
-        {
-            ServiceURL = s3.Endpoint,
-            ForcePathStyle = s3.ForcePathStyle,
-        };
+        var config = new AmazonS3Config { ForcePathStyle = s3.ForcePathStyle };
 
-        if (!string.IsNullOrWhiteSpace(s3.Region))
+        if (!string.IsNullOrWhiteSpace(s3.Endpoint))
         {
-            config.AuthenticationRegion = s3.Region;
+            // Service S3-compatible (MinIO, R2...) : URL explicite.
+            config.ServiceURL = s3.Endpoint;
+            if (!string.IsNullOrWhiteSpace(s3.Region))
+            {
+                config.AuthenticationRegion = s3.Region;
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(s3.Region))
+        {
+            // AWS S3 natif : endpoint deduit de la region.
+            config.RegionEndpoint = RegionEndpoint.GetBySystemName(s3.Region);
         }
 
-        _client = new AmazonS3Client(new BasicAWSCredentials(s3.AccessKey, s3.SecretKey), config);
+        // Cles explicites si fournies ; sinon chaine d'identifiants par defaut
+        // du SDK (role IAM de l'instance EC2, variables d'environnement, profil...).
+        _client = string.IsNullOrWhiteSpace(s3.AccessKey)
+            ? new AmazonS3Client(config)
+            : new AmazonS3Client(new BasicAWSCredentials(s3.AccessKey, s3.SecretKey), config);
         _bucket = s3.Bucket;
     }
 

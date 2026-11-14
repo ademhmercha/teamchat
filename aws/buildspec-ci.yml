@@ -1,0 +1,32 @@
+# CodeBuild - verification des pull requests (remplace l'ancienne CI GitHub Actions).
+# Projet CodeBuild separe, declenche par webhook GitHub sur PULL_REQUEST_CREATED /
+# PULL_REQUEST_UPDATED / PULL_REQUEST_REOPENED. Le statut s'affiche sur la PR.
+# Ne deploie rien. Mode "privileged" requis (Testcontainers).
+version: 0.2
+
+env:
+  variables:
+    DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+    DOTNET_NOLOGO: "1"
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+    commands:
+      - curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
+      - bash /tmp/dotnet-install.sh --channel 10.0 --install-dir "$HOME/.dotnet"
+
+  build:
+    commands:
+      - export PATH="$HOME/.dotnet:$PATH"
+      - dotnet restore backend/TeamChat.sln
+      - dotnet build backend/TeamChat.sln -c Release --no-restore
+      - dotnet test backend/TeamChat.sln -c Release --no-build
+      - docker build -t teamchat-api:ci ./backend
+      - cd frontend && npm ci && npm run build -- --configuration production
+
+cache:
+  paths:
+    - /root/.nuget/packages/**/*
+    - frontend/node_modules/**/*
