@@ -23,7 +23,7 @@ resource "aws_db_instance" "main" {
   username = var.db_username
   password = random_password.db.result
   # Mot de passe genere par Terraform et stocke dans SSM (pas de Secrets Manager : cout).
-  manage_master_user_password = false
+  # Ne pas definir manage_master_user_password : en provider aws v6 il entre en conflit avec password.
 
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
