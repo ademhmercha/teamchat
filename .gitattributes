@@ -1,0 +1,4 @@
+# Scripts executes sur Linux (CodeDeploy, CodeBuild) : toujours LF.
+*.sh text eol=lf
+buildspec*.yml text eol=lf
+aws/**/*.yml text eol=lf
