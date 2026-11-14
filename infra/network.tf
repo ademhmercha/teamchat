@@ -19,7 +19,7 @@ data "aws_ec2_managed_prefix_list" "cloudfront" {
 
 resource "aws_security_group" "ec2" {
   name_prefix = "teamchat-${local.env}-ec2-"
-  description = "API TeamChat : HTTP depuis CloudFront uniquement"
+  description = "TeamChat API - HTTP from CloudFront only"
   vpc_id      = data.aws_vpc.default.id
 
   lifecycle {
@@ -30,7 +30,7 @@ resource "aws_security_group" "ec2" {
 # Attention : cette liste compte pour ~55 regles dans le quota (60 par defaut) du groupe.
 resource "aws_vpc_security_group_ingress_rule" "ec2_http_from_cloudfront" {
   security_group_id = aws_security_group.ec2.id
-  description       = "HTTP depuis CloudFront"
+  description       = "HTTP from CloudFront"
   prefix_list_id    = data.aws_ec2_managed_prefix_list.cloudfront.id
   ip_protocol       = "tcp"
   from_port         = 80
@@ -39,7 +39,7 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_http_from_cloudfront" {
 
 resource "aws_vpc_security_group_egress_rule" "ec2_all" {
   security_group_id = aws_security_group.ec2.id
-  description       = "Sortie libre (ECR, SSM, S3, SES, RDS...)"
+  description       = "Allow all outbound"
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
 }
@@ -48,7 +48,7 @@ resource "aws_vpc_security_group_egress_rule" "ec2_all" {
 
 resource "aws_security_group" "rds" {
   name_prefix = "teamchat-${local.env}-rds-"
-  description = "PostgreSQL TeamChat : depuis l'EC2 uniquement"
+  description = "TeamChat PostgreSQL - from EC2 only"
   vpc_id      = data.aws_vpc.default.id
 
   lifecycle {
@@ -58,7 +58,7 @@ resource "aws_security_group" "rds" {
 
 resource "aws_vpc_security_group_ingress_rule" "rds_from_ec2" {
   security_group_id            = aws_security_group.rds.id
-  description                  = "PostgreSQL depuis l'EC2"
+  description                  = "PostgreSQL from EC2"
   referenced_security_group_id = aws_security_group.ec2.id
   ip_protocol                  = "tcp"
   from_port                    = 5432

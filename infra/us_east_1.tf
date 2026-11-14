@@ -54,7 +54,7 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_5xx" {
   provider = aws.us_east_1
 
   alarm_name          = "teamchat-${local.env}-cloudfront-5xx"
-  alarm_description   = "Plus de 5 % de reponses 5xx sur CloudFront"
+  alarm_description   = "CloudFront 5xx error rate above 5 percent"
   namespace           = "AWS/CloudFront"
   metric_name         = "5xxErrorRate"
   statistic           = "Average"
