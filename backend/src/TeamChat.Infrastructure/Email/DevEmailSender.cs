@@ -3,10 +3,7 @@ using TeamChat.Application.Abstractions;
 
 namespace TeamChat.Infrastructure.Email;
 
-/// <summary>
-/// En dev, l'envoi d'email se contente de journaliser le contenu (dont le lien
-/// d'invitation). A remplacer par un vrai fournisseur SMTP en production.
-/// </summary>
+/// <summary>En dev, l'envoi d'email se contente de journaliser le contenu (dont les liens).</summary>
 public sealed class DevEmailSender : IEmailSender
 {
     private readonly ILogger<DevEmailSender> _logger;
@@ -16,9 +13,10 @@ public sealed class DevEmailSender : IEmailSender
         _logger = logger;
     }
 
-    public Task SendAsync(string to, string subject, string body, CancellationToken cancellationToken = default)
+    public Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("[DevEmailSender] Email vers {To} - {Subject}\n{Body}", to, subject, body);
+        _logger.LogInformation(
+            "[DevEmailSender] Email vers {To} - {Subject}\n{Body}", message.To, message.Subject, message.TextBody);
         return Task.CompletedTask;
     }
 }

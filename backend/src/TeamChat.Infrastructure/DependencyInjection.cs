@@ -1,3 +1,5 @@
+using Amazon;
+using Amazon.SimpleEmailV2;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -27,6 +29,8 @@ public static class DependencyInjection
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<GoogleOptions>(configuration.GetSection(GoogleOptions.SectionName));
         services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        services.Configure<AppOptions>(configuration.GetSection(AppOptions.SectionName));
         services.Configure<CallOptions>(configuration.GetSection(CallOptions.SectionName));
         services.Configure<TurnOptions>(configuration.GetSection(TurnOptions.SectionName));
 
@@ -34,6 +38,7 @@ public static class DependencyInjection
         AddCache(services, configuration);
         AddDatabase(services, configuration);
         AddStorage(services, configuration);
+        AddEmail(services, configuration);
         AddIdentity(services);
         AddServices(services);
 
@@ -77,6 +82,29 @@ public static class DependencyInjection
         services.AddScoped<IAttachmentQueries, AttachmentQueries>();
     }
 
+    private static void AddEmail(IServiceCollection services, IConfiguration configuration)
+    {
+        var provider = configuration["Email:Provider"];
+        if (!string.Equals(provider, "Ses", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddScoped<IEmailSender, DevEmailSender>();
+            return;
+        }
+
+        // Echec au demarrage plutot qu'au premier mail si la configuration est incomplete.
+        if (string.IsNullOrWhiteSpace(configuration["Email:FromAddress"]))
+        {
+            throw new InvalidOperationException("Email:FromAddress est requis quand Email:Provider=Ses.");
+        }
+
+        var region = configuration["Email:Region"];
+        services.AddSingleton<IAmazonSimpleEmailServiceV2>(_ =>
+            string.IsNullOrWhiteSpace(region)
+                ? new AmazonSimpleEmailServiceV2Client()
+                : new AmazonSimpleEmailServiceV2Client(RegionEndpoint.GetBySystemName(region)));
+        services.AddSingleton<IEmailSender, SesEmailSender>();
+    }
+
     private static void AddIdentity(IServiceCollection services)
     {
         services.AddIdentityCore<AppUser>(options =>
@@ -112,7 +140,6 @@ public static class DependencyInjection
         services.AddScoped<IUserProfileCache, UserProfileCache>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
-        services.AddScoped<IEmailSender, DevEmailSender>();
         services.AddScoped<IConversationQueries, ConversationQueries>();
         services.AddScoped<IAdminGroupQueries, AdminGroupQueries>();
         services.AddScoped<IAdminStatsQueries, AdminStatsQueries>();

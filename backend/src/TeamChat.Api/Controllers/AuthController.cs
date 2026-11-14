@@ -90,8 +90,8 @@ public sealed class AuthController : ControllerBase
         [FromBody] ForgotPasswordRequest request,
         CancellationToken cancellationToken)
     {
-        var resetBaseUrl = $"{Request.Scheme}://{Request.Host}/reset-password";
-        await _auth.ForgotPasswordAsync(request, resetBaseUrl, cancellationToken);
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        await _auth.ForgotPasswordAsync(request, baseUrl, cancellationToken);
         return Accepted();
     }
 
