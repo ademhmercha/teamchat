@@ -34,6 +34,10 @@ GitHub (pull request) -> CodeBuild teamchat-ci (aws/buildspec-ci.yml), statut af
    - `Storage__Provider` = `S3`, `Storage__S3__Bucket` = `teamchat-uploads-<compte>`,
      `Storage__S3__Region` = `eu-west-1`, `Storage__S3__ForcePathStyle` = `false`
      (ne pas definir `Storage__S3__AccessKey` : le role IAM de l'instance est utilise)
+   - `Email__Provider` = `Ses`, `Email__FromAddress` (adresse ou domaine verifie dans SES),
+     `Email__FromName` (optionnel), `Email__Region` = `eu-west-1`
+   - `App__PublicUrl` = `https://<domaine-cloudfront>` (sans slash final ; sert aux liens des emails,
+     car derriere CloudFront l'hote de la requete est celui de l'EC2)
    - `Admin__SeedEmail`, `Admin__SeedPassword`, `Google__ClientId` (si utilise)
 6. **Role IAM de l'EC2** `teamchat-ec2-role` :
    - `AmazonSSMManagedInstanceCore`, `AmazonEC2ContainerRegistryReadOnly`
@@ -41,6 +45,7 @@ GitHub (pull request) -> CodeBuild teamchat-ci (aws/buildspec-ci.yml), statut af
    - `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject` sur `teamchat-uploads-<compte>/*`
    - `s3:GetObject` sur le bucket d'artefacts CodePipeline (lecture des revisions CodeDeploy)
    - `logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents`
+   - `ses:SendEmail` limite a l'identite SES (`arn:aws:ses:eu-west-1:<compte>:identity/<adresse-ou-domaine>`)
 7. **EC2** Amazon Linux 2023, `t3.micro`, 20 Go gp3, role ci-dessus, tag `App=teamchat`.
    Groupe de securite : port 80 uniquement depuis la liste de prefixes geree
    `com.amazonaws.global.cloudfront.origin-facing`. Pas de SSH : Session Manager.
@@ -91,3 +96,13 @@ en conservant les memes cles.
 EC2 t3.micro ~7,5 $/mois, RDS db.t4g.micro + 20 Go ~15 $/mois, IPv4 publique ~3,6 $/mois,
 S3/CloudFront/ECR/CloudWatch ~1 $/mois, CodePipeline/CodeBuild quelques centimes.
 Arreter l'EC2 et la base RDS quand le projet n'est pas utilise.
+
+## Amazon SES (emails)
+
+- Verifier l'adresse (ou le domaine) d'expediteur dans SES, region `eu-west-1`.
+- Un compte SES neuf est en **sandbox** : envoi uniquement vers des adresses verifiees, 200 mails/jour.
+  Demander l'acces production (SES > Account dashboard) avant d'ecrire a de vrais utilisateurs.
+- Un echec d'envoi est journalise (CloudWatch `/teamchat/api`) sans faire echouer la requete.
+- Emails envoyes aujourd'hui : mot de passe oublie et bienvenue (creation d'entreprise, uniquement si
+  `App__PublicUrl` est defini). Le gabarit d'invitation existe mais n'est pas utilise : l'admin cree
+  les comptes avec un mot de passe, sans email (CLAUDE.md).

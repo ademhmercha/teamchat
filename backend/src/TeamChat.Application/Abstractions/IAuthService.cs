@@ -30,7 +30,7 @@ public interface IAuthService
     /// <summary>Envoie un lien de reinitialisation (sans reveler l'existence du compte).</summary>
     Task ForgotPasswordAsync(
         ForgotPasswordRequest request,
-        string resetBaseUrl,
+        string fallbackBaseUrl,
         CancellationToken cancellationToken = default);
 
     /// <summary>Definit un nouveau mot de passe a partir du token recu par email.</summary>
