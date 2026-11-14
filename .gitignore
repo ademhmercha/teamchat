@@ -50,3 +50,12 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
+
+# ---- Terraform ----
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.auto.tfvars
+secrets.tfvars
+# (.terraform.lock.hcl est committe)
