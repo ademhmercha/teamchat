@@ -39,7 +39,7 @@ public sealed class S3FileStorageTests : IDisposable
     [Fact]
     public void Without_access_key_uses_default_credential_chain()
     {
-        var client = CreateClient(new S3StorageOptions { Bucket = "b", Region = "eu-west-1", Endpoint = "" });
+        var client = CreateClient(new S3StorageOptions { Bucket = "b", Region = "eu-north-1", Endpoint = "" });
 
         var credentials = GetCredentials(client);
         // Chaine par defaut : le SDK resout les identifiants a la premiere requete, donc rien
@@ -57,7 +57,7 @@ public sealed class S3FileStorageTests : IDisposable
         var client = CreateClient(new S3StorageOptions
         {
             Bucket = "b",
-            Region = "eu-west-1",
+            Region = "eu-north-1",
             AccessKey = "EXPLICITKEY",
             SecretKey = "explicitsecret",
         });
@@ -87,9 +87,9 @@ public sealed class S3FileStorageTests : IDisposable
     [Fact]
     public void Without_endpoint_uses_region_endpoint()
     {
-        var client = CreateClient(new S3StorageOptions { Bucket = "b", Region = "eu-west-1", Endpoint = "" });
+        var client = CreateClient(new S3StorageOptions { Bucket = "b", Region = "eu-north-1", Endpoint = "" });
 
-        Assert.Equal("eu-west-1", client.Config.RegionEndpoint?.SystemName);
+        Assert.Equal("eu-north-1", client.Config.RegionEndpoint?.SystemName);
         Assert.True(string.IsNullOrEmpty(client.Config.ServiceURL));
     }
 

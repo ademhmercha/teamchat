@@ -45,7 +45,6 @@ docker run -d \
   --log-driver awslogs \
   --log-opt awslogs-region="$AWS_REGION" \
   --log-opt awslogs-group=/teamchat/api \
-  --log-opt awslogs-create-group=true \
   "$IMAGE_URI"
 
 # 4. Menage des anciennes images.
