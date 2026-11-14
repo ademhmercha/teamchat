@@ -19,7 +19,7 @@ data "aws_ec2_managed_prefix_list" "cloudfront" {
 
 resource "aws_security_group" "ec2" {
   name_prefix = "teamchat-${local.env}-ec2-"
-  description = "TeamChat API - HTTP from CloudFront only"
+  description = "API TeamChat : HTTP depuis CloudFront uniquement"
   vpc_id      = data.aws_vpc.default.id
 
   lifecycle {
