@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using TeamChat.Application.Abstractions;
 using TeamChat.Application.Auth.Dtos;
 using TeamChat.Application.Common;
+using TeamChat.Application.Email;
 using TeamChat.Application.Users.Dtos;
 using TeamChat.Domain.Entities;
 
@@ -19,6 +20,7 @@ public sealed class AuthService : IAuthService
     private readonly IEmailSender _email;
     private readonly ITenantService _tenants;
     private readonly JwtOptions _jwtOptions;
+    private readonly AppOptions _appOptions;
     private readonly TimeProvider _clock;
 
     public AuthService(
@@ -30,6 +32,7 @@ public sealed class AuthService : IAuthService
         IEmailSender email,
         ITenantService tenants,
         IOptions<JwtOptions> jwtOptions,
+        IOptions<AppOptions> appOptions,
         TimeProvider clock)
     {
         _identity = identity;
@@ -40,6 +43,7 @@ public sealed class AuthService : IAuthService
         _email = email;
         _tenants = tenants;
         _jwtOptions = jwtOptions.Value;
+        _appOptions = appOptions.Value;
         _clock = clock;
     }
 
@@ -78,6 +82,14 @@ public sealed class AuthService : IAuthService
         {
             throw new ValidationException(roles.Errors.Select(e =>
                 new FluentValidation.Results.ValidationFailure(string.Empty, e)));
+        }
+
+        // Le lien du mail vient de App:PublicUrl ; sans cette config, pas de mail (lien inutilisable).
+        if (!string.IsNullOrWhiteSpace(_appOptions.PublicUrl))
+        {
+            await _email.SendAsync(
+                EmailTemplates.Welcome(owner.Email!, owner.DisplayName, request.CompanyName.Trim(), _appOptions.PublicUrl),
+                cancellationToken);
         }
 
         return await IssueTokensAsync(owner, cancellationToken);
@@ -226,7 +238,7 @@ public sealed class AuthService : IAuthService
 
     public async Task ForgotPasswordAsync(
         ForgotPasswordRequest request,
-        string resetBaseUrl,
+        string fallbackBaseUrl,
         CancellationToken cancellationToken = default)
     {
         var user = await _identity.FindByEmailAsync(request.Email, cancellationToken);
@@ -238,11 +250,10 @@ public sealed class AuthService : IAuthService
         }
 
         var token = await _identity.GeneratePasswordResetTokenAsync(user, cancellationToken);
-        var link = $"{resetBaseUrl}?userId={user.Id}&token={Uri.EscapeDataString(token)}";
+        // App:PublicUrl d'abord : derriere CloudFront, l'hote de la requete est celui de l'EC2, pas le domaine public.
+        var baseUrl = string.IsNullOrWhiteSpace(_appOptions.PublicUrl) ? fallbackBaseUrl : _appOptions.PublicUrl;
         await _email.SendAsync(
-            user.Email!,
-            "Reinitialisation de votre mot de passe TeamChat",
-            $"Bonjour {user.DisplayName}, definissez un nouveau mot de passe : {link}",
+            EmailTemplates.PasswordReset(user.Email!, user.DisplayName, baseUrl, user.Id, token),
             cancellationToken);
     }
 

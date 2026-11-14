@@ -1,0 +1,78 @@
+# CodeBuild - etape "Build" du pipeline CodePipeline (branche main).
+# Tests backend -> image Docker de l'API sur ECR -> frontend Angular sur S3 + invalidation CloudFront.
+# Produit l'artefact CodeDeploy (aws/codedeploy) avec le tag de l'image a deployer.
+#
+# Variables d'environnement a definir dans le projet CodeBuild :
+#   ECR_REPOSITORY              ex. teamchat-api
+#   FRONTEND_BUCKET             ex. teamchat-frontend-123456789012
+#   CLOUDFRONT_DISTRIBUTION_ID  ex. E1ABCDEF2GHIJK
+# AWS_DEFAULT_REGION et CODEBUILD_RESOLVED_SOURCE_VERSION sont fournis par CodeBuild.
+# Le projet doit etre en mode "privileged" (Docker, Testcontainers).
+version: 0.2
+
+env:
+  variables:
+    DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+    DOTNET_NOLOGO: "1"
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+    commands:
+      # .NET 10 n'est pas forcement dans l'image CodeBuild : installation via le script officiel.
+      - curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
+      - bash /tmp/dotnet-install.sh --channel 10.0 --install-dir "$HOME/.dotnet"
+      - export PATH="$HOME/.dotnet:$PATH"
+      - dotnet --version
+
+  pre_build:
+    commands:
+      - export PATH="$HOME/.dotnet:$PATH"
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - REGISTRY="$ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
+      - IMAGE_TAG=$(echo "$CODEBUILD_RESOLVED_SOURCE_VERSION" | cut -c1-7)
+      - IMAGE_URI="$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$REGISTRY"
+
+  build:
+    commands:
+      - export PATH="$HOME/.dotnet:$PATH"
+      # 1. Backend : build + tests (on s'arrete ici si un test echoue).
+      - dotnet restore backend/TeamChat.sln
+      - dotnet build backend/TeamChat.sln -c Release --no-restore
+      - dotnet test backend/TeamChat.sln -c Release --no-build
+      # 2. Image Docker de l'API.
+      - docker build -t "$IMAGE_URI" -t "$REGISTRY/$ECR_REPOSITORY:latest" ./backend
+      # 3. Frontend Angular.
+      - cd frontend && npm ci && npm run build -- --configuration production && cd ..
+
+  post_build:
+    commands:
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" != "1" ]; then echo "Build en echec, rien n'est publie."; exit 1; fi
+      - docker push "$IMAGE_URI"
+      - docker push "$REGISTRY/$ECR_REPOSITORY:latest"
+      # Frontend : fichiers haches en cache long, index.html et fichiers du service worker sans cache.
+      - >-
+        aws s3 sync frontend/dist/frontend/browser "s3://$FRONTEND_BUCKET" --delete
+        --cache-control "public,max-age=31536000,immutable"
+        --exclude "index.html" --exclude "ngsw.json" --exclude "ngsw-worker.js"
+        --exclude "safety-worker.js" --exclude "worker-basic.min.js" --exclude "manifest.webmanifest"
+      - >-
+        for f in index.html ngsw.json ngsw-worker.js safety-worker.js worker-basic.min.js manifest.webmanifest; do
+        if [ -f "frontend/dist/frontend/browser/$f" ]; then
+        aws s3 cp "frontend/dist/frontend/browser/$f" "s3://$FRONTEND_BUCKET/$f" --cache-control "no-cache"; fi; done
+      - aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/index.html" "/ngsw.json" "/manifest.webmanifest"
+      # Tag de l'image transmis a CodeDeploy.
+      - echo "IMAGE_URI=$IMAGE_URI" > aws/codedeploy/image.env
+      - echo "AWS_REGION=$AWS_DEFAULT_REGION" >> aws/codedeploy/image.env
+
+artifacts:
+  base-directory: aws/codedeploy
+  files:
+    - '**/*'
+
+cache:
+  paths:
+    - /root/.nuget/packages/**/*
+    - frontend/node_modules/**/*

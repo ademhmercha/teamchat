@@ -30,5 +30,16 @@ public sealed class HealthEndpointTests
         Assert.Equal("HybridCacheService", payload.Cache);
     }
 
+    [Fact]
+    public async Task Health_endpoint_is_reachable_without_authentication()
+    {
+        using var client = _fixture.Factory.CreateClient();
+        Assert.Null(client.DefaultRequestHeaders.Authorization);
+
+        var response = await client.GetAsync("/api/health");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
     public sealed record HealthResponse(string Status, string Service, string Cache);
 }

@@ -1,6 +1,7 @@
 export const environment = {
   production: true,
   apiBaseUrl: '',
-  hubBaseUrl: 'https://teamchat-production-ea3b.up.railway.app',
+  // Meme origine que le frontend : CloudFront route /api/* et /hubs/* vers l'API.
+  hubBaseUrl: '',
   googleClientId: '',
 };

@@ -15,7 +15,9 @@ L'avancement est suivi dans [`PROGRESS.md`](./PROGRESS.md).
 - **Appels** : WebRTC (signalisation via SignalR), STUN/TURN
 - **Cache** : HybridCache (memoire L1 par defaut, Redis L2 optionnel). Redis active aussi le backplane SignalR (multi-instances)
 - **Tests** : xUnit, Moq, FluentAssertions, Testcontainers ; Jasmine/Jest cote frontend
-- **DevOps** : Docker, docker-compose, GitHub Actions
+- **DevOps** : Docker, docker-compose
+- **Hebergement AWS** : CloudFront + S3 (frontend), EC2 + ECR (API), RDS PostgreSQL, S3 (fichiers), SSM Parameter Store, CloudWatch
+- **CI/CD AWS** : CodePipeline, CodeBuild (tests + build, verification des PR), CodeDeploy. Voir [`aws/README.md`](./aws/README.md)
 
 ## Prerequis
 
