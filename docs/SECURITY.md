@@ -32,8 +32,14 @@
 
 ## 3. Ce que la phase 4 a ajouté
 
-CloudTrail (gestion, multi-région, 90 jours, validation d'intégrité), IAM Access Analyzer, blocage de l'accès public S3 au
-niveau du compte, chiffrement EBS par défaut, AWS Budgets, scan ECR bloquant sur CRITICAL, alarmes CloudWatch.
+CloudTrail (gestion, multi-région, 90 jours, validation d'intégrité), blocage de l'accès public S3 au niveau du compte,
+chiffrement EBS par défaut, AWS Budgets, scan ECR bloquant sur CRITICAL, alarmes CloudWatch.
+
+**IAM Access Analyzer : à activer après passage au plan payant.** Une SCP du Free plan refuse `access-analyzer:TagResource`
+(explicit deny) ; la ressource existe donc mais reste désactivée (`enable_access_analyzer = false`). Après le passage au plan
+payant, mettre `enable_access_analyzer = true` dans `infra/envs/prod.tfvars`, puis `terraform apply`. En attendant, l'analyse
+« ressources accessibles depuis l'extérieur » se fait à la main : blocage public S3 au niveau du compte (déjà actif) et revue des
+politiques de ressources (buckets, SNS).
 
 ## 4. Étapes suivantes (non faites : coût)
 

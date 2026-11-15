@@ -106,7 +106,8 @@ Notes :
   restauration RDS vaut `rds_backup_retention_days` : **1 jour en Free plan**, 7 apres passage au plan payant.
   Les buckets `uploads` et `tfstate` sont versionnes ; le snapshot final RDS est cree a la suppression (`copy_tags_to_snapshot`).
 - **CloudTrail** : un trail multi-region, evenements de gestion uniquement, bucket dedie purge a 90 jours, validation d'integrite.
-- **IAM Access Analyzer** (ressources accessibles depuis l'exterieur), **blocage public S3 au niveau du compte**,
+- **IAM Access Analyzer** (optionnel, `enable_access_analyzer = false` : refuse par une SCP du Free plan, a activer apres passage au plan payant),
+  **blocage public S3 au niveau du compte**,
   **chiffrement EBS par defaut**. Ce blocage s'applique a TOUS les buckets du compte.
 - **AWS Budgets** : `budget_limit_usd` (20 $ par defaut), alertes a 80 % reel et 100 % prevu envoyees a `alert_email`.
   Budget deja cree a la main : `budget_name` = son nom exact + `import_existing_budget = true` (une seule fois), et

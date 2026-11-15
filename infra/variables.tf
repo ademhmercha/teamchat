@@ -106,6 +106,12 @@ variable "import_existing_budget" {
   default     = false
 }
 
+variable "enable_access_analyzer" {
+  description = "Cree l'analyseur IAM Access Analyzer. Desactive : une SCP du Free plan refuse access-analyzer:TagResource. A activer apres passage au plan payant."
+  type        = bool
+  default     = false
+}
+
 variable "ecr_scan_fail_on_critical" {
   description = "Fait echouer le build si le scan ECR trouve une vulnerabilite CRITICAL (aws/scripts/check-ecr-scan.sh)."
   type        = bool

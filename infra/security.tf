@@ -144,7 +144,11 @@ resource "aws_cloudtrail" "main" {
 
 # ---------------- IAM Access Analyzer : ressources accessibles depuis l'exterieur du compte ----------------
 
+# Desactive par defaut : une SCP du Free plan refuse access-analyzer:TagResource (explicit deny).
+# A activer apres passage au plan payant : enable_access_analyzer = true.
 resource "aws_accessanalyzer_analyzer" "main" {
+  count = var.enable_access_analyzer ? 1 : 0
+
   analyzer_name = "teamchat-${local.env}"
   type          = "ACCOUNT"
 }
