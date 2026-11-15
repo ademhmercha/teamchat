@@ -21,7 +21,6 @@ public interface IProfileService
     Task<UserProfileDto> UploadAvatarAsync(
         Guid userId,
         AvatarUpload upload,
-        string baseUrl,
         CancellationToken cancellationToken = default);
 
     Task RemoveAvatarAsync(Guid userId, CancellationToken cancellationToken = default);

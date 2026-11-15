@@ -4,6 +4,30 @@ import { environment } from '../../../environments/environment';
 
 export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
 
+/** Vrai pour un chemin relatif de l'API (/api/...) ou une URL commencant par apiBaseUrl (si non vide). */
+export function isApiUrl(url: string): boolean {
+  if (url.startsWith('/api/')) {
+    return true;
+  }
+  return environment.apiBaseUrl !== '' && url.startsWith(`${environment.apiBaseUrl}/`);
+}
+
+const LEGACY_ABSOLUTE_AVATAR =
+  /^https?:\/\/[^/]+(\/api\/users\/[0-9a-f-]{36}\/avatar(?:\?[^#]*)?)(?:#.*)?$/i;
+
+/**
+ * L'API renvoie des chemins relatifs. D'anciennes donnees (cache, service worker) peuvent contenir
+ * http://hote-ec2/api/users/{id}/avatar, bloque en Mixed Content : on garde le chemin, qui passe par CloudFront.
+ * Le parametre de cache (?t=) est conserve.
+ */
+export function toApiAvatarPath(src: string | null): string | null {
+  if (!src) {
+    return null;
+  }
+  const legacy = LEGACY_ABSOLUTE_AVATAR.exec(src);
+  return legacy ? legacy[1] : src;
+}
+
 @Component({
   selector: 'tc-avatar',
   host: {
@@ -110,13 +134,16 @@ export class AvatarComponent implements OnDestroy {
    * grace a l'intercepteur) et on expose un object URL local.
    */
   readonly imageSrc = computed(() => {
-    const src = this.src();
+    const src = this.resolvedSrc();
     if (!src) {
       return null;
     }
 
     return this.needsAuth(src) ? this._resolved() : src;
   });
+
+  /** Source normalisee : une ancienne URL absolue vers l'API redevient un chemin relatif. */
+  private readonly resolvedSrc = computed(() => toApiAvatarPath(this.src()));
 
   readonly initials = computed(() => {
     const value = this.name().trim();
@@ -132,7 +159,7 @@ export class AvatarComponent implements OnDestroy {
 
   constructor() {
     effect(() => {
-      const src = this.src();
+      const src = this.resolvedSrc();
 
       if (!src || !this.needsAuth(src)) {
         this.release();
@@ -167,8 +194,12 @@ export class AvatarComponent implements OnDestroy {
     this.release();
   }
 
+  /**
+   * Seules les URL de NOTRE API demandent le jeton : chemin relatif (/api/...) ou URL sous apiBaseUrl.
+   * Une URL externe (ex. photo Google) est affichee telle quelle, sans jamais recevoir le Bearer.
+   */
   private needsAuth(src: string): boolean {
-    return src.startsWith(environment.apiBaseUrl) || src.includes('/api/');
+    return isApiUrl(src);
   }
 
   private release(): void {

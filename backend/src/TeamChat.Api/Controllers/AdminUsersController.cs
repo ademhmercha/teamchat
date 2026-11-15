@@ -37,7 +37,8 @@ public sealed class AdminUsersController : ControllerBase
         CancellationToken cancellationToken)
     {
         var profile = await _admin.CreateAsync(request, cancellationToken);
-        return CreatedAtAction(nameof(UsersController.Get), "Users", new { id = profile.Id }, profile);
+        // Location relative : CreatedAtAction genererait une URL absolue a partir de l'hote de l'EC2 (http).
+        return Created($"/api/users/{profile.Id}", profile);
     }
 
     [HttpPatch("{id:guid}")]

@@ -58,9 +58,8 @@ public sealed class UsersController : ControllerBase
 
         await using var stream = form.File.OpenReadStream();
         var upload = new AvatarUpload(form.File.FileName, form.File.ContentType, form.File.Length, stream);
-        var baseUrl = $"{Request.Scheme}://{Request.Host}";
 
-        return Ok(await _profile.UploadAvatarAsync(User.GetUserId(), upload, baseUrl, cancellationToken));
+        return Ok(await _profile.UploadAvatarAsync(User.GetUserId(), upload, cancellationToken));
     }
 
     [HttpDelete("me/avatar")]

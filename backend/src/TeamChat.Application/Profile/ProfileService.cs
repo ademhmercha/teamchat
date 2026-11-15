@@ -88,7 +88,6 @@ public sealed class ProfileService : IProfileService
     public async Task<UserProfileDto> UploadAvatarAsync(
         Guid userId,
         AvatarUpload upload,
-        string baseUrl,
         CancellationToken cancellationToken = default)
     {
         var user = await FindAsync(userId, cancellationToken);
@@ -113,7 +112,8 @@ public sealed class ProfileService : IProfileService
 
         await _storage.SaveAsync(StorageKey(userId), new MemoryStream(data, writable: false), detected.ContentType, cancellationToken);
 
-        user.AvatarUrl = $"{baseUrl.TrimEnd('/')}/api/users/{userId}/avatar";
+        // Chemin relatif : l'hote vu par l'API (EC2, http) n'est pas celui du visiteur (CloudFront, https).
+        user.AvatarUrl = AvatarUrls.ForUser(userId);
 
         var result = await _identity.UpdateAsync(user, cancellationToken);
         if (!result.Succeeded)

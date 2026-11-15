@@ -13,7 +13,12 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const router = inject(Router);
   const connectivity = inject(ConnectivityService);
 
-  const isApi = request.url.startsWith(environment.apiBaseUrl);
+  // apiBaseUrl vaut '' en production (meme origine) : startsWith('') serait vrai pour N'IMPORTE QUELLE
+  // URL, jeton Bearer compris. On ne cible que les chemins relatifs, ou l'origine configuree si elle existe.
+  const isApi =
+    environment.apiBaseUrl === ''
+      ? request.url.startsWith('/')
+      : request.url.startsWith(environment.apiBaseUrl);
   const isAuthEndpoint = AUTH_ENDPOINTS.some((path) => request.url.includes(path));
 
   let outgoing = request;

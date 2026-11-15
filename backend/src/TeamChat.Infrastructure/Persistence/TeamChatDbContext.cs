@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeamChat.Application.Abstractions;
+using TeamChat.Application.Common;
 using TeamChat.Domain.Entities;
 
 namespace TeamChat.Infrastructure.Persistence;
@@ -54,7 +56,13 @@ public sealed class TeamChatDbContext : IdentityDbContext<AppUser, IdentityRole<
         builder.Entity<AppUser>(entity =>
         {
             entity.Property(u => u.DisplayName).HasMaxLength(100).IsRequired();
-            entity.Property(u => u.AvatarUrl).HasMaxLength(2048);
+            entity.Property(u => u.AvatarUrl)
+                .HasMaxLength(2048)
+                // Ecriture ET lecture : d'anciennes lignes contenant une URL absolue (http://hote-ec2/api/...)
+                // ressortent en chemin relatif, quelle que soit la requete qui les lit.
+                .HasConversion(new ValueConverter<string?, string>(
+                    v => AvatarUrls.Normalize(v)!,
+                    v => AvatarUrls.Normalize(v)));
             entity.HasIndex(u => u.DisplayName);
             entity.HasIndex(u => u.TenantId);
             entity.HasQueryFilter(u => TenantFilterBypassed || u.TenantId == CurrentTenantId);
