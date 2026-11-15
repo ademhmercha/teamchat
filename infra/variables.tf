@@ -26,6 +26,17 @@ variable "db_instance_class" {
   default = "db.t4g.micro"
 }
 
+variable "rds_backup_retention_days" {
+  description = "Retention des sauvegardes automatiques RDS (jours). Free plan : 1 ; passer a 7 apres le passage au plan payant."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.rds_backup_retention_days >= 0 && var.rds_backup_retention_days <= 35
+    error_message = "rds_backup_retention_days doit etre compris entre 0 et 35."
+  }
+}
+
 variable "db_deletion_protection" {
   description = "Empeche la suppression de la base (passer a false avant un terraform destroy)."
   type        = bool
@@ -43,6 +54,36 @@ variable "db_skip_final_snapshot" {
 variable "instance_type" {
   type    = string
   default = "t3.micro"
+}
+
+# ---- CI/CD ----
+
+variable "github_repository" {
+  description = "Depot GitHub (proprietaire/nom) surveille par le pipeline."
+  type        = string
+  default     = "ademhmercha/teamchat"
+}
+
+variable "github_branch" {
+  type    = string
+  default = "main"
+}
+
+variable "codebuild_compute_type" {
+  description = "Taille des builds CodeBuild : BUILD_GENERAL1_SMALL (defaut) ou BUILD_GENERAL1_MEDIUM si les tests sont trop lents."
+  type        = string
+  default     = "BUILD_GENERAL1_SMALL"
+
+  validation {
+    condition     = contains(["BUILD_GENERAL1_SMALL", "BUILD_GENERAL1_MEDIUM", "BUILD_GENERAL1_LARGE"], var.codebuild_compute_type)
+    error_message = "Valeurs possibles : BUILD_GENERAL1_SMALL, BUILD_GENERAL1_MEDIUM, BUILD_GENERAL1_LARGE."
+  }
+}
+
+variable "enable_pr_checks" {
+  description = "Cree le projet teamchat-ci et son webhook GitHub (verification des pull requests). A activer APRES avoir valide la connexion GitHub dans la console."
+  type        = bool
+  default     = false
 }
 
 # ---- Ressources us-east-1 (optionnelles, voir us_east_1.tf) ----
