@@ -87,8 +87,9 @@ phases:
         --exclude "index.html" --exclude "ngsw.json" --exclude "ngsw-worker.js"
         --exclude "safety-worker.js" --exclude "worker-basic.min.js" --exclude "manifest.webmanifest"
         --exclude "maintenance.html" --exclude "maintenance-config.json"
+        --exclude "privacy.html" --exclude "terms.html"
       - >-
-        for f in index.html ngsw.json ngsw-worker.js safety-worker.js worker-basic.min.js manifest.webmanifest maintenance.html; do
+        for f in index.html ngsw.json ngsw-worker.js safety-worker.js worker-basic.min.js manifest.webmanifest maintenance.html privacy.html terms.html; do
         if [ -f "frontend/dist/frontend/browser/$f" ]; then
         aws s3 cp "frontend/dist/frontend/browser/$f" "s3://$FRONTEND_BUCKET/$f" --cache-control "no-cache"; fi; done
       - aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/index.html" "/ngsw.json" "/manifest.webmanifest"

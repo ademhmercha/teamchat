@@ -9,6 +9,13 @@ et une fenêtre de navigation privée) et deux adresses email réelles. Cochez a
   > **Origines JavaScript autorisées** : ajouter `https://<votre-distribution>.cloudfront.net` (et plus tard votre domaine
   personnalisé). Pas d'URI de redirection à ajouter : la connexion utilise le jeton d'identité Google côté navigateur.
   Le changement peut mettre quelques minutes à s'appliquer.
+- [ ] **Publier la connexion Google** (écran de consentement OAuth > *Publier l'application*) : renseigner la page d'accueil
+  (`https://<domaine>/`), la **politique de confidentialité** (`https://<domaine>/privacy.html`) et les **conditions**
+  (`https://<domaine>/terms.html`). ⚠️ Google exige un *domaine autorisé* que vous pouvez **vérifier** (Search Console) : une adresse
+  `*.cloudfront.net` ne peut probablement pas l'être → prévoir un **domaine personnalisé** (prompt 6.1). Scopes `openid`,
+  `email`, `profile` uniquement : ce sont des scopes non sensibles, donc pas de vérification d'application complète.
+- [ ] Les pages `/privacy.html` et `/terms.html` s'ouvrent (pas `index.html`) et les liens « Confidentialité » / « Conditions »
+  sont présents en bas de la page d'accueil et de la page de connexion.
 - [ ] Le même identifiant client est dans `TF_VAR_google_client_id` : il alimente `Google__ClientId` (API, SSM) **et**
   `GOOGLE_CLIENT_ID` (build du frontend, sinon le bouton Google est masqué). Après l'avoir défini : `terraform apply`
   puis un nouveau build (push sur `main` ou *Release change*).

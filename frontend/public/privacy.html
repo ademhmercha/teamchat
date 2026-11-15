@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Politique de confidentialité de TeamChat, projet de portfolio : données collectées, finalités, hébergement, durées de conservation et droits." />
+    <title>Politique de confidentialité – TeamChat</title>
+    <link rel="icon" href="/favicon.ico" />
+    <style>
+      :root {
+        --bg: #f4f6fb;
+        --card: #ffffff;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --accent: #2563eb;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0f172a;
+          --card: #1e293b;
+          --text: #e5e7eb;
+          --muted: #9ca3af;
+          --accent: #60a5fa;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: start center;
+        padding: 24px 16px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+      }
+      main {
+        width: 100%;
+        max-width: 760px;
+        padding: 32px 28px;
+        text-align: left;
+        background: var(--card);
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 1.5rem;
+      }
+      h2 {
+        margin: 28px 0 8px;
+        font-size: 1.05rem;
+      }
+      ul {
+        margin: 0 0 8px;
+        padding-left: 1.2rem;
+        line-height: 1.5;
+      }
+      li {
+        margin-bottom: 4px;
+      }
+      a {
+        color: var(--accent);
+      }
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+      }
+      p {
+        margin: 0 0 8px;
+        line-height: 1.5;
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <nav aria-label="Navigation">
+        <a href="/">← Retour à TeamChat</a>
+        <a href="/terms.html">Conditions d'utilisation</a>
+      </nav>
+      <h1>Politique de confidentialité</h1>
+      <p class="hint">Dernière mise à jour : 15 novembre 2026</p>
+
+      <h2>1. À propos de TeamChat</h2>
+      <p>
+        TeamChat est une messagerie interne d'entreprise réalisée comme <strong>projet de portfolio</strong>
+        (démonstration technique). Elle n'est pas exploitée commercialement. Pour toute question sur vos données :
+        <a href="mailto:ademhmerchaaa@gmail.com">ademhmerchaaa@gmail.com</a>.
+      </p>
+
+      <h2>2. Données collectées</h2>
+      <ul>
+        <li><strong>Compte</strong> : adresse email, nom affiché, rôle dans l'entreprise, mot de passe (conservé sous forme
+          hachée, jamais en clair) et, si vous en ajoutez une, votre photo de profil.</li>
+        <li><strong>Connexion avec Google</strong> : Google transmet à TeamChat un jeton d'identité contenant votre adresse email,
+          votre nom et l'adresse de votre photo. TeamChat n'utilise que l'adresse email, pour retrouver un compte existant ;
+          le nom et la photo reçus de Google ne sont pas conservés. Aucun accès à vos autres données Google (Gmail, Drive,
+          contacts…) n'est demandé.</li>
+        <li><strong>Contenus échangés</strong> : messages texte, fichiers et images envoyés, messages vocaux, groupes et conversations.</li>
+        <li><strong>Appels</strong> : date, durée, participants et issue de l'appel. Le son et la vidéo transitent directement entre
+          les participants (WebRTC) et ne sont pas enregistrés par TeamChat.</li>
+        <li><strong>Données techniques</strong> : journaux d'exploitation (erreurs, événements de sécurité) et adresses IP traitées par
+          l'infrastructure d'hébergement.</li>
+        <li><strong>Stockage dans le navigateur</strong> : un cookie technique (jeton de renouvellement de session, inaccessible au
+          JavaScript) et une préférence d'affichage. Aucun cookie publicitaire ni outil de mesure d'audience.</li>
+      </ul>
+
+      <h2>3. Finalités</h2>
+      <p>
+        Faire fonctionner la messagerie (authentification, envoi et réception de messages, fichiers, appels), assurer la sécurité du
+        service et en surveiller le bon fonctionnement. Vos données ne sont ni revendues, ni utilisées pour de la publicité, ni
+        utilisées pour du profilage.
+      </p>
+
+      <h2>4. Hébergement et destinataires</h2>
+      <ul>
+        <li><strong>Amazon Web Services</strong>, région <strong>eu-north-1 (Stockholm, Suède)</strong> : serveur, base de données,
+          stockage des fichiers, envoi des emails (mot de passe oublié, bienvenue) et journaux.</li>
+        <li><strong>Google</strong>, uniquement si vous choisissez « Se connecter avec Google ».</li>
+        <li>Vos messages et fichiers ne sont visibles que des participants de la conversation concernée. Aucune autre
+          donnée n'est communiquée à des tiers.</li>
+      </ul>
+
+      <h2>5. Durée de conservation</h2>
+      <ul>
+        <li>Compte et contenus : conservés tant que le compte ou l'entreprise existe, puis supprimés sur demande.</li>
+        <li>Message supprimé : n'est plus affiché, mais son texte est conservé en base jusqu'à suppression définitive sur demande.</li>
+        <li>Compte supprimé : le profil est anonymisé (nom, email et photo effacés) ; l'historique des conversations est conservé.</li>
+        <li>Journaux techniques : 14 jours.</li>
+        <li>Sauvegardes automatiques de la base : quelques jours (1 à 7), puis écrasées.</li>
+        <li>Anciennes versions d'un fichier remplacé ou supprimé : 30 jours.</li>
+        <li>Journal d'audit de l'infrastructure (actions d'administration AWS, sans vos contenus) : 90 jours.</li>
+      </ul>
+
+      <h2>6. Sécurité</h2>
+      <p>
+        Connexions chiffrées (HTTPS), mots de passe hachés, accès contrôlé par jetons, chiffrement des données au repos chez
+        l'hébergeur, cloisonnement strict des données de chaque entreprise. Aucun système n'étant infaillible, ce service de
+        démonstration ne doit pas servir à échanger des informations confidentielles ou sensibles.
+      </p>
+
+      <h2>7. Vos droits</h2>
+      <p>
+        Vous pouvez demander l'<strong>accès</strong>, l'<strong>export</strong>, la <strong>rectification</strong> ou la
+        <strong>suppression</strong> de vos données en écrivant à
+        <a href="mailto:ademhmerchaaa@gmail.com">ademhmerchaaa@gmail.com</a> depuis l'adresse email de votre compte. Une réponse est
+        apportée dans un délai raisonnable (en principe 30 jours). Vous pouvez aussi vous plaindre auprès de l'autorité de protection
+        des données de votre pays.
+      </p>
+
+      <h2>8. Modifications</h2>
+      <p>Cette politique peut évoluer ; la date de dernière mise à jour figure en haut de page.</p>
+    </main>
+  </body>
+</html>

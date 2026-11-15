@@ -698,6 +698,23 @@
   font-size: 0.82rem;
 }
 
+.footer-links {
+  display: inline-flex;
+  gap: 0.9rem;
+  font-size: 0.82rem;
+
+  a {
+    color: var(--tc-text-muted);
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--tc-primary);
+      text-decoration: underline;
+    }
+  }
+}
+
 .footer-copy {
   margin-left: auto;
   color: var(--tc-text-muted);

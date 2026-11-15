@@ -143,6 +143,24 @@
   }
 }
 
+.legal-links {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  font-size: 0.8rem;
+
+  a {
+    color: var(--tc-text-muted);
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--tc-primary);
+      text-decoration: underline;
+    }
+  }
+}
+
 @media (max-width: 420px) {
   .login-page {
     padding: 1rem;
