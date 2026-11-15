@@ -12,6 +12,7 @@
 # AWS_DEFAULT_REGION et CODEBUILD_RESOLVED_SOURCE_VERSION sont fournis par CodeBuild.
 # Le projet doit etre en mode "privileged" (Docker, Testcontainers).
 #
+# ECR_SCAN_FAIL_ON_CRITICAL=false desactive le controle du scan ECR ; ECR_SCAN_IGNORED_CVES="CVE-...,CVE-..." accepte des CVE.
 # RUN_INTEGRATION_TESTS=false (variable du projet CodeBuild ou de la build) saute les tests
 # d'integration Testcontainers, par ex. si Docker Hub limite les telechargements d'images.
 version: 0.2
@@ -21,6 +22,9 @@ env:
     DOTNET_CLI_TELEMETRY_OPTOUT: "1"
     DOTNET_NOLOGO: "1"
     RUN_INTEGRATION_TESTS: "true"
+    # Echec du build si le scan ECR trouve une vulnerabilite CRITICAL (aws/scripts/check-ecr-scan.sh).
+    ECR_SCAN_FAIL_ON_CRITICAL: "true"
+    ECR_SCAN_IGNORED_CVES: ""
 
 phases:
   install:
@@ -66,6 +70,8 @@ phases:
     commands:
       - if [ "$CODEBUILD_BUILD_SUCCEEDING" != "1" ]; then echo "Build en echec, rien n'est publie."; exit 1; fi
       - docker push "$IMAGE_URI"
+      # Scan ECR de l'image : echec ici = ni "latest", ni frontend, ni artefact CodeDeploy (rien n'est deploye).
+      - bash aws/scripts/check-ecr-scan.sh "$ECR_REPOSITORY" "$IMAGE_TAG"
       - docker push "$REGISTRY/$ECR_REPOSITORY:latest"
       # Frontend : fichiers haches en cache long, index.html et fichiers du service worker sans cache.
       - >-

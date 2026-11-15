@@ -86,6 +86,32 @@ variable "enable_pr_checks" {
   default     = false
 }
 
+# ---- Securite et couts ----
+
+variable "budget_name" {
+  description = "Nom du budget AWS Budgets (le nom exact de ton budget existant si tu l'importes)."
+  type        = string
+  default     = "teamchat-monthly"
+}
+
+variable "budget_limit_usd" {
+  description = "Plafond mensuel en dollars (alertes a 80 % reel et 100 % prevu, envoyees a alert_email)."
+  type        = string
+  default     = "20"
+}
+
+variable "import_existing_budget" {
+  description = "true = importe le budget existant (budget_name) au lieu de le creer. Sans effet si alert_email est vide."
+  type        = bool
+  default     = false
+}
+
+variable "ecr_scan_fail_on_critical" {
+  description = "Fait echouer le build si le scan ECR trouve une vulnerabilite CRITICAL (aws/scripts/check-ecr-scan.sh)."
+  type        = bool
+  default     = true
+}
+
 # ---- Arret nocturne (Lambda scheduler) ----
 
 variable "scheduler_enabled" {

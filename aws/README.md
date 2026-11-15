@@ -100,6 +100,24 @@ Notes :
   mais l'autorite de certification RDS n'est pas dans l'image `aspnet`.
 - Le groupe de securite de l'EC2 consomme ~55 regles de quota a cause de la liste de prefixes CloudFront.
 
+## Sauvegardes et securite (`infra/security.tf`, `docs/`)
+
+- **Restauration** : `docs/RESTORE.md` (RDS a un instant donne, bascule, fichier S3 supprime, state Terraform). La fenetre de
+  restauration RDS vaut `rds_backup_retention_days` : **1 jour en Free plan**, 7 apres passage au plan payant.
+  Les buckets `uploads` et `tfstate` sont versionnes ; le snapshot final RDS est cree a la suppression (`copy_tags_to_snapshot`).
+- **CloudTrail** : un trail multi-region, evenements de gestion uniquement, bucket dedie purge a 90 jours, validation d'integrite.
+- **IAM Access Analyzer** (ressources accessibles depuis l'exterieur), **blocage public S3 au niveau du compte**,
+  **chiffrement EBS par defaut**. Ce blocage s'applique a TOUS les buckets du compte.
+- **AWS Budgets** : `budget_limit_usd` (20 $ par defaut), alertes a 80 % reel et 100 % prevu envoyees a `alert_email`.
+  Budget deja cree a la main : `budget_name` = son nom exact + `import_existing_budget = true` (une seule fois), et
+  `budget_limit_usd` = son montant, puis `apply`. Sans `alert_email`, aucun budget n'est gere.
+- **Scan ECR bloquant** : `aws/scripts/check-ecr-scan.sh` (appele par `buildspec.yml` apres le push de l'image) fait echouer le
+  build sur une vulnerabilite CRITICAL, avant `latest`, le frontend et le deploiement. Desactivation : `ecr_scan_fail_on_critical = false`.
+  CVE acceptees : `ECR_SCAN_IGNORED_CVES="CVE-...,CVE-..."` (variable du projet CodeBuild). Le scan "basic" ne dit pas si un correctif
+  existe : une CVE critique de l'image de base `aspnet` sans correctif bloquera le build jusqu'a ce qu'on l'ignore ou qu'elle soit corrigee.
+- **Revue des roles IAM** : `docs/SECURITY.md` (ce qui est restreint, ce qui pourrait l'etre, hygiene du compte).
+- **Etapes suivantes, non faites (cout)** : GuardDuty, Security Hub, WAF.
+
 ## Supervision (`infra/monitoring.tf`)
 
 Alarmes CloudWatch -> sujet SNS `teamchat-alerts-<env>` (meme sujet que le scheduler). Renseigner `TF_VAR_alert_email`

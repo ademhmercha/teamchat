@@ -182,6 +182,13 @@ data "aws_iam_policy_document" "build" {
     resources = [aws_s3_bucket.artifacts.arn, "${aws_s3_bucket.artifacts.arn}/*"]
   }
 
+  # Lecture du resultat du scan a l'envoi (aws/scripts/check-ecr-scan.sh).
+  statement {
+    sid       = "EcrReadScan"
+    actions   = ["ecr:DescribeImageScanFindings"]
+    resources = [aws_ecr_repository.api.arn]
+  }
+
   # Rapports de tests (section "reports" du buildspec).
   statement {
     sid = "TestReports"
@@ -236,6 +243,11 @@ resource "aws_codebuild_project" "build" {
     environment_variable {
       name  = "CLOUDFRONT_DISTRIBUTION_ID"
       value = aws_cloudfront_distribution.main.id
+    }
+
+    environment_variable {
+      name  = "ECR_SCAN_FAIL_ON_CRITICAL"
+      value = tostring(var.ecr_scan_fail_on_critical)
     }
   }
 

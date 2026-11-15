@@ -49,6 +49,9 @@ resource "aws_db_instance" "main" {
     ignore_changes = [tags["AutoSchedule"], tags_all["AutoSchedule"]]
   }
 
+  # Les tags du serveur suivent les snapshots (final et manuels) : ils restent identifiables apres suppression.
+  copy_tags_to_snapshot = true
+
   deletion_protection       = var.db_deletion_protection
   skip_final_snapshot       = var.db_skip_final_snapshot
   final_snapshot_identifier = var.db_skip_final_snapshot ? null : "teamchat-${local.env}-final"
