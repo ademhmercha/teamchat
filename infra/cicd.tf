@@ -498,7 +498,10 @@ resource "aws_codepipeline" "main" {
     location = aws_s3_bucket.artifacts.bucket
   }
 
-  # Declenche uniquement par un push sur la branche principale.
+  # Declenche uniquement par un push sur la branche principale (aucun filtre de chemins : tout fichier compte).
+  # source_action_name doit etre exactement le nom de l'action Source ci-dessous.
+  # Le webhook GitHub n'est enregistre que si la connexion est deja AVAILABLE au moment ou le pipeline est
+  # cree/mis a jour : apres validation de la connexion, un "terraform apply" qui modifie le pipeline le re-enregistre.
   trigger {
     provider_type = "CodeStarSourceConnection"
 
@@ -529,7 +532,9 @@ resource "aws_codepipeline" "main" {
         FullRepositoryId     = var.github_repository
         BranchName           = var.github_branch
         OutputArtifactFormat = "CODE_ZIP"
-        DetectChanges        = "false" # le declencheur ci-dessus s'en charge
+        # "false" = CodePipeline ne demarre PAS le pipeline sur un nouveau commit (doc AWS, action
+        # CodeStarSourceConnection) : doit rester true, le bloc trigger ci-dessus ne fait que filtrer (branche main).
+        DetectChanges = "true"
       }
     }
   }

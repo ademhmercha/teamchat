@@ -148,6 +148,10 @@ stockage RDS, volume EBS, IPv4 publique ~3,6 $). Eteindre aussi le week-end ajou
   image ECR, frontend S3 + invalidation CloudFront) -> CodeDeploy (`prod`, `AllAtOnce`, rollback si echec).
 - **Pull request** : `teamchat-ci` (`aws/buildspec-ci.yml`) : build, tests unitaires, image Docker et frontend.
   Les tests d'integration n'y tournent pas par defaut (`RUN_INTEGRATION_TESTS=true` sur le projet pour les activer).
+- **Le pipeline ne demarre pas sur un push** : (1) `DetectChanges` de l'action Source doit etre `true` (`false` = jamais de
+  demarrage automatique) ; (2) le bloc `trigger` cible `push` sur `main` sans filtre de chemins, et `source_action_name` doit
+  etre `Source` ; (3) la connexion GitHub doit etre `Available` quand le pipeline est cree ou mis a jour, sinon le webhook n'est
+  pas enregistre : refaire un `terraform apply` qui modifie le pipeline, ou lancer *Release change* une fois.
 - Image CodeBuild `aws/codebuild/standard:7.0` : Node 22 et .NET 10 sont deja installes (pas de `dotnet-install.sh`).
 - Les rapports de tests (TRX) apparaissent dans CodeBuild > Report groups.
 - Si Docker Hub limite les telechargements (erreur `toomanyrequests` dans les tests d'integration), definir
