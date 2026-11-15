@@ -4,10 +4,6 @@ using TeamChat.Application.Caching;
 
 namespace TeamChat.Application.Admin;
 
-/// <summary>
-/// Agrege les statistiques du dashboard admin. Le resultat est mis en cache
-/// 5 min (section 8 bis : donnees approximatives acceptees, pas d'invalidation).
-/// </summary>
 public sealed class AdminStatsService : IAdminStatsService
 {
     private static readonly TimeSpan StatsTtl = TimeSpan.FromMinutes(5);

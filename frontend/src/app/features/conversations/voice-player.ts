@@ -2,11 +2,6 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, input, signal
 import { formatDuration } from '../../core/utils/display';
 import { IconComponent } from '../../shared/icon/icon';
 
-/**
- * Lecteur de message vocal : bouton lecture/pause, barre de progression
- * deformable au clavier (input range) et minuteur. Remplace le lecteur audio
- * natif pour un rendu homogene au reste de l'interface.
- */
 @Component({
   selector: 'app-voice-player',
   imports: [IconComponent],

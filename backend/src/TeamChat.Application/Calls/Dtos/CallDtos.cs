@@ -3,10 +3,6 @@ using TeamChat.Domain.Entities;
 
 namespace TeamChat.Application.Calls.Dtos;
 
-/// <summary>Demande d'ouverture d'un appel (methode hub CallUser).</summary>
-public sealed record StartCallRequest(Guid CalleeId, CallType Type);
-
-/// <summary>Session d'appel telle que renvoyee a l'appelant.</summary>
 public sealed record CallSessionDto(
     Guid CallId,
     Guid CallerId,
@@ -20,7 +16,6 @@ public sealed record CallSessionDto(
     Guid ConversationId,
     DateTimeOffset StartedAt);
 
-/// <summary>Resultat d'une transition d'appel : qui notifier et quel message systeme eventuel.</summary>
 public sealed record CallOutcomeDto(
     Guid CallId,
     Guid CallerId,
@@ -29,13 +24,11 @@ public sealed record CallOutcomeDto(
     CallStatus Status,
     MessageDto? SystemMessage);
 
-/// <summary>Autorisation de relayer de la signalisation WebRTC vers le pair.</summary>
 public sealed record CallRelayDto(
     Guid CallId,
     Guid PeerUserId,
     CallType Type);
 
-/// <summary>Appel expire (sans reponse) a notifier aux deux participants.</summary>
 public sealed record CallExpiredEvent(
     Guid CallId,
     Guid CallerId,

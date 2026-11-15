@@ -36,8 +36,7 @@
     z-index: 60;
     width: min(340px, 86vw);
     transform: translateX(-100%);
-    /* Retire le tiroir du tab order et de l'arbre d'accessibilite tant
-       qu'il est hors-champ (cf. .sidebar du shell). */
+    
     visibility: hidden;
     transition:
       transform var(--tc-normal),

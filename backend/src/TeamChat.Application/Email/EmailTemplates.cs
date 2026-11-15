@@ -3,7 +3,6 @@ using TeamChat.Application.Abstractions;
 
 namespace TeamChat.Application.Email;
 
-/// <summary>Gabarits d'emails (HTML + texte). Aucune URL en dur : le lien de base vient de <c>App:PublicUrl</c>.</summary>
 public static class EmailTemplates
 {
     public static EmailMessage Invitation(

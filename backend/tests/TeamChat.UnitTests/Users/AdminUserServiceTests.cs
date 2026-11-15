@@ -7,10 +7,6 @@ using TeamChat.Domain.Entities;
 
 namespace TeamChat.UnitTests.Users;
 
-/// <summary>
-/// Regles metier de la gestion des comptes par un administrateur :
-/// protection du dernier administrateur actif et suppression logique (anonymisation).
-/// </summary>
 public sealed class AdminUserServiceTests
 {
     [Fact]

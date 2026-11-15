@@ -8,10 +8,6 @@ using TeamChat.Domain.Constants;
 
 namespace TeamChat.Api.Controllers;
 
-/// <summary>
-/// Administration de la societe de l'utilisateur courant. Seul l'Owner peut
-/// la renommer (les Admin gerent uniquement les membres).
-/// </summary>
 [ApiController]
 [Authorize(Roles = Roles.Owner)]
 [Route("api/company")]

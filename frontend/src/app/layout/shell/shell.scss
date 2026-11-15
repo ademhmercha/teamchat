@@ -5,8 +5,6 @@
   color: var(--tc-text);
 }
 
-/* ---------- Sidebar (rail) ---------- */
-
 .sidebar {
   width: 220px;
   flex-shrink: 0;
@@ -163,8 +161,6 @@
     color: var(--tc-text);
   }
 }
-
-/* ---------- Main ---------- */
 
 .main {
   flex: 1;
@@ -518,8 +514,6 @@
   outline: none;
 }
 
-/* ---------- Rail (collapsed navigation) ---------- */
-
 @mixin rail {
   .sidebar {
     width: 72px;
@@ -566,9 +560,6 @@
   }
 }
 
-/* ---------- Responsive ---------- */
-
-/* Tablette : la navigation se replie en rail (l'utilisateur peut la déplier). */
 @media (min-width: 641px) and (max-width: 860px) {
   .shell {
     @include rail;
@@ -583,8 +574,6 @@
   }
 }
 
-/* Téléphone : la navigation devient un tiroir accessible via le bouton du
-   haut de page ; la vue principale reste le fil ou la liste. */
 @media (max-width: 640px) {
   .topbar {
     gap: 0.6rem;
@@ -625,9 +614,7 @@
     width: min(300px, 84vw);
     padding: 12px 8px;
     transform: translateX(-100%);
-    /* visibility: hidden retire le panneau du tab order et de l'arbre
-       d'accessibilite tant qu'il est hors-champ. Le delai empeche la
-       disparition brutale pendant l'animation de sortie. */
+    
     visibility: hidden;
     transition:
       transform var(--tc-normal),

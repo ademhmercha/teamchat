@@ -16,8 +16,6 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const connectivity = inject(ConnectivityService);
   const maintenance = inject(MaintenanceService);
 
-  // apiBaseUrl vaut '' en production (meme origine) : startsWith('') serait vrai pour N'IMPORTE QUELLE
-  // URL, jeton Bearer compris. On ne cible que les chemins relatifs, ou l'origine configuree si elle existe.
   const isApi =
     environment.apiBaseUrl === ''
       ? request.url.startsWith('/')
@@ -35,8 +33,6 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
 
   return next(outgoing).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Serveur en veille (502/503/504 ou reseau coupe alors que le navigateur est en ligne) sur /api/* ou /hubs/* :
-      // page de veille, qui revient ici toute seule. Jamais pour 401/403/404/500 (reponses de l'API).
       if (
         isApiOrHubUrl(request.url, environment.apiBaseUrl) &&
         isMaintenanceFailure(error.status, connectivity.online()) &&
@@ -62,7 +58,6 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
           next(outgoing.clone({ setHeaders: { Authorization: `Bearer ${auth.accessToken()}` } })),
         ),
         catchError((refreshError: HttpErrorResponse) => {
-          // Serveur en veille pendant le renouvellement : on ne deconnecte pas l'utilisateur.
           if (MAINTENANCE_STATUSES.has(refreshError.status)) {
             return throwError(() => error);
           }

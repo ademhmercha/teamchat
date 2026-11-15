@@ -12,7 +12,6 @@ using TeamChat.Domain.Entities;
 
 namespace TeamChat.IntegrationTests.Support;
 
-/// <summary>Helpers partages par les tests d'integration (comptes, connexions, requetes).</summary>
 public static class ApiTestHelper
 {
     public static Task<(Guid UserId, string AccessToken)> ProvisionUserAndLoginAsync(
@@ -61,10 +60,6 @@ public static class ApiTestHelper
         return (userId, auth!.AccessToken);
     }
 
-    /// <summary>
-    /// Execute une operation de "seed" hors requete HTTP avec un locataire courant
-    /// (societe par defaut) afin que les entites creees recoivent le bon TenantId.
-    /// </summary>
     public static async Task RunWithTenantAsync(
         TeamChatApiFactory factory,
         Guid tenantId,

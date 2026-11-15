@@ -13,7 +13,6 @@ namespace TeamChat.IntegrationTests.Api;
 [Collection("api")]
 public sealed class AdminUsersEndpointTests
 {
-    /// <summary>Mot de passe imposé par la politique : 8+, minuscule, majuscule, chiffre, caractère spécial.</summary>
     private const string CreateUserPassword = "Password123!";
 
     private readonly ApiCollectionFixture _fixture;

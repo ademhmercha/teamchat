@@ -136,7 +136,6 @@ export class ShellComponent {
     try {
       localStorage.setItem(ShellComponent.RAIL_KEY, next ? '1' : '0');
     } catch {
-      /* storage unavailable */
     }
   }
 

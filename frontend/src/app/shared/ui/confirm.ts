@@ -1,13 +1,6 @@
 import { Component, input, output, viewChild } from '@angular/core';
 import { ModalComponent } from './modal';
 
-/**
- * Dialogue de confirmation systeme, construit sur tc-modal
- * (piege de focus + fermeture par Echap deja geres).
- *
- * Le focus initial est place sur « Annuler » : sur une action
- * destructive, la touche Entree ne doit jamais la declencher par accident.
- */
 @Component({
   selector: 'tc-confirm',
   imports: [ModalComponent],

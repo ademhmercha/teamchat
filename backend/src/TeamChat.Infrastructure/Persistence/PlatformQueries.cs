@@ -5,12 +5,6 @@ using TeamChat.Domain.Entities;
 
 namespace TeamChat.Infrastructure.Persistence;
 
-/// <summary>
-/// Lecture transverse des societes pour la vue plateforme. Utilise
-/// <c>IgnoreQueryFilters()</c> pour compter au-dela des societes : cette
-/// requete n'est exposee que par <c>PlatformController</c> (super-admin),
-/// protege par [Authorize(Roles = Roles.SuperAdmin)].
-/// </summary>
 public sealed class PlatformQueries : IPlatformQueries
 {
     private readonly TeamChatDbContext _db;

@@ -104,7 +104,6 @@ export const routes: Routes = [
       },
     ],
   },
-  // Redirections des anciennes URL (avant le prefixe /app) conservees en signets.
   { path: 'directory', redirectTo: '/app/directory' },
   { path: 'account', redirectTo: '/app/account' },
   { path: 'admin', redirectTo: '/app/admin' },

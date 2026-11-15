@@ -4,10 +4,6 @@ import { ConnectivityService } from '../../core/pwa/connectivity.service';
 import { IconComponent } from '../../shared/icon/icon';
 import { ButtonComponent } from '../../shared/ui/button';
 
-/**
- * Page de repli affichee lorsque l'application est ouverte sans reseau.
- * Retourne automatiquement a l'application des que la connexion est retablie.
- */
 @Component({
   selector: 'app-offline',
   imports: [IconComponent, ButtonComponent],

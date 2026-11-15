@@ -2,19 +2,10 @@ using System.Text.RegularExpressions;
 
 namespace TeamChat.Application.Common;
 
-/// <summary>
-/// URL des avatars hebergees par l'API. Toujours un chemin relatif (/api/users/{id}/avatar) :
-/// derriere CloudFront, Request.Scheme/Request.Host valent l'origine EC2 en http, et une URL absolue
-/// construite dessus est bloquee par le navigateur (Mixed Content).
-/// </summary>
 public static partial class AvatarUrls
 {
     public static string ForUser(Guid userId) => $"/api/users/{userId}/avatar";
 
-    /// <summary>
-    /// Ramene une ancienne URL absolue vers l'avatar de l'API (http://hote/api/users/{id}/avatar...)
-    /// a son chemin relatif. Toute autre valeur (nulle, deja relative, URL externe) est renvoyee telle quelle.
-    /// </summary>
     public static string? Normalize(string? value)
     {
         if (string.IsNullOrEmpty(value))

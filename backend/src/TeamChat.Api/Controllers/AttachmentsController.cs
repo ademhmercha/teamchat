@@ -84,9 +84,7 @@ public sealed class UploadAttachmentForm
 {
     public IFormFile? File { get; set; }
 
-    /// <summary>Vrai pour un message vocal enregistre via le navigateur.</summary>
     public bool IsVoice { get; set; }
 
-    /// <summary>Duree du message vocal en secondes (facultatif).</summary>
     public int? DurationSec { get; set; }
 }

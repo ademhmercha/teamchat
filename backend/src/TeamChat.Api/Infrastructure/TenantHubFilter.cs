@@ -4,12 +4,6 @@ using TeamChat.Application.Abstractions;
 
 namespace TeamChat.Api.Infrastructure;
 
-/// <summary>
-/// Renseigne la societe courante lors des invocations du hub SignalR. Hors
-/// requete HTTP, <see cref="Microsoft.AspNetCore.Http.IHttpContextAccessor"/>
-/// n'est pas disponible : on lit la societe depuis le principal authentifie
-/// (claim tenant_id) et on l'impose au contexte scoped courant.
-/// </summary>
 public sealed class TenantHubFilter : IHubFilter
 {
     public async ValueTask<object?> InvokeMethodAsync(

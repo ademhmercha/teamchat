@@ -3,11 +3,6 @@ using TeamChat.Application.Caching;
 
 namespace TeamChat.Infrastructure.Identity;
 
-/// <summary>
-/// Cache du profil minimal d'un utilisateur (TTL 1 min). Un sentinelle non nul
-/// permet de ne pas mettre en cache les utilisateurs inexistants tout en
-/// respectant la contrainte HybridCache (valeur non nulle).
-/// </summary>
 public sealed class UserProfileCache : IUserProfileCache
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(1);

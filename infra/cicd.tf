@@ -1,5 +1,3 @@
-# CI/CD : GitHub (push main) -> CodePipeline V2 -> CodeBuild (teamchat-build) -> CodeDeploy (EC2).
-# Verification des pull requests : CodeBuild teamchat-ci (webhook GitHub), voir var.enable_pr_checks.
 
 locals {
   build_project_name = "teamchat-build"
@@ -9,20 +7,14 @@ locals {
   github_clone_url = "https://github.com/${var.github_repository}.git"
 }
 
-# ---------------- Connexion GitHub ----------------
-# Creee en etat PENDING : a valider une fois a la main dans la console AWS
-# (Developer Tools > Settings > Connections > Update pending connection).
-
 resource "aws_codestarconnections_connection" "github" {
   name          = "teamchat-github"
   provider_type = "GitHub"
 }
 
-# ---------------- Bucket d'artefacts CodePipeline ----------------
-
 resource "aws_s3_bucket" "artifacts" {
   bucket        = local.artifacts_bucket_name
-  force_destroy = true # artefacts jetables, regeneres a chaque build
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_public_access_block" "artifacts" {
@@ -97,8 +89,6 @@ resource "aws_s3_bucket_policy" "artifacts" {
   depends_on = [aws_s3_bucket_public_access_block.artifacts]
 }
 
-# ---------------- Journaux CodeBuild ----------------
-
 resource "aws_cloudwatch_log_group" "build" {
   name              = "/aws/codebuild/${local.build_project_name}"
   retention_in_days = 14
@@ -110,8 +100,6 @@ resource "aws_cloudwatch_log_group" "ci" {
   name              = "/aws/codebuild/${local.ci_project_name}"
   retention_in_days = 14
 }
-
-# ---------------- CodeBuild : teamchat-build (pipeline main) ----------------
 
 data "aws_iam_policy_document" "codebuild_assume" {
   statement {
@@ -136,7 +124,6 @@ data "aws_iam_policy_document" "build" {
     resources = ["${aws_cloudwatch_log_group.build.arn}:*"]
   }
 
-  # Cette action n'accepte pas de ressource ciblee.
   statement {
     sid       = "EcrAuthToken"
     actions   = ["ecr:GetAuthorizationToken"]
@@ -163,7 +150,6 @@ data "aws_iam_policy_document" "build" {
     resources = [aws_s3_bucket.frontend.arn]
   }
 
-  # s3 sync --delete : lecture, ecriture et suppression sur le seul bucket frontend.
   statement {
     sid       = "FrontendObjects"
     actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
@@ -182,14 +168,12 @@ data "aws_iam_policy_document" "build" {
     resources = [aws_s3_bucket.artifacts.arn, "${aws_s3_bucket.artifacts.arn}/*"]
   }
 
-  # Lecture du resultat du scan a l'envoi (aws/scripts/check-ecr-scan.sh).
   statement {
     sid       = "EcrReadScan"
     actions   = ["ecr:DescribeImageScanFindings"]
     resources = [aws_ecr_repository.api.arn]
   }
 
-  # Rapports de tests (section "reports" du buildspec).
   statement {
     sid = "TestReports"
     actions = [
@@ -228,7 +212,7 @@ resource "aws_codebuild_project" "build" {
     type            = "LINUX_CONTAINER"
     image           = "aws/codebuild/standard:7.0"
     compute_type    = var.codebuild_compute_type
-    privileged_mode = true # Docker (build de l'image) et Testcontainers
+    privileged_mode = true
 
     environment_variable {
       name  = "ECR_REPOSITORY"
@@ -250,8 +234,6 @@ resource "aws_codebuild_project" "build" {
       value = tostring(var.ecr_scan_fail_on_critical)
     }
 
-    # Identifiant client Google : public (il est livre dans le JavaScript du frontend). Injecte au build par
-    # buildspec.yml dans environment.production.ts ; absent = bouton "Se connecter avec Google" masque.
     dynamic "environment_variable" {
       for_each = nonsensitive(var.google_client_id) != "" ? [1] : []
 
@@ -274,9 +256,6 @@ resource "aws_codebuild_project" "build" {
   }
 }
 
-# ---------------- CodeBuild : teamchat-ci (pull requests) ----------------
-# Necessite la connexion GitHub validee : cree seulement si var.enable_pr_checks = true.
-
 resource "aws_iam_role" "ci" {
   count = var.enable_pr_checks ? 1 : 0
 
@@ -293,7 +272,6 @@ data "aws_iam_policy_document" "ci" {
     resources = ["${aws_cloudwatch_log_group.ci[0].arn}:*"]
   }
 
-  # Lecture du depot GitHub via la connexion (jeton d'acces temporaire).
   statement {
     sid = "GitHubConnection"
     actions = [
@@ -326,7 +304,6 @@ resource "aws_iam_role_policy" "ci" {
   policy = data.aws_iam_policy_document.ci[0].json
 }
 
-# Identifiant GitHub de CodeBuild (compte entier, une seule fois par type de serveur).
 resource "aws_codebuild_source_credential" "github" {
   count = var.enable_pr_checks ? 1 : 0
 
@@ -390,8 +367,6 @@ resource "aws_codebuild_webhook" "ci" {
   }
 }
 
-# ---------------- CodeDeploy ----------------
-
 data "aws_iam_policy_document" "codedeploy_assume" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -424,7 +399,6 @@ resource "aws_codedeploy_deployment_group" "main" {
   service_role_arn       = aws_iam_role.codedeploy.arn
   deployment_config_name = "CodeDeployDefault.AllAtOnce"
 
-  # Cible l'instance par son tag (voir compute.tf).
   ec2_tag_filter {
     key   = "App"
     type  = "KEY_AND_VALUE"
@@ -436,8 +410,6 @@ resource "aws_codedeploy_deployment_group" "main" {
     events  = ["DEPLOYMENT_FAILURE"]
   }
 }
-
-# ---------------- CodePipeline V2 ----------------
 
 data "aws_iam_policy_document" "pipeline_assume" {
   statement {
@@ -521,10 +493,6 @@ resource "aws_codepipeline" "main" {
     location = aws_s3_bucket.artifacts.bucket
   }
 
-  # Declenche uniquement par un push sur la branche principale (aucun filtre de chemins : tout fichier compte).
-  # source_action_name doit etre exactement le nom de l'action Source ci-dessous.
-  # Le webhook GitHub n'est enregistre que si la connexion est deja AVAILABLE au moment ou le pipeline est
-  # cree/mis a jour : apres validation de la connexion, un "terraform apply" qui modifie le pipeline le re-enregistre.
   trigger {
     provider_type = "CodeStarSourceConnection"
 
@@ -555,9 +523,7 @@ resource "aws_codepipeline" "main" {
         FullRepositoryId     = var.github_repository
         BranchName           = var.github_branch
         OutputArtifactFormat = "CODE_ZIP"
-        # "false" = CodePipeline ne demarre PAS le pipeline sur un nouveau commit (doc AWS, action
-        # CodeStarSourceConnection) : doit rester true, le bloc trigger ci-dessus ne fait que filtrer (branche main).
-        DetectChanges = "true"
+        DetectChanges        = "true"
       }
     }
   }

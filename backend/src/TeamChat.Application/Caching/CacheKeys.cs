@@ -1,9 +1,5 @@
 namespace TeamChat.Application.Caching;
 
-/// <summary>
-/// Fabrique centralisee des cles et tags de cache.
-/// Regle : cles prefixees et versionnees, incluant toujours l'identifiant concerne (section 8 bis).
-/// </summary>
 public static class CacheKeys
 {
     public const string Version = "v1";
@@ -35,7 +31,6 @@ public static class CacheKeys
 
     public static string StunTurn() => $"{Root}:stun-turn";
 
-    /// <summary>Segment de cle identifiant la societe (isole les donnees mises en cache).</summary>
     private static string TenantKey(Guid? tenantId) => tenantId?.ToString() ?? "_";
 
     private static string Sanitize(string? value)

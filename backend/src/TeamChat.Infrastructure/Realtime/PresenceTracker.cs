@@ -3,11 +3,6 @@ using TeamChat.Application.Abstractions;
 
 namespace TeamChat.Infrastructure.Realtime;
 
-/// <summary>
-/// Suivi de presence en memoire (par instance). Un utilisateur est en ligne
-/// des qu'au moins une connexion SignalR est active pour lui. En mono-instance
-/// pour ce sprint ; un backend deborde sera legerement different (section 7).
-/// </summary>
 public sealed class PresenceTracker : IPresenceTracker
 {
     private readonly ConcurrentDictionary<string, Guid> _connections = new();

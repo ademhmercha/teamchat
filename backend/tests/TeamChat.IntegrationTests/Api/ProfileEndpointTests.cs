@@ -7,7 +7,6 @@ using TeamChat.IntegrationTests.Support;
 
 namespace TeamChat.IntegrationTests.Api;
 
-/// <summary>Profil en libre-service : nom affiche, mot de passe, deconnexion globale, avatar.</summary>
 [Collection("api")]
 public sealed class ProfileEndpointTests
 {

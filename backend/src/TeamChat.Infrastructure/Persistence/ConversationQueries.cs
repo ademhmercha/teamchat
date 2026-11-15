@@ -7,7 +7,6 @@ using TeamChat.Domain.Entities;
 
 namespace TeamChat.Infrastructure.Persistence;
 
-/// <summary>Acces aux donnees des conversations.</summary>
 public sealed class ConversationQueries : IConversationQueries
 {
     private static readonly TimeSpan DirectMembershipTtl = TimeSpan.FromMinutes(5);
@@ -62,8 +61,6 @@ public sealed class ConversationQueries : IConversationQueries
         }
         catch (DbUpdateException) when (conversation is { DirectKey: not null })
         {
-            // Course possible entre deux creations simultanees : l'index
-            // unique sur DirectKey protege l'unicite, on recupere l'existante.
             var existing = await _db.Conversations.AsNoTracking()
                 .FirstOrDefaultAsync(c => c.DirectKey == conversation.DirectKey, cancellationToken);
             if (existing is not null)

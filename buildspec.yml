@@ -1,20 +1,3 @@
-# CodeBuild - etape "Build" du pipeline CodePipeline (branche main).
-# Tests backend -> image Docker de l'API sur ECR -> frontend Angular sur S3 + invalidation CloudFront.
-# Produit l'artefact CodeDeploy (aws/codedeploy) avec le tag de l'image a deployer.
-#
-# Image : aws/codebuild/standard:7.0 (Ubuntu 22.04) : nodejs 22 et dotnet 10.0 y sont deja installes
-# (verifie dans la documentation "Available runtimes"), pas de dotnet-install.sh a telecharger.
-#
-# Variables d'environnement definies par Terraform dans le projet CodeBuild :
-#   ECR_REPOSITORY              ex. teamchat-api
-#   FRONTEND_BUCKET             ex. teamchat-frontend-prod-123456789012
-#   CLOUDFRONT_DISTRIBUTION_ID  ex. E1ABCDEF2GHIJK
-# AWS_DEFAULT_REGION et CODEBUILD_RESOLVED_SOURCE_VERSION sont fournis par CodeBuild.
-# Le projet doit etre en mode "privileged" (Docker, Testcontainers).
-#
-# ECR_SCAN_FAIL_ON_CRITICAL=false desactive le controle du scan ECR ; ECR_SCAN_IGNORED_CVES="CVE-...,CVE-..." accepte des CVE.
-# RUN_INTEGRATION_TESTS=false (variable du projet CodeBuild ou de la build) saute les tests
-# d'integration Testcontainers, par ex. si Docker Hub limite les telechargements d'images.
 version: 0.2
 
 env:
@@ -22,7 +5,6 @@ env:
     DOTNET_CLI_TELEMETRY_OPTOUT: "1"
     DOTNET_NOLOGO: "1"
     RUN_INTEGRATION_TESTS: "true"
-    # Echec du build si le scan ECR trouve une vulnerabilite CRITICAL (aws/scripts/check-ecr-scan.sh).
     ECR_SCAN_FAIL_ON_CRITICAL: "true"
     ECR_SCAN_IGNORED_CVES: ""
 
@@ -46,14 +28,11 @@ phases:
 
   build:
     commands:
-      # 1. Backend : build puis tests (on s'arrete des qu'un test echoue).
       - dotnet restore backend/TeamChat.sln
       - dotnet build backend/TeamChat.sln -c Release --no-restore
-      # Tests unitaires : toujours.
       - >-
         dotnet test backend/tests/TeamChat.UnitTests -c Release --no-build
         --logger "trx;LogFileName=unit.trx" --results-directory backend/test-results/unit
-      # Tests d'integration (PostgreSQL/Redis via Testcontainers) : filet de securite avant le deploiement.
       - |
         if [ "$RUN_INTEGRATION_TESTS" = "true" ]; then
           dotnet test backend/tests/TeamChat.IntegrationTests -c Release --no-build \
@@ -61,9 +40,7 @@ phases:
         else
           echo "Tests d'integration ignores (RUN_INTEGRATION_TESTS=$RUN_INTEGRATION_TESTS)."
         fi
-      # 2. Image Docker de l'API.
       - docker build -t "$IMAGE_URI" -t "$REGISTRY/$ECR_REPOSITORY:latest" ./backend
-      # 3. Frontend Angular (identifiant client Google injecte au build : sans lui le bouton Google est masque).
       - |
         if [ -n "${GOOGLE_CLIENT_ID:-}" ]; then
           sed -i "s|googleClientId: ''|googleClientId: '${GOOGLE_CLIENT_ID}'|" frontend/src/environments/environment.production.ts
@@ -77,10 +54,8 @@ phases:
     commands:
       - if [ "$CODEBUILD_BUILD_SUCCEEDING" != "1" ]; then echo "Build en echec, rien n'est publie."; exit 1; fi
       - docker push "$IMAGE_URI"
-      # Scan ECR de l'image : echec ici = ni "latest", ni frontend, ni artefact CodeDeploy (rien n'est deploye).
       - bash aws/scripts/check-ecr-scan.sh "$ECR_REPOSITORY" "$IMAGE_TAG"
       - docker push "$REGISTRY/$ECR_REPOSITORY:latest"
-      # Frontend : fichiers haches en cache long, index.html et fichiers du service worker sans cache.
       - >-
         aws s3 sync frontend/dist/frontend/browser "s3://$FRONTEND_BUCKET" --delete
         --cache-control "public,max-age=31536000,immutable"
@@ -93,11 +68,9 @@ phases:
         if [ -f "frontend/dist/frontend/browser/$f" ]; then
         aws s3 cp "frontend/dist/frontend/browser/$f" "s3://$FRONTEND_BUCKET/$f" --cache-control "no-cache"; fi; done
       - aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/index.html" "/ngsw.json" "/manifest.webmanifest"
-      # Tag de l'image transmis a CodeDeploy.
       - echo "IMAGE_URI=$IMAGE_URI" > aws/codedeploy/image.env
       - echo "AWS_REGION=$AWS_DEFAULT_REGION" >> aws/codedeploy/image.env
 
-# Rapports de tests visibles dans la console CodeBuild (groupes teamchat-build-unit-tests, ...-integration-tests).
 reports:
   unit-tests:
     files:
@@ -115,7 +88,6 @@ artifacts:
   files:
     - '**/*'
 
-# Cache local (LOCAL_CUSTOM_CACHE) : paquets NuGet et cache npm (npm ci vide node_modules).
 cache:
   paths:
     - /root/.nuget/packages/**/*

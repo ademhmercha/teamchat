@@ -17,11 +17,6 @@ export type CallPhase = 'idle' | 'outgoing' | 'incoming' | 'active' | 'ended';
 
 const ENDED_MESSAGE_MS = 2500;
 
-/**
- * Orchestre les appels 1-a-1 : capture locale, WebRTC (RTCPeerConnection) et
- * signalisation via le hub (ChatService). L'etat est expose sous forme de
- * signals consommes par l'overlay d'appel.
- */
 @Injectable({ providedIn: 'root' })
 export class CallService {
   private readonly http = inject(HttpClient);
@@ -51,17 +46,12 @@ export class CallService {
   readonly remoteStream = signal<MediaStream | null>(null);
   readonly remoteHasVideo = signal(false);
 
-  /** L'appel est reduit en petit widget flottant pour laisser l'app utilisable. */
   readonly minimized = signal(false);
-  /** La video distante (partage d'ecran ou camera) est agrandie dans la fenetre. */
   readonly enlarged = signal(false);
 
-  /** Le navigateur supporte-t-il le partage d'ecran ? (faux sur mobile). */
   readonly canScreenShare = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getDisplayMedia;
 
-  /** Une piste video locale est-elle active (camera ou partage d'ecran) ? */
   readonly localHasVideo = computed(() => this.cameraOn() || this.screenSharing());
-  /** Faut-il afficher une zone video (locale ou distante) ? */
   readonly showVideo = computed(() => this.remoteHasVideo() || this.localHasVideo());
 
   private readonly remoteMedia = new MediaStream();
@@ -242,7 +232,6 @@ export class CallService {
       await this.applyVideoTrack(track);
       this.screenSharing.set(true);
     } catch {
-      // annule par l'utilisateur
     }
   }
 
@@ -250,7 +239,6 @@ export class CallService {
     this.error.set(null);
   }
 
-  /** Reduit l'appel en widget flottant (ou le retablit) pour continuer a utiliser l'app. */
   toggleMinimize(): void {
     if (this.phase() !== 'active') {
       return;
@@ -262,7 +250,6 @@ export class CallService {
     }
   }
 
-  /** Agrandit la video distante (partage d'ecran) dans la fenetre. */
   toggleEnlarge(): void {
     if (!this.remoteHasVideo()) {
       return;
@@ -442,7 +429,6 @@ export class CallService {
     }
   }
 
-  /** Recalcule la presence de video distante (une piste coupee/remplacee passe en "muted"). */
   private refreshRemoteVideo(): void {
     const hasLiveVideo = this.remoteMedia
       .getVideoTracks()
@@ -481,7 +467,6 @@ export class CallService {
         throw error;
       }
 
-      // La camera est indisponible/refusee : on poursuit en audio seul plutot que d'echouer.
       this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       this.error.set('Camera indisponible : appel demarre en audio seul.');
     }
@@ -491,7 +476,6 @@ export class CallService {
     this.localStreamSignal.set(new MediaStream(this.localStream.getTracks()));
   }
 
-  /** Contraintes de capture : camera avant explicite (facingMode "user"). */
   private mediaConstraints(video: boolean): MediaStreamConstraints {
     return {
       audio: true,
@@ -503,7 +487,6 @@ export class CallService {
     return { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } };
   }
 
-  /** Traduit les erreurs getUserMedia (DOMException) en messages clairs pour l'utilisateur. */
   private mediaErrorMessage(error: unknown, kind: 'microphone' | 'camera'): string {
     if (error instanceof DOMException) {
       switch (error.name) {
@@ -556,7 +539,6 @@ export class CallService {
       }
     };
 
-    // Sans serveur ICE joignable l'appel ne s'etablit pas : on remonte l'etat a l'utilisateur.
     peer.oniceconnectionstatechange = () => this.handleIceConnectionState(peer.iceConnectionState);
     peer.onconnectionstatechange = () => this.handleConnectionState(peer.connectionState);
 
@@ -593,7 +575,6 @@ export class CallService {
     }
   }
 
-  /** La connexion media n'a pas pu s'etablir (ou est tombee) : on termine proprement l'appel. */
   private onTransportFailure(): void {
     if (this.phase() === 'idle' || this.phase() === 'ended') {
       return;

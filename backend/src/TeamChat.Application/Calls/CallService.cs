@@ -73,7 +73,6 @@ public sealed class CallService : ICallService
         var now = _time.GetUtcNow();
         var callId = await _calls.CreateAsync(callerId, calleeId, type, now, cancellationToken);
 
-        // La conversation directe sert de support au message systeme de fin d'appel.
         var conversation = await _conversations.GetOrCreateDirectAsync(callerId, calleeId, cancellationToken);
 
         return new CallSessionDto(

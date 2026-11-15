@@ -78,8 +78,6 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
             },
             OnMessageReceived = context =>
             {
-                // SignalR ne peut pas envoyer de header d'autorisation en
-                // WebSocket : le JWT passe en query string pour /hubs.
                 var accessToken = context.Request.Query["access_token"];
                 var path = context.HttpContext.Request.Path;
                 if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
@@ -135,7 +133,6 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.Use(async (context, next) =>
 {
-    // Reponses JSON privees par defaut (section 8 bis) : sauf en-tete explicite.
     context.Response.OnStarting(() =>
     {
         var contentType = context.Response.ContentType;
@@ -156,9 +153,6 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.Use(async (context, next) =>
 {
-    // Resout la societe une seule fois par requete authentifiee et la conserve
-    // dans le scope. Les fabriques de cache (HybridCache) s'executent sans
-    // IHttpContextAccessor : sans cela le filtre global serait desactive.
     if (context.User.Identity?.IsAuthenticated == true)
     {
         var setter = context.RequestServices.GetRequiredService<ICurrentTenantSetter>();

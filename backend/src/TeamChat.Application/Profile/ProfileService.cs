@@ -77,7 +77,6 @@ public sealed class ProfileService : IProfileService
                 new FluentValidation.Results.ValidationFailure(nameof(request.NewPassword), e)));
         }
 
-        // Un changement de mot de passe invalide toutes les sessions existantes.
         await _refreshTokens.RevokeAllForUserAsync(userId, cancellationToken);
         await _profileCache.InvalidateAsync(userId, cancellationToken);
     }
@@ -112,7 +111,6 @@ public sealed class ProfileService : IProfileService
 
         await _storage.SaveAsync(StorageKey(userId), new MemoryStream(data, writable: false), detected.ContentType, cancellationToken);
 
-        // Chemin relatif : l'hote vu par l'API (EC2, http) n'est pas celui du visiteur (CloudFront, https).
         user.AvatarUrl = AvatarUrls.ForUser(userId);
 
         var result = await _identity.UpdateAsync(user, cancellationToken);
@@ -209,7 +207,6 @@ public sealed class ProfileService : IProfileService
         }
         catch
         {
-            // Compensation best-effort : ne masque pas l'operation principale.
         }
     }
 

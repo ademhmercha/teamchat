@@ -7,7 +7,6 @@ using TeamChat.Application.Common;
 
 namespace TeamChat.Infrastructure.Email;
 
-/// <summary>Envoi reel via Amazon SES (identifiants : chaine par defaut du SDK, role IAM en production).</summary>
 public sealed class SesEmailSender : IEmailSender
 {
     private readonly IAmazonSimpleEmailServiceV2 _ses;
@@ -52,7 +51,6 @@ public sealed class SesEmailSender : IEmailSender
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // Ni adresse ni contenu dans le journal (donnees personnelles, jetons).
             _logger.LogError(ex, "Echec d'envoi d'email via SES (sujet : {Subject}).", message.Subject);
         }
     }

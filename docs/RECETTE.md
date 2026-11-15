@@ -12,7 +12,7 @@ et une fenêtre de navigation privée) et deux adresses email réelles. Cochez a
 - [ ] **Publier la connexion Google** (écran de consentement OAuth > *Publier l'application*) : renseigner la page d'accueil
   (`https://<domaine>/`), la **politique de confidentialité** (`https://<domaine>/privacy.html`) et les **conditions**
   (`https://<domaine>/terms.html`). ⚠️ Google exige un *domaine autorisé* que vous pouvez **vérifier** (Search Console) : une adresse
-  `*.cloudfront.net` ne peut probablement pas l'être → prévoir un **domaine personnalisé** (prompt 6.1). Scopes `openid`,
+  `*.cloudfront.net` ne peut probablement pas l'être → prévoir un **domaine personnalisé**. Scopes `openid`,
   `email`, `profile` uniquement : ce sont des scopes non sensibles, donc pas de vérification d'application complète.
 - [ ] Les pages `/privacy.html` et `/terms.html` s'ouvrent (pas `index.html`) et les liens « Confidentialité » / « Conditions »
   sont présents en bas de la page d'accueil et de la page de connexion.
@@ -55,7 +55,7 @@ et une fenêtre de navigation privée) et deux adresses email réelles. Cochez a
 - [ ] **Partage d'écran** : démarrer, arrêter, et arrêter via le bouton natif du navigateur.
 - [ ] Appel vers un utilisateur **hors ligne** : refusé avec un message clair. Sans réponse après ~30 s : « appel manqué ».
 - [ ] Caméra, micro et écran sont **libérés** à la fin de l'appel (le témoin du navigateur s'éteint).
-- ⚠️ Seul le STUN public est configuré tant que `Turn__Urls`/`Turn__Secret` ne sont pas renseignés (prompt 6.2) : un appel
+- ⚠️ Seul le STUN public est configuré tant que `Turn__Urls`/`Turn__Secret` ne sont pas renseignés (serveur TURN à déployer) : un appel
   entre deux réseaux stricts (NAT symétrique, entreprise) peut échouer sans serveur TURN. Tester d'abord sur deux réseaux
   « ordinaires » (ex. Wi-Fi et 4G).
 

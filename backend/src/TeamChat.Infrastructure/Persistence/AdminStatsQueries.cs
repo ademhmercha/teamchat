@@ -5,7 +5,6 @@ using TeamChat.Domain.Entities;
 
 namespace TeamChat.Infrastructure.Persistence;
 
-/// <summary>Requetes agregees du tableau de bord admin (lecture seule).</summary>
 public sealed class AdminStatsQueries : IAdminStatsQueries
 {
     private readonly TeamChatDbContext _db;

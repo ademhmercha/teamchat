@@ -4,7 +4,6 @@ import { environment } from '../../../environments/environment';
 
 export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
 
-/** Vrai pour un chemin relatif de l'API (/api/...) ou une URL commencant par apiBaseUrl (si non vide). */
 export function isApiUrl(url: string): boolean {
   if (url.startsWith('/api/')) {
     return true;
@@ -15,11 +14,6 @@ export function isApiUrl(url: string): boolean {
 const LEGACY_ABSOLUTE_AVATAR =
   /^https?:\/\/[^/]+(\/api\/users\/[0-9a-f-]{36}\/avatar(?:\?[^#]*)?)(?:#.*)?$/i;
 
-/**
- * L'API renvoie des chemins relatifs. D'anciennes donnees (cache, service worker) peuvent contenir
- * http://hote-ec2/api/users/{id}/avatar, bloque en Mixed Content : on garde le chemin, qui passe par CloudFront.
- * Le parametre de cache (?t=) est conserve.
- */
 export function toApiAvatarPath(src: string | null): string | null {
   if (!src) {
     return null;
@@ -128,11 +122,6 @@ export class AvatarComponent implements OnDestroy {
   private objectUrl: string | null = null;
   private requested: string | null = null;
 
-  /**
-   * L'endpoint d'avatar de l'API exige un jeton : une balise <img> ne peut pas
-   * l'envoyer. On recupere donc l'image via HttpClient (qui ajoute le Bearer
-   * grace a l'intercepteur) et on expose un object URL local.
-   */
   readonly imageSrc = computed(() => {
     const src = this.resolvedSrc();
     if (!src) {
@@ -142,7 +131,6 @@ export class AvatarComponent implements OnDestroy {
     return this.needsAuth(src) ? this._resolved() : src;
   });
 
-  /** Source normalisee : une ancienne URL absolue vers l'API redevient un chemin relatif. */
   private readonly resolvedSrc = computed(() => toApiAvatarPath(this.src()));
 
   readonly initials = computed(() => {
@@ -194,10 +182,6 @@ export class AvatarComponent implements OnDestroy {
     this.release();
   }
 
-  /**
-   * Seules les URL de NOTRE API demandent le jeton : chemin relatif (/api/...) ou URL sous apiBaseUrl.
-   * Une URL externe (ex. photo Google) est affichee telle quelle, sans jamais recevoir le Bearer.
-   */
   private needsAuth(src: string): boolean {
     return isApiUrl(src);
   }

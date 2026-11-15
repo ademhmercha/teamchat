@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace TeamChat.Api.Infrastructure;
 
-/// <summary>Valide automatiquement les arguments d'action via FluentValidation.</summary>
 public sealed class ValidationFilter : IAsyncActionFilter
 {
     private readonly IServiceProvider _services;

@@ -1,10 +1,3 @@
-"""Tests unitaires de la Lambda (mocks, aucune dependance externe).
-
-    cd infra/lambda/scheduler && python -m unittest -v
-
-Prerequis : boto3 (et tzdata sous Windows, qui n'a pas de base de fuseaux horaires).
-"""
-
 import os
 import unittest
 from datetime import datetime
@@ -15,7 +8,6 @@ from botocore.exceptions import ClientError
 
 import handler
 
-
 class FakeContext:
     def __init__(self, ms=840_000):
         self._ms = ms
@@ -23,11 +15,10 @@ class FakeContext:
     def get_remaining_time_in_millis(self):
         return self._ms
 
-
 class FakeEc2:
     def __init__(self, instances, tag="true"):
-        self.instances = dict(instances)  # id -> etat
-        self.tag = tag  # valeur du tag AutoSchedule (None = pas de tag)
+        self.instances = dict(instances)
+        self.tag = tag
         self.stopped, self.started = [], []
 
     def get_paginator(self, _):
@@ -35,7 +26,7 @@ class FakeEc2:
 
         class P:
             def paginate(self, Filters):
-                if outer.tag is None:  # AWS filtre sur tag-key : une instance sans tag n'est pas renvoyee
+                if outer.tag is None:
                     return [{"Reservations": []}]
                 tags = [{"Key": "AutoSchedule", "Value": outer.tag}]
                 return [{
@@ -55,16 +46,14 @@ class FakeEc2:
     def start_instances(self, InstanceIds):
         self.started.extend(InstanceIds)
 
-
 class FakeRds:
-    """Base unique ; 'transitions' = statuts successifs renvoyes apres un start."""
 
     def __init__(self, status, tagged=True, after_start=("starting", "available"), tag="true"):
         self.status = status
         self.tagged = tagged
         self.tag = tag
         self.after_start = list(after_start)
-        self.transitions = []  # statuts successifs, un par interrogation apres un start
+        self.transitions = []
         self.calls = []
 
     def get_paginator(self, _):
@@ -94,7 +83,6 @@ class FakeRds:
         self.calls.append("stop")
         self.status = "stopping"
 
-
 class FakeSns:
     def __init__(self):
         self.published = []
@@ -102,13 +90,10 @@ class FakeSns:
     def publish(self, **kwargs):
         self.published.append(kwargs)
 
-
 ENV = {"SNS_TOPIC_ARN": "arn:aws:sns:eu-north-1:123:alerts", "TZ_NAME": "Africa/Lagos",
        "START_HOUR": "8", "STOP_HOUR": "23", "RDS_WAIT_SECONDS": "600"}
 
-
 class FakeTime:
-    """Horloge simulee : sleep() fait avancer monotonic() sans attendre."""
 
     def __init__(self):
         self.now = 0.0
@@ -119,14 +104,12 @@ class FakeTime:
     def sleep(self, seconds):
         self.now += seconds
 
-
 def run(event, ec2, rds, sns=None, ctx=None):
     sns = sns or FakeSns()
     with mock.patch.dict(os.environ, ENV), \
          mock.patch.object(handler, "_clients", return_value=(ec2, rds, sns)), \
          mock.patch.object(handler, "time", FakeTime()):
         return handler.handler(event, ctx or FakeContext()), sns
-
 
 class StopTests(unittest.TestCase):
     def test_stop_arrete_ec2_et_rds(self):
@@ -146,14 +129,12 @@ class StopTests(unittest.TestCase):
 
     def test_ressource_non_taguee_est_ignoree(self):
         rds = FakeRds("available", tagged=False)
-        ec2 = FakeEc2({"i-1": "running"})  # une ressource geree existe : pas d'erreur "rien de tague"
+        ec2 = FakeEc2({"i-1": "running"})
         run({"action": "stop"}, ec2, rds)
         self.assertEqual(rds.calls, [])
         self.assertEqual(ec2.stopped, ["i-1"])
 
-
 class SuspensionTests(unittest.TestCase):
-    """AutoSchedule=false suspend toutes les actions, sans redeploiement."""
 
     def test_stop_ignore_les_ressources_suspendues(self):
         ec2, rds = FakeEc2({"i-1": "running"}, tag="false"), FakeRds("available", tag="false")
@@ -184,7 +165,6 @@ class SuspensionTests(unittest.TestCase):
         self.assertEqual(rds.calls, [])
         self.assertIn("ERREUR", sns.published[0]["Subject"])
 
-
 class StartTests(unittest.TestCase):
     def test_start_demarre_rds_puis_ec2_quand_la_base_est_disponible(self):
         ec2, rds = FakeEc2({"i-1": "stopped"}), FakeRds("stopped")
@@ -194,7 +174,7 @@ class StartTests(unittest.TestCase):
         result, _ = run({"action": "start"}, ec2, rds)
         self.assertEqual(rds.calls, ["start"])
         self.assertEqual(ec2.started, ["i-1"])
-        self.assertEqual(order, [("ec2", "available")])  # l'EC2 part apres que la base est disponible
+        self.assertEqual(order, [("ec2", "available")])
         self.assertEqual(result["errors"], [])
 
     def test_start_si_la_base_ne_devient_pas_disponible_demarre_quand_meme_et_signale(self):
@@ -208,7 +188,6 @@ class StartTests(unittest.TestCase):
         run({"action": "start"}, ec2, rds)
         self.assertEqual(ec2.started, [])
         self.assertEqual(rds.calls, [])
-
 
 class EnforceTests(unittest.TestCase):
     def _at(self, hour):
@@ -234,7 +213,7 @@ class EnforceTests(unittest.TestCase):
         with self._at(3):
             result, sns = run({"action": "enforce"}, FakeEc2({"i-1": "running"}, tag="false"), rds)
         self.assertEqual(rds.calls, [])
-        self.assertEqual(sns.published, [])  # suspendu = rien a signaler
+        self.assertEqual(sns.published, [])
 
     def test_enforce_ne_touche_jamais_a_l_ec2_et_reste_silencieux_si_rien_a_faire(self):
         ec2, rds = FakeEc2({"i-1": "running"}), FakeRds("stopped")
@@ -242,7 +221,6 @@ class EnforceTests(unittest.TestCase):
             _, sns = run({"action": "enforce"}, ec2, rds)
         self.assertEqual(ec2.stopped, [])
         self.assertEqual(sns.published, [])
-
 
 class MiscTests(unittest.TestCase):
     def test_action_inconnue(self):
@@ -255,7 +233,6 @@ class MiscTests(unittest.TestCase):
         self.assertTrue(handler.is_active_hour(d(22), 8, 23))
         self.assertFalse(handler.is_active_hour(d(23), 8, 23))
         self.assertFalse(handler.is_active_hour(d(7), 8, 23))
-        # fenetre qui passe minuit (20h -> 6h)
         self.assertTrue(handler.is_active_hour(d(2), 20, 6))
         self.assertFalse(handler.is_active_hour(d(12), 20, 6))
 
@@ -264,13 +241,10 @@ class MiscTests(unittest.TestCase):
         ec2.stop_instances = mock.Mock(side_effect=ClientError({"Error": {"Code": "UnauthorizedOperation", "Message": "x"}}, "StopInstances"))
         with self.assertRaises(RuntimeError):
             _, sns = run({"action": "stop"}, ec2, FakeRds("available"))
-        # la notification d'erreur est envoyee avant la levee de l'exception
-        # (verifiee via un second appel pour recuperer le faux SNS)
         sns = FakeSns()
         with self.assertRaises(RuntimeError):
             run({"action": "stop"}, ec2, FakeRds("available"), sns=sns)
         self.assertIn("ERREUR", sns.published[0]["Subject"])
-
 
 if __name__ == "__main__":
     unittest.main()

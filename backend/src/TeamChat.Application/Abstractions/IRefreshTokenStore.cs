@@ -10,6 +10,5 @@ public interface IRefreshTokenStore
 
     Task UpdateAsync(RefreshToken token, CancellationToken cancellationToken = default);
 
-    /// <summary>Revoque tous les refresh tokens actifs d'un utilisateur (rotation compromise, desactivation).</summary>
     Task RevokeAllForUserAsync(Guid userId, CancellationToken cancellationToken = default);
 }

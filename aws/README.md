@@ -251,4 +251,4 @@ Arreter l'EC2 et la base RDS quand le projet n'est pas utilise.
 - Un echec d'envoi est journalise (CloudWatch `/teamchat/api`) sans faire echouer la requete.
 - Emails envoyes aujourd'hui : mot de passe oublie et bienvenue (creation d'entreprise, uniquement si
   `App__PublicUrl` est defini). Le gabarit d'invitation existe mais n'est pas utilise : l'admin cree
-  les comptes avec un mot de passe, sans email (CLAUDE.md).
+  les comptes avec un mot de passe, sans email.

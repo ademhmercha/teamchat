@@ -54,7 +54,6 @@ describe('authInterceptor : redirection vers la page de veille', () => {
   });
 
   it.each([400, 401, 403, 404, 409, 500])('ne redirige jamais sur un %i', (status) => {
-    // 401 : le renouvellement du jeton est tente (simule) ; ce qui compte ici est l'absence de redirection.
     http.get(api).subscribe({ error: () => undefined });
     backend.expectOne(api).flush('x', { status, statusText: 'err' });
     if (status === 401) {

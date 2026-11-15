@@ -8,11 +8,6 @@ using TeamChat.Application.Common;
 
 namespace TeamChat.Infrastructure.Calls;
 
-/// <summary>
-/// Fournit la configuration ICE : serveurs STUN publics et, si configure, TURN
-/// avec des identifiants temporaires derives du secret partage (mecanisme
-/// "TURN REST API" de coturn, option use-auth-secret).
-/// </summary>
 public sealed class TurnIceServerProvider : IIceServerProvider
 {
     private readonly TurnOptions _options;

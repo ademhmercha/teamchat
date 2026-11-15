@@ -9,10 +9,6 @@ using CreateUserRequest = TeamChat.Application.Users.Dtos.CreateUserRequest;
 
 namespace TeamChat.IntegrationTests.Api;
 
-/// <summary>
-/// Administration de la societe : PATCH /api/company reserve a l'Owner,
-/// cloisonne a sa propre societe.
-/// </summary>
 [Collection("api")]
 public sealed class CompanyEndpointTests
 {

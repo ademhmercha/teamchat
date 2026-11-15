@@ -1,10 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-/**
- * Pages statiques (confidentialite, conditions, veille) : servies telles quelles par S3, jamais par Angular.
- * Ces tests lisent les fichiers du depot (cwd = frontend/).
- */
 const read = (relative: string): string => readFileSync(resolve(process.cwd(), relative), 'utf-8');
 const readRepo = (relative: string): string => read(`../${relative}`);
 
@@ -18,8 +14,8 @@ describe('pages statiques legales', () => {
   ])('%s : document HTML francais, autonome et indexable', (_name, html) => {
     expect(html).toContain('<html lang="fr">');
     expect(html).toContain('<meta charset="utf-8" />');
-    expect(html).not.toContain('noindex'); // Google doit pouvoir la lire ; maintenance.html, elle, est noindex
-    expect(html).not.toMatch(/<script/i); // aucun script, aucune ressource externe
+    expect(html).not.toContain('noindex');
+    expect(html).not.toMatch(/<script/i);
     expect(html).not.toMatch(/(?:src|href)="https?:\/\//i);
     expect(html).toContain('href="mailto:ademhmerchaaa@gmail.com"');
     expect(html).toMatch(/Dernière mise à jour : \d{1,2} \p{L}+ \d{4}/u);
@@ -65,7 +61,7 @@ describe('liens dans le pied de page', () => {
       const html = read(file);
       expect(html).toMatch(/<a href="\/privacy\.html"[^>]*>\s*Confidentialité\s*<\/a>/);
       expect(html).toMatch(/<a href="\/terms\.html"[^>]*>\s*Conditions\s*<\/a>/);
-      expect(html).not.toMatch(/routerLink="\/(?:privacy|terms)/); // le routeur renverrait index.html
+      expect(html).not.toMatch(/routerLink="\/(?:privacy|terms)/);
     },
   );
 });
@@ -92,7 +88,7 @@ describe('service par CloudFront / S3 / service worker', () => {
     for (const page of pages) {
       expect(config.navigationUrls, page).toContain(`!${page}`);
     }
-    expect(config.navigationUrls).toContain('!/**/*.*'); // tout fichier avec extension
+    expect(config.navigationUrls).toContain('!/**/*.*');
   });
 
   it('buildspec.yml exclut ces pages du cache long et les publie en no-cache', () => {

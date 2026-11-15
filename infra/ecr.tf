@@ -1,7 +1,6 @@
 resource "aws_ecr_repository" "api" {
   name = local.ecr_repo_name
 
-  # Mutable : buildspec.yml pousse aussi le tag "latest".
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {

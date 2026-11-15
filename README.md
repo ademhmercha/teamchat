@@ -3,9 +3,6 @@
 Messagerie interne pour les employes d'une societe : annuaire, conversations privees,
 groupes (crees par l'admin), messages temps reel, fichiers, vocaux et appels WebRTC 1-a-1.
 
-Le cahier des charges complet et la source de verite du projet sont dans [`CLAUDE.md`](./CLAUDE.md).
-L'avancement est suivi dans [`PROGRESS.md`](./PROGRESS.md).
-
 ## Stack
 
 - **Backend** : ASP.NET Core Web API (.NET 10 LTS) + SignalR, Clean Architecture
@@ -14,7 +11,7 @@ L'avancement est suivi dans [`PROGRESS.md`](./PROGRESS.md).
 - **Frontend** : Angular 21 (composants standalone, signals)
 - **Appels** : WebRTC (signalisation via SignalR), STUN/TURN
 - **Cache** : HybridCache (memoire L1 par defaut, Redis L2 optionnel). Redis active aussi le backplane SignalR (multi-instances)
-- **Tests** : xUnit, Moq, FluentAssertions, Testcontainers ; Jasmine/Jest cote frontend
+- **Tests** : xUnit, Moq, Testcontainers (PostgreSQL) ; Vitest cote frontend
 - **DevOps** : Docker, docker-compose
 - **Hebergement AWS** : CloudFront + S3 (frontend), EC2 + ECR (API), RDS PostgreSQL, S3 (fichiers), SSM Parameter Store, CloudWatch
 - **CI/CD AWS** : CodePipeline, CodeBuild (tests + build, verification des PR), CodeDeploy. Voir [`aws/README.md`](./aws/README.md)
@@ -30,11 +27,12 @@ L'avancement est suivi dans [`PROGRESS.md`](./PROGRESS.md).
 
 ```
 teamchat/
-├── CLAUDE.md              # cahier des charges (source de verite)
-├── PROGRESS.md            # journal d'avancement
 ├── docker-compose.yml     # PostgreSQL (+ Redis en profil optionnel)
 ├── .env.example           # variables d'environnement (copier en .env)
-├── .github/workflows/     # CI backend + frontend
+├── buildspec.yml          # build du pipeline (CodeBuild)
+├── infra/                 # infrastructure AWS (Terraform)
+├── aws/                   # scripts de deploiement, buildspec des PR, fonction CloudFront
+├── docs/                  # restauration, securite, recette
 ├── backend/
 │   ├── TeamChat.sln
 │   ├── src/               # Domain, Application, Infrastructure, Api

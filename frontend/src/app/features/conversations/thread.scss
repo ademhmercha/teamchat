@@ -43,8 +43,6 @@
   }
 }
 
-/* ---------- Header ---------- */
-
 .thread-header {
   flex-shrink: 0;
   height: 64px;
@@ -148,8 +146,6 @@
   color: var(--tc-danger);
   font-size: 0.85rem;
 }
-
-/* ---------- Messages ---------- */
 
 .scroll-area {
   flex: 1;
@@ -375,8 +371,6 @@
   }
 }
 
-/* La ligne méta (heure + actions) ne réserve de la place que quand elle est
-   visible : dernière bulle d'un groupe (heure) ou survol/focus (actions). */
 .message.last .msg-meta {
   height: 15px;
 }
@@ -444,8 +438,6 @@
   }
 }
 
-/* ---------- Typing indicator ---------- */
-
 .typing-row {
   display: flex;
   align-items: center;
@@ -492,8 +484,6 @@
     opacity: 1;
   }
 }
-
-/* ---------- Media ---------- */
 
 .bubble.bubble-media {
   background: transparent;
@@ -611,8 +601,6 @@
     color: var(--tc-text-muted);
   }
 }
-
-/* ---------- Composer ---------- */
 
 .composer {
   flex-shrink: 0;
@@ -846,8 +834,6 @@
   }
 }
 
-/* ---------- Details panel ---------- */
-
 .thread-details {
   display: none;
   flex-shrink: 0;
@@ -1006,10 +992,6 @@
   }
 }
 
-/* ---------- Responsive ---------- */
-
-/* Détails en overlay dès que la largeur est insuffisante : la conversation
-   n'est jamais comprimée, et la fermeture du panneau rend l'espace immédiatement. */
 @media (max-width: 1280px) {
   .thread-details {
     position: fixed;
@@ -1092,7 +1074,6 @@
     height: 38px;
   }
 
-  /* Détails en plein écran sur téléphone. */
   .thread-details {
     top: 0;
     width: 100%;
@@ -1103,8 +1084,6 @@
     inset: 0;
   }
 }
-
-/* ---------- Recherche de messages ---------- */
 
 .search-panel {
   position: absolute;
@@ -1202,8 +1181,6 @@
   outline: 2px solid var(--tc-primary);
   outline-offset: 1px;
 }
-
-/* ---------- Détails : participants et actions ---------- */
 
 .member-list {
   display: flex;

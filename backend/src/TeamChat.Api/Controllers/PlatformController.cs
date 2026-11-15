@@ -6,11 +6,6 @@ using TeamChat.Domain.Constants;
 
 namespace TeamChat.Api.Controllers;
 
-/// <summary>
-/// Administration plateforme des societes (super-admin uniquement). Ne renvoie
-/// jamais de donnees metier d'une societe : uniquement les societes et leurs
-/// compteurs agreges.
-/// </summary>
 [ApiController]
 [Authorize(Roles = Roles.SuperAdmin)]
 [Route("api/platform/tenants")]

@@ -1,12 +1,5 @@
-/* ============================================================
-   TeamChat — Design System (clair, professionnel)
-   Toute couleur est exposee via un token CSS (--tc-*).
-   Les composants ne doivent jamais utiliser de couleur en dur.
-   ============================================================ */
 
-/* Police Inter auto-hebergee (subset latin + latin-ext).
-   URLs stables dans public/ pour permettre le <link rel="preload">
-   de index.html et la mise en cache hors-ligne par le service worker. */
+
 @font-face {
   font-family: 'Inter Variable';
   font-style: normal;
@@ -32,14 +25,12 @@
 :root {
   color-scheme: light;
 
-  /* Surfaces */
   --tc-bg: #f6f8fb;
   --tc-surface: #ffffff;
   --tc-surface-2: #f1f5f9;
   --tc-surface-3: #e9eef5;
   --tc-elevated: #ffffff;
 
-  /* Navigation et panneaux */
   --tc-sidebar: #ffffff;
   --tc-sidebar-2: #f8fafc;
   --tc-sidebar-text: #526176;
@@ -48,18 +39,15 @@
   --tc-sidebar-active: #eff6ff;
   --tc-sidebar-border: #e2e8f0;
 
-  /* Texte */
   --tc-text: #172033;
   --tc-text-soft: #526176;
   --tc-text-muted: #5f6a7d;
   --tc-font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
     'Liberation Mono', monospace;
 
-  /* Bordures */
   --tc-border: #e2e8f0;
   --tc-border-strong: #cbd5e1;
 
-  /* Accent (bleu principal) */
   --tc-primary: #2563eb;
   --tc-primary-strong: #1d4ed8;
   --tc-primary-soft: #eff6ff;
@@ -68,7 +56,6 @@
   --tc-accent-rgb: 37, 99, 235;
   --tc-on-accent: #ffffff;
 
-  /* Etats */
   --tc-success: #15803d;
   --tc-success-soft: #ecfdf5;
   --tc-success-rgb: 21, 128, 61;
@@ -79,40 +66,33 @@
   --tc-danger-soft: #fef2f2;
   --tc-danger-rgb: 185, 28, 28;
 
-  /* Avatar de groupe */
   --tc-group-avatar: #e0e7ff;
   --tc-group-avatar-text: #3730a3;
 
-  /* Utilitaires */
   --tc-scrim: rgba(23, 32, 51, 0.45);
   --tc-scrim-strong: rgba(10, 16, 28, 0.86);
   --tc-black: #000000;
   --tc-glass: rgba(23, 32, 51, 0.04);
   --tc-glass-border: rgba(23, 32, 51, 0.12);
 
-  /* Surfaces et controles au-dessus d'un voile sombre (appels, lightbox) */
   --tc-on-overlay: rgba(255, 255, 255, 0.75);
   --tc-on-overlay-soft: rgba(255, 255, 255, 0.14);
   --tc-on-overlay-strong: rgba(255, 255, 255, 0.26);
 
-  /* Degrades neutralises (aplats) : plus de gradient decoratif */
   --tc-gradient: #2563eb;
   --tc-gradient-soft: #eff6ff;
 
-  /* Rayons (6 a 8 px) */
   --tc-radius-sm: 6px;
   --tc-radius: 8px;
   --tc-radius-lg: 10px;
   --tc-radius-pill: 999px;
 
-  /* Ombres discretes */
   --tc-shadow-xs: 0 1px 2px rgba(23, 32, 51, 0.06);
   --tc-shadow-sm: 0 1px 3px rgba(23, 32, 51, 0.08);
   --tc-shadow: 0 4px 16px rgba(23, 32, 51, 0.1);
   --tc-shadow-lg: 0 12px 32px rgba(23, 32, 51, 0.16);
   --tc-ring: 0 0 0 3px rgba(37, 99, 235, 0.18);
 
-  /* Motion (transitions courtes) */
   --tc-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --tc-fast: 120ms var(--tc-ease);
   --tc-normal: 160ms var(--tc-ease);
@@ -168,7 +148,6 @@ a {
   outline-offset: 2px;
 }
 
-/* Lien d'evitement (navigation clavier). */
 .skip-link {
   position: fixed;
   top: 8px;
@@ -188,7 +167,6 @@ a {
   transform: translateY(0);
 }
 
-/* Contenu reserve aux lecteurs d'ecran. */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -201,7 +179,6 @@ a {
   border: 0;
 }
 
-/* Scrollbars discretes et adaptees au theme clair. */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--tc-border-strong) transparent;
@@ -237,7 +214,6 @@ a {
   }
 }
 
-/* Infobulles (directive [tcTooltip]) : nom accessible + bulle au survol/focus. */
 [data-tooltip] {
   position: relative;
 }
@@ -309,15 +285,6 @@ a {
   }
 }
 
-/* ============================================================
-   Composants routés
-   Les sorties de routeur (.content, .conv-main, .admin-content)
-   sont des conteneurs flex. Sans dimensionnement explicite, l'hôte
-   du composant routé reste à la largeur de son contenu : le reste
-   de la zone apparaît alors comme un grand espace vide à droite.
-   On force donc chaque page à remplir sa zone.
-   ============================================================ */
-
 app-directory,
 app-account,
 app-conversations-layout,
@@ -332,7 +299,6 @@ app-admin-groups {
   min-height: 0;
 }
 
-/* Racines qui s'appuient sur flex:1 : l'hôte doit être un conteneur flex. */
 app-conversations-empty,
 app-thread {
   display: flex;

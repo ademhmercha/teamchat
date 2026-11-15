@@ -9,12 +9,6 @@ export interface UploadEvent {
   message?: MessageDto;
 }
 
-/**
- * Televersement et lecture des pieces jointes.
- * Les fichiers sont prives : ils sont recuperes via HttpClient (le token est
- * ajoute par l'intercepteur), jamais via une URL publique, puis exposes sous
- * forme d'URL d'objet (blob:) mise en cache par piece jointe.
- */
 @Injectable({ providedIn: 'root' })
 export class AttachmentsService {
   private readonly http = inject(HttpClient);

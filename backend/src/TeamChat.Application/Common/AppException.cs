@@ -1,6 +1,5 @@
 namespace TeamChat.Application.Common;
 
-/// <summary>Erreur metier generique de la couche Application.</summary>
 public class AppException : Exception
 {
     public AppException(string message) : base(message)

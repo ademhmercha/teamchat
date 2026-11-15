@@ -2,7 +2,6 @@ using TeamChat.Application.Admin.Dtos;
 
 namespace TeamChat.Application.Abstractions;
 
-/// <summary>Acces aux donnees agregees du tableau de bord admin.</summary>
 public interface IAdminStatsQueries
 {
     Task<int> CountUsersAsync(bool activeOnly, CancellationToken cancellationToken = default);

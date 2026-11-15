@@ -1,10 +1,3 @@
-# Bootstrap : cree UNIQUEMENT le bucket S3 qui contiendra le state Terraform de infra/.
-# Ce projet garde son propre state en local (terraform.tfstate, non committe) :
-# c'est l'oeuf et la poule. A lancer une seule fois par compte.
-#
-#   cd infra/bootstrap
-#   terraform init
-#   terraform apply
 
 terraform {
   required_version = ">= 1.10"
@@ -82,7 +75,6 @@ resource "aws_s3_bucket_ownership_controls" "tfstate" {
   }
 }
 
-# Les anciennes versions du state sont gardees 90 jours (retour arriere possible), puis purgees.
 resource "aws_s3_bucket_lifecycle_configuration" "tfstate" {
   bucket = aws_s3_bucket.tfstate.id
 

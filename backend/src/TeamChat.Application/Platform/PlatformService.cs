@@ -4,11 +4,6 @@ using TeamChat.Application.Platform.Dtos;
 
 namespace TeamChat.Application.Platform;
 
-/// <summary>
-/// Administration plateforme : liste les societes et les met a jour.
-/// Les compteurs transverses sont fournis par <see cref="IPlatformQueries"/>,
-/// qui ignore le filtre global par societe (reserve au super-admin).
-/// </summary>
 public sealed class PlatformService : IPlatformService
 {
     private const int MaxNameLength = 100;

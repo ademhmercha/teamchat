@@ -7,7 +7,6 @@ using TeamChat.Infrastructure.Persistence;
 
 namespace TeamChat.Infrastructure.Tenants;
 
-/// <summary>Creation et lecture des societes (table <c>Tenants</c>, non filtree).</summary>
 public sealed class TenantService : ITenantService
 {
     private readonly TeamChatDbContext _db;
@@ -95,7 +94,6 @@ public sealed class TenantService : ITenantService
             slug = slug[..100];
         }
 
-        // Suffixe aleatoire : garantit l'unicite du slug meme pour des noms identiques.
         return $"{slug}-{Guid.NewGuid().ToString("N")[..6]}";
     }
 

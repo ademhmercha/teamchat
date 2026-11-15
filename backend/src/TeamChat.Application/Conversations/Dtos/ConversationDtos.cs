@@ -27,7 +27,6 @@ public sealed record ConversationListItemDto(
     int UnreadCount,
     bool Archived = false);
 
-/// <summary>Detail d'une conversation (en-tete et panneau Details).</summary>
 public sealed record ConversationDetailDto(
     Guid Id,
     ConversationType Type,
@@ -36,7 +35,6 @@ public sealed record ConversationDetailDto(
     bool Archived,
     IReadOnlyList<ConversationParticipantDto> Participants);
 
-/// <summary>Fichier partage dans une conversation (onglet « Fichiers » du panneau Details).</summary>
 public sealed record SharedAttachmentDto(
     Guid MessageId,
     long Sequence,
@@ -50,10 +48,8 @@ public sealed record SharedAttachmentDto(
     MessageType Type,
     DateTimeOffset CreatedAt);
 
-/// <summary>Requete d'archivage cote utilisateur.</summary>
 public sealed record UpdateConversationRequest(bool Archived);
 
-/// <summary>Resultat d'un depart de groupe : liste des participants restants.</summary>
 public sealed record LeaveConversationResult(
     Guid ConversationId,
     IReadOnlyList<Guid> RemainingMemberIds);
@@ -80,7 +76,6 @@ public sealed record MessageDto(
     bool Deleted,
     MessageAttachmentDto? Attachment = null);
 
-/// <summary>Curseur de pagination : ordre global des messages (Sequence).</summary>
 public sealed record MessageCursor(long Sequence);
 
 public sealed record MessageHistoryResult(
@@ -92,7 +87,6 @@ public sealed record CreateDirectConversationRequest(Guid UserId);
 
 public sealed record SendMessageRequest(string Content);
 
-/// <summary>Marque la conversation comme lue jusqu'a ce message (null = dernier message).</summary>
 public sealed record MarkAsReadRequest(Guid? MessageId);
 
 public sealed record CreateGroupRequest(string Name, IReadOnlyList<Guid> MemberIds);
@@ -110,7 +104,6 @@ public sealed record GroupDto(
     bool IsArchived,
     IReadOnlyList<GroupMemberDto> Members);
 
-/// <summary>Resultat d'une mutation de groupe : sert a synchroniser les groupes SignalR.</summary>
 public sealed record GroupOperationResult(
     Guid ConversationId,
     string GroupName,

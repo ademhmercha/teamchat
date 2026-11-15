@@ -1,19 +1,3 @@
-"""Arrete et demarre l'EC2 et la base RDS de TeamChat (economie la nuit).
-
-Evenement : {"action": "start" | "stop" | "enforce"}
-
-- stop    : arrete l'EC2 (puis la base RDS) portant le tag AutoSchedule=true.
-- start   : demarre la base RDS, attend qu'elle soit disponible, puis demarre l'EC2
-            (l'API a besoin de la base pour appliquer ses migrations au demarrage).
-- enforce : RDS redemarre toute seule apres 7 jours d'arret ; hors des heures d'activite,
-            re-arrete les bases RDS taguees qui tournent. Ne touche jamais a l'EC2.
-
-Suspension sans redeploiement : une ressource taguee AutoSchedule=false est ignoree par TOUTES les actions
-(stop, start et enforce). Remettre le tag a true pour la reintegrer.
-
-Variables d'environnement : SNS_TOPIC_ARN, TZ_NAME, START_HOUR, STOP_HOUR, RDS_WAIT_SECONDS.
-"""
-
 import json
 import logging
 import os
@@ -30,19 +14,12 @@ logger.setLevel(logging.INFO)
 TAG_KEY = "AutoSchedule"
 TAG_VALUE = "true"
 POLL_SECONDS = 20
-SAFETY_MARGIN_SECONDS = 45  # on s'arrete avant la fin du delai de la Lambda
-
+SAFETY_MARGIN_SECONDS = 45
 
 def _clients():
-    """Point d'injection pour les tests."""
     return boto3.client("ec2"), boto3.client("rds"), boto3.client("sns")
 
-
-# ---------------------------------------------------------------- decouverte
-
-
 def _instances(ec2):
-    """[(id, etat, valeur du tag)] des instances EC2 portant le tag AutoSchedule, quelle que soit sa valeur."""
     found = []
     paginator = ec2.get_paginator("describe_instances")
     pages = paginator.paginate(
@@ -58,9 +35,7 @@ def _instances(ec2):
                 found.append((instance["InstanceId"], instance["State"]["Name"], tags.get(TAG_KEY)))
     return found
 
-
 def _databases(rds):
-    """[(id, statut, valeur du tag)] des bases RDS portant le tag AutoSchedule (RDS ne filtre pas par tag)."""
     found = []
     paginator = rds.get_paginator("describe_db_instances")
     for page in paginator.paginate():
@@ -71,23 +46,16 @@ def _databases(rds):
                 found.append((db["DBInstanceIdentifier"], db["DBInstanceStatus"], value))
     return found
 
-
 def _is_active(tag_value):
     return (tag_value or "").strip().lower() == TAG_VALUE
 
-
 def _tagged_instances(ec2):
-    """[(id, etat)] des instances gerees (AutoSchedule=true)."""
     return [(i, state) for i, state, value in _instances(ec2) if _is_active(value)]
 
-
 def _tagged_databases(rds):
-    """[(id, statut)] des bases gerees (AutoSchedule=true)."""
     return [(i, status) for i, status, value in _databases(rds) if _is_active(value)]
 
-
 def _audit(ec2, rds, result):
-    """Signale les ressources suspendues (AutoSchedule=false) ; erreur si rien n'est tague du tout."""
     instances, databases = _instances(ec2), _databases(rds)
     for kind, items in (("ec2", instances), ("rds", databases)):
         for resource_id, _, value in items:
@@ -98,10 +66,6 @@ def _audit(ec2, rds, result):
             f"Aucune ressource ne porte le tag {TAG_KEY} : rien n'a ete fait "
             f"(tag manquant sur l'EC2 et sur RDS ? ajoute {TAG_KEY}={TAG_VALUE})"
         )
-
-
-# ------------------------------------------------------------------- actions
-
 
 def _stop_ec2(ec2, result):
     ids = []
@@ -114,7 +78,6 @@ def _stop_ec2(ec2, result):
         ec2.stop_instances(InstanceIds=ids)
         result["done"].extend(f"ec2:{i} stop" for i in ids)
 
-
 def _stop_rds(rds, result, only_when_available=False):
     for db_id, status in _tagged_databases(rds):
         if status == "available":
@@ -123,9 +86,7 @@ def _stop_rds(rds, result, only_when_available=False):
         else:
             result["skipped"].append(f"rds:{db_id} ({status})")
 
-
 def _start_rds_and_wait(rds, result, wait_seconds):
-    """Demarre les bases arretees puis attend qu'elles soient 'available' (dans la limite du temps)."""
     started = set()
     deadline = time.monotonic() + wait_seconds
     while True:
@@ -137,13 +98,12 @@ def _start_rds_and_wait(rds, result, wait_seconds):
                 result["done"].append(f"rds:{db_id} start")
                 pending = True
             elif status != "available":
-                pending = True  # starting, stopping (a redemarrer ensuite), configuring-...
+                pending = True
         if not pending:
             return True
         if time.monotonic() + POLL_SECONDS >= deadline:
             return False
         time.sleep(POLL_SECONDS)
-
 
 def _start_ec2(ec2, result):
     ids = []
@@ -156,21 +116,14 @@ def _start_ec2(ec2, result):
         ec2.start_instances(InstanceIds=ids)
         result["done"].extend(f"ec2:{i} start" for i in ids)
 
-
 def is_active_hour(now, start_hour, stop_hour):
-    """Vrai pendant les heures d'activite [start_hour, stop_hour) (gere le passage de minuit)."""
     hour = now.hour
     if start_hour < stop_hour:
         return start_hour <= hour < stop_hour
     return hour >= start_hour or hour < stop_hour
 
-
-# ------------------------------------------------------------------- handler
-
-
 class _NothingTagged(Exception):
-    """Aucune ressource AutoSchedule : on s'arrete en erreur visible plutot qu'en silence."""
-
+    pass
 
 def handler(event, context):
     action = (event or {}).get("action")
@@ -192,10 +145,9 @@ def handler(event, context):
             remaining = context.get_remaining_time_in_millis() / 1000 - SAFETY_MARGIN_SECONDS
             ready = _start_rds_and_wait(rds, result, max(0, min(budget, remaining)))
             if not ready:
-                # On demarre quand meme l'EC2 : le conteneur retente tout seul (restart unless-stopped).
                 result["errors"].append("RDS pas encore disponible : EC2 demarree quand meme")
             _start_ec2(ec2, result)
-        else:  # enforce
+        else:
             tz = ZoneInfo(os.environ.get("TZ_NAME", "UTC"))
             now = datetime.now(tz)
             if is_active_hour(now, int(os.environ.get("START_HOUR", "8")), int(os.environ.get("STOP_HOUR", "23"))):
@@ -203,7 +155,7 @@ def handler(event, context):
                 return result
             _stop_rds(rds, result)
     except _NothingTagged:
-        pass  # deja consigne dans result["errors"]
+        pass
     except ClientError as exc:
         logger.exception("Erreur AWS pendant %s", action)
         result["errors"].append(str(exc))
@@ -215,10 +167,8 @@ def handler(event, context):
         raise RuntimeError("; ".join(result["errors"]))
     return result
 
-
 def _notify(sns, result):
     topic = os.environ.get("SNS_TOPIC_ARN")
-    # 'enforce' tourne toutes les heures : on ne previent que s'il a vraiment agi.
     if not topic or (result["action"] == "enforce" and not result["done"] and not result["errors"]):
         return
     status = "ERREUR" if result["errors"] else "OK"

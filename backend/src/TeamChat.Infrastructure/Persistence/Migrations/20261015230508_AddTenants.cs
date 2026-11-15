@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace TeamChat.Infrastructure.Persistence.Migrations
 {
-    /// <inheritdoc />
     public partial class AddTenants : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -26,7 +24,6 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                     table.PrimaryKey("PK_Tenants", x => x.Id);
                 });
 
-            // Societe par defaut : toutes les donnees existantes lui sont rattachees.
             migrationBuilder.InsertData(
                 table: "Tenants",
                 columns: new[] { "Id", "Name", "Slug", "IsActive", "CreatedAt" },
@@ -75,7 +72,6 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                 type: "uuid",
                 nullable: true);
 
-            // Rattachement des donnees et comptes existants a la societe par defaut.
             const string defaultTenant = "00000000-0000-0000-0000-000000000001";
             migrationBuilder.Sql($"UPDATE \"Notifications\" SET \"TenantId\" = '{defaultTenant}' WHERE \"TenantId\" IS NULL;");
             migrationBuilder.Sql($"UPDATE \"Messages\" SET \"TenantId\" = '{defaultTenant}' WHERE \"TenantId\" IS NULL;");
@@ -166,7 +162,6 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                 unique: true);
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

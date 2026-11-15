@@ -6,19 +6,14 @@ using TeamChat.IntegrationTests.Support;
 
 namespace TeamChat.IntegrationTests.Api;
 
-/// <summary>
-/// Sprint 2 : cloture stricte des donnees entre societes sur les parcours
-/// sensibles (conversation directe, profil, avatar) et administration
-/// plateforme reservee au super-admin (liste, renommage, activation).
-/// </summary>
 [Collection("api")]
-public sealed class Sprint2IsolationTests
+public sealed class ConversationIsolationTests
 {
     private const string Password = "OwnerPass123!";
 
     private readonly ApiCollectionFixture _fixture;
 
-    public Sprint2IsolationTests(ApiCollectionFixture fixture)
+    public ConversationIsolationTests(ApiCollectionFixture fixture)
     {
         _fixture = fixture;
     }

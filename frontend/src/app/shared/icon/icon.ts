@@ -1,9 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
-/**
- * Jeu d'icones SVG inline (style "lignes" type Lucide) pour eviter toute
- * dependance externe et garder un rendu homogene et professionnel.
- */
 @Component({
   selector: 'app-icon',
   changeDetection: ChangeDetectionStrategy.OnPush,

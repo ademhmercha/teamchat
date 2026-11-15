@@ -16,9 +16,6 @@ public sealed class HealthController : ControllerBase
         _cache = cache;
     }
 
-    /// <summary>
-    /// Verifie que l'API repond et que le cache (HybridCache) est utilisable.
-    /// </summary>
     [HttpGet]
     public async Task<IActionResult> Get(CancellationToken cancellationToken)
     {

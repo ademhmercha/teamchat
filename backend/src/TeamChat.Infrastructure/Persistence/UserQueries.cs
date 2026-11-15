@@ -8,7 +8,6 @@ using TeamChat.Domain.Constants;
 
 namespace TeamChat.Infrastructure.Persistence;
 
-/// <summary>Lecture de l'annuaire avec mise en cache (60 s) des resultats de recherche.</summary>
 public sealed class UserQueries : IUserQueries
 {
     private static readonly TimeSpan DirectoryTtl = TimeSpan.FromSeconds(60);

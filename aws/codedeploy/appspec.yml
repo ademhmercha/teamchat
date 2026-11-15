@@ -1,4 +1,3 @@
-# CodeDeploy (EC2) - redemarre le conteneur de l'API avec la nouvelle image.
 version: 0.0
 os: linux
 files:

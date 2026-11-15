@@ -1,16 +1,3 @@
-export const ConversationType = {
-  Direct: 0,
-  Group: 1,
-} as const;
-
-export const MessageType = {
-  Text: 0,
-  Voice: 1,
-  File: 2,
-  Image: 3,
-  System: 4,
-} as const;
-
 export interface ConversationParticipantDto {
   userId: string;
   displayName: string;
