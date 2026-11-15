@@ -38,3 +38,16 @@ output "instance_id" {
 output "api_public_dns" {
   value = aws_eip.api.public_dns
 }
+
+output "github_connection_arn" {
+  description = "A VALIDER A LA MAIN : console AWS > Developer Tools > Settings > Connections > Update pending connection. Tant qu'elle est PENDING, le pipeline echoue a l'etape Source."
+  value       = aws_codestarconnections_connection.github.arn
+}
+
+output "pipeline_name" {
+  value = aws_codepipeline.main.name
+}
+
+output "codedeploy_app" {
+  value = aws_codedeploy_app.main.name
+}

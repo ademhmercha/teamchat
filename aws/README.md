@@ -35,6 +35,7 @@ Toute l'infrastructure de production est decrite en Terraform (region eu-north-1
 | `compute.tf` | Role IAM EC2 (moindre privilege), EC2 t3.micro AL2023 (IMDSv2, Docker, agent CodeDeploy, swap), IP elastique, log group `/teamchat/api` |
 | `cdn.tf` | CloudFront : `/*` -> S3 (+ `spa-rewrite.js`), `/api/*` et `/hubs/*` -> EC2 |
 | `ses.tf` | Identite d'expedition SES |
+| `cicd.tf` | Connexion GitHub, bucket d'artefacts, CodeBuild (`teamchat-build`, `teamchat-ci`), CodeDeploy, CodePipeline V2 |
 
 ### Commandes
 
@@ -85,12 +86,33 @@ Les ressources CloudFront elles-memes et IAM sont des services globaux : si la S
    tant que le pipeline n'a pas publie le frontend et l'image API (phase 3).
 4. **TURN / Google** (si utilises) : creer a la main les parametres `Turn__Urls`, `Turn__Secret`
    sous `/teamchat/prod/` (non geres par Terraform), `Google__ClientId` via `TF_VAR_google_client_id`.
-5. **Pipeline CI/CD** (CodePipeline, CodeBuild, CodeDeploy) : phase 3, `infra/cicd.tf`.
+5. **Connexion GitHub** : apres le `apply`, console AWS > Developer Tools > Settings > Connections >
+   `teamchat-github` > *Update pending connection* (autorise l'application AWS sur le depot).
+   Tant qu'elle est `PENDING`, l'etape Source du pipeline echoue. Ensuite : *Release change* sur le pipeline
+   (ou un push sur `main`).
+6. **Verification des pull requests** : une fois la connexion validee, mettre `enable_pr_checks = true`
+   dans `envs/prod.tfvars` et refaire un `apply` (cree `teamchat-ci`, son identifiant GitHub et le webhook).
 
 Notes :
 - La chaine de connexion utilise `SSL Mode=Require;Trust Server Certificate=true` : le trafic vers RDS est chiffre,
   mais l'autorite de certification RDS n'est pas dans l'image `aspnet`.
 - Le groupe de securite de l'EC2 consomme ~55 regles de quota a cause de la liste de prefixes CloudFront.
+
+## CI/CD
+
+- **Push sur `main`** : CodePipeline V2 -> `teamchat-build` (`buildspec.yml` : tests unitaires et d'integration,
+  image ECR, frontend S3 + invalidation CloudFront) -> CodeDeploy (`prod`, `AllAtOnce`, rollback si echec).
+- **Pull request** : `teamchat-ci` (`aws/buildspec-ci.yml`) : build, tests unitaires, image Docker et frontend.
+  Les tests d'integration n'y tournent pas par defaut (`RUN_INTEGRATION_TESTS=true` sur le projet pour les activer).
+- Image CodeBuild `aws/codebuild/standard:7.0` : Node 22 et .NET 10 sont deja installes (pas de `dotnet-install.sh`).
+- Les rapports de tests (TRX) apparaissent dans CodeBuild > Report groups.
+- Si Docker Hub limite les telechargements (erreur `toomanyrequests` dans les tests d'integration), definir
+  `RUN_INTEGRATION_TESTS=false` sur `teamchat-build` le temps de corriger, ou passer a `BUILD_GENERAL1_MEDIUM`
+  (`codebuild_compute_type`) si les tests sont lents.
+
+Estimation (non mesuree, a verifier apres les premiers builds) : ~12 a 15 min par execution `main`. Pour 20 deploiements
+par mois : ~250 min de CodeBuild `general1.small` (100 min gratuites/mois, puis ~0,005 $/min, soit ~1 $)
+et ~350 min d'actions CodePipeline V2 (100 min gratuites, puis 0,002 $/min, soit ~0,5 $). Environ 1 a 2 $/mois.
 
 ## Migrer les donnees depuis Railway (optionnel)
 

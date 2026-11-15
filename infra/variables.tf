@@ -56,6 +56,36 @@ variable "instance_type" {
   default = "t3.micro"
 }
 
+# ---- CI/CD ----
+
+variable "github_repository" {
+  description = "Depot GitHub (proprietaire/nom) surveille par le pipeline."
+  type        = string
+  default     = "ademhmercha/teamchat"
+}
+
+variable "github_branch" {
+  type    = string
+  default = "main"
+}
+
+variable "codebuild_compute_type" {
+  description = "Taille des builds CodeBuild : BUILD_GENERAL1_SMALL (defaut) ou BUILD_GENERAL1_MEDIUM si les tests sont trop lents."
+  type        = string
+  default     = "BUILD_GENERAL1_SMALL"
+
+  validation {
+    condition     = contains(["BUILD_GENERAL1_SMALL", "BUILD_GENERAL1_MEDIUM", "BUILD_GENERAL1_LARGE"], var.codebuild_compute_type)
+    error_message = "Valeurs possibles : BUILD_GENERAL1_SMALL, BUILD_GENERAL1_MEDIUM, BUILD_GENERAL1_LARGE."
+  }
+}
+
+variable "enable_pr_checks" {
+  description = "Cree le projet teamchat-ci et son webhook GitHub (verification des pull requests). A activer APRES avoir valide la connexion GitHub dans la console."
+  type        = bool
+  default     = false
+}
+
 # ---- Ressources us-east-1 (optionnelles, voir us_east_1.tf) ----
 
 variable "enable_us_east_1_resources" {
