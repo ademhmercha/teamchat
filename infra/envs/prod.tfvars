@@ -17,3 +17,9 @@ instance_type = "t3.micro"
 
 # Verification des pull requests par CodeBuild (connexion GitHub validee dans la console).
 enable_pr_checks = true
+
+# Budget AWS existant (cree a la main) : importe au premier apply, puis repasser import_existing_budget a false.
+# Le nom doit etre IDENTIQUE a celui de la console AWS Budgets (espaces et fautes comprises).
+budget_name            = "team chat monthy budget"
+budget_limit_usd       = "30"
+import_existing_budget = true
