@@ -100,6 +100,58 @@ Notes :
   mais l'autorite de certification RDS n'est pas dans l'image `aspnet`.
 - Le groupe de securite de l'EC2 consomme ~55 regles de quota a cause de la liste de prefixes CloudFront.
 
+## Supervision (`infra/monitoring.tf`)
+
+Alarmes CloudWatch -> sujet SNS `teamchat-alerts-<env>` (meme sujet que le scheduler). Renseigner `TF_VAR_alert_email`
+puis **cliquer sur le lien de confirmation** recu par email. Pas de notification "OK" (sinon un email a chaque redemarrage).
+Toutes les alarmes ignorent les donnees manquantes : l'arret nocturne ne les declenche pas.
+
+| Alarme | Seuil |
+|---|---|
+| EC2 `StatusCheckFailed_System` | > 0 pendant 2 min : notification **et recuperation automatique** |
+| EC2 `StatusCheckFailed_Instance` | > 0 pendant 3 min |
+| EC2 CPU | > 80 % pendant 10 min |
+| EC2 memoire (agent CloudWatch) | > 90 % pendant 10 min |
+| EC2 disque `/` (agent CloudWatch) | > 85 % pendant 10 min |
+| RDS CPU | > 80 % pendant 10 min |
+| RDS espace libre | < 2 Go |
+| RDS connexions | > 80 |
+| API : erreurs journalisees | >= 5 `Error`/`Critical` en 5 min |
+| CloudFront 5xx > 5 % | optionnelle (`enable_us_east_1_resources`, voir ci-dessous) |
+
+- **Disponibilite** : filtre de metriques sur le groupe `/teamchat/api` plutot qu'un health check Route 53. Le filtre coute
+  ~0,10 $/mois (dans le quota gratuit de 10 metriques/alarmes) et reste en eu-north-1. Route 53 couterait ~0,50 a 2,50 $/mois
+  et ses metriques n'existent qu'en us-east-1, region refusee par la SCP du compte. Limite : une panne totale (plus aucun journal)
+  est vue par les controles d'etat de l'EC2, pas par le filtre.
+- **CloudFront 5xx** : metriques en us-east-1 seulement ; la nuit CloudFront renvoie des 502/504 (API arretee), donc cette alarme
+  ne convient qu'avec le scheduler desactive.
+- **Memoire et disque** : l'agent CloudWatch est installe et configure par SSM State Manager (associations ciblant le tag
+  `App=teamchat`, config dans le parametre `/cloudwatch-agent/teamchat-<env>/config`). Les premieres metriques `CWAgent`
+  arrivent sous ~30 min apres l'`apply` (l'association de configuration reessaie toutes les 30 min).
+- **Journaux JSON** : `backend/src/TeamChat.Api/appsettings.Production.json` active le formateur JSON de .NET
+  (une ligne par evenement : `LogLevel`, `Category`, `Message`, `Exception`), donc filtrable dans CloudWatch Logs Insights.
+- **Tableau de bord** `teamchat-<env>` : CPU/memoire/disque EC2, CPU/connexions/stockage RDS, requetes et erreurs CloudFront,
+  erreurs de l'API. Cout total des alarmes : ~0 a 1 $/mois (10 alarmes et 3 tableaux de bord gratuits).
+
+Requetes CloudWatch Logs Insights utiles (groupe `/teamchat/api`) :
+
+```
+# 1. Dernieres erreurs avec leur exception
+fields @timestamp, Category, Message, Exception
+| filter LogLevel in ["Error", "Critical"]
+| sort @timestamp desc | limit 50
+
+# 2. Quelles categories (classes) produisent le plus d'erreurs sur la periode
+filter LogLevel = "Error"
+| stats count(*) as erreurs by Category
+| sort erreurs desc
+
+# 3. Evolution des erreurs et avertissements, par tranche de 5 minutes
+filter LogLevel in ["Warning", "Error", "Critical"]
+| stats count(*) as evenements by bin(5m), LogLevel
+| sort bin(5m) desc
+```
+
 ## Arret nocturne (economies)
 
 La Lambda `teamchat-<env>-scheduler` (`infra/lambda/scheduler/handler.py`) agit sur les ressources taguees `AutoSchedule=true`

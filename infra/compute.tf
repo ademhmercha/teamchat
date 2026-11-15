@@ -101,6 +101,26 @@ data "aws_iam_policy_document" "ec2" {
     resources = ["${aws_cloudwatch_log_group.api.arn}:*"]
   }
 
+  # Agent CloudWatch (monitoring.tf) : metriques memoire/disque, uniquement dans le namespace CWAgent,
+  # et lecture de SA configuration (parametre SSM hors de /teamchat/<env>/).
+  statement {
+    sid       = "CloudWatchAgentMetrics"
+    actions   = ["cloudwatch:PutMetricData"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "cloudwatch:namespace"
+      values   = ["CWAgent"]
+    }
+  }
+
+  statement {
+    sid       = "CloudWatchAgentConfig"
+    actions   = ["ssm:GetParameter"]
+    resources = ["arn:aws:ssm:${var.aws_region}:${local.account_id}:parameter${local.cloudwatch_agent_param}"]
+  }
+
   statement {
     sid       = "SendEmail"
     actions   = ["ses:SendEmail"]
