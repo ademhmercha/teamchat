@@ -249,6 +249,17 @@ resource "aws_codebuild_project" "build" {
       name  = "ECR_SCAN_FAIL_ON_CRITICAL"
       value = tostring(var.ecr_scan_fail_on_critical)
     }
+
+    # Identifiant client Google : public (il est livre dans le JavaScript du frontend). Injecte au build par
+    # buildspec.yml dans environment.production.ts ; absent = bouton "Se connecter avec Google" masque.
+    dynamic "environment_variable" {
+      for_each = nonsensitive(var.google_client_id) != "" ? [1] : []
+
+      content {
+        name  = "GOOGLE_CLIENT_ID"
+        value = nonsensitive(var.google_client_id)
+      }
+    }
   }
 
   cache {

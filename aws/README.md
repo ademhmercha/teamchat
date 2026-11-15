@@ -233,15 +233,9 @@ Estimation (non mesuree, a verifier apres les premiers builds) : ~12 a 15 min pa
 par mois : ~250 min de CodeBuild `general1.small` (100 min gratuites/mois, puis ~0,005 $/min, soit ~1 $)
 et ~350 min d'actions CodePipeline V2 (100 min gratuites, puis 0,002 $/min, soit ~0,5 $). Environ 1 a 2 $/mois.
 
-## Migrer les donnees depuis Railway (optionnel)
+## Anciens hebergements
 
-```bash
-pg_dump --no-owner --no-acl -Fc "<url-postgres-railway>" -f teamchat.dump
-pg_restore --no-owner --no-acl -d "<url-postgres-rds>" teamchat.dump
-```
-(a lancer depuis l'EC2 via Session Manager, RDS n'etant pas public).
-Les fichiers deja envoyes sur Railway (stockage local) sont a copier dans le bucket uploads
-en conservant les memes cles.
+Railway (API + PostgreSQL) et Vercel (frontend) ont ete supprimes. La base etait vide : aucune donnee a migrer.
 
 ## Couts indicatifs (eu-north-1)
 

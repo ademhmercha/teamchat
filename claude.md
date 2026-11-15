@@ -73,7 +73,7 @@
 | Fichiers | Abstraction `IFileStorage` : disque local en dev, stockage objet S3-compatible en prod |
 | Tests | xUnit, Moq, FluentAssertions, Testcontainers (PostgreSQL) ; Jasmine/Jest côté Angular |
 | DevOps | Docker, docker-compose, GitHub Actions |
-| Déploiement | Frontend sur **Vercel** ; API + SignalR en Docker (Azure App Service ou Render) ; PostgreSQL sur Neon |
+| Déploiement | **AWS** (eu-north-1, Terraform dans `infra/`) : CloudFront + S3 (frontend), EC2 + Docker (API + SignalR), RDS PostgreSQL, S3 (fichiers), SES, CodePipeline ; voir `aws/README.md` |
 
 ---
 
@@ -252,7 +252,7 @@ Règles côté hub :
 - [ ] Rate limiting sur `/auth/login` et sur l'envoi de messages (middleware `RateLimiter` intégré)
 - [ ] Validation de toutes les entrées (FluentValidation), taille maximale d'un message
 - [ ] Logs structurés (Serilog) sans données sensibles
-- [ ] **Piège Vercel** : si le front (`*.vercel.app`) et l'API sont sur des domaines différents, le cookie du refresh token est « cross-site » (`SameSite=None; Secure` obligatoire, et certains navigateurs le bloquent). Solution recommandée : domaine personnalisé avec deux sous-domaines (`app.exemple.com`, `api.exemple.com`), ou réécriture `/api` via `vercel.json`.
+- [x] ~~**Piège Vercel**~~ (obsolète : CloudFront sert le front et l'API sur la MÊME origine, le cookie du refresh token n'est donc plus « cross-site ») : si le front (`*.vercel.app`) et l'API sont sur des domaines différents, le cookie du refresh token est « cross-site » (`SameSite=None; Secure` obligatoire, et certains navigateurs le bloquent). Solution recommandée : domaine personnalisé avec deux sous-domaines (`app.exemple.com`, `api.exemple.com`), ou réécriture `/api` via `vercel.json`.
 
 ---
 
@@ -421,8 +421,8 @@ Chaque sprint a une **définition de terminé**. Ne passe au suivant qu'après m
 - [ ] Backplane Redis SignalR activable par configuration ; Redis managé en production si plusieurs instances (offre gratuite à vérifier, ex. Upstash)
 - [ ] `Dockerfile` backend (multi-stage), `Dockerfile` frontend si utile, `docker-compose` complet (api, db, coturn)
 - [ ] GitHub Actions : build, tests, image Docker, déploiement
-- [ ] Frontend déployé sur **Vercel** (variables d'environnement pour l'URL de l'API ; `vercel.json` avec réécriture vers `index.html` pour le routage Angular)
-- [ ] Backend déployé en Docker (Azure App Service ou Render) avec **WebSockets activés**, base sur Neon, stockage objet pour les fichiers
+- [x] ~~Frontend déployé sur **Vercel**~~ → S3 + CloudFront (Terraform, `buildspec.yml`) — ancien libellé : (variables d'environnement pour l'URL de l'API ; `vercel.json` avec réécriture vers `index.html` pour le routage Angular)
+- [x] ~~Backend déployé en Docker (Azure App Service ou Render)~~ → EC2 + Docker via CodeDeploy — ancien libellé : avec **WebSockets activés**, base sur Neon, stockage objet pour les fichiers
 - [ ] Swagger activé hors production
 - [ ] `README.md` final : description, captures d'écran, schéma d'architecture, installation locale en 3 commandes, variables d'environnement, lien de démo, comptes de test
 

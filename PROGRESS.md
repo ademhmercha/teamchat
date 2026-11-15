@@ -1967,3 +1967,14 @@ puis les finitions (Sprint C). Ce sprint couvre **A**.
 | B3 | `switchMap` en plus du `debounceTime` | La réponse d'une recherche obsolète ne peut plus écraser la recherche courante. |
 | B4 | Rail admin réduit à une seule entrée | Supprime le doublon avec les onglets de `admin-layout`. |
 | B5 | Maskable sur fond **blanc**, contenu ramené à 80 % | Cohérent avec `background_color: #ffffff` et l'existant (icônes opaques sur blanc) ; respecte la zone sûre sans refonte graphique. |
+
+## Migration AWS (novembre 2026)
+
+- **Fait** : hebergement migre de Railway + Vercel vers AWS `eu-north-1` (SCP du Free plan), infrastructure en Terraform (`infra/`),
+  CI/CD CodePipeline/CodeBuild/CodeDeploy, SES, supervision CloudWatch, arret nocturne (Lambda), CloudTrail, Budgets.
+- **Correctifs lies** : URL d'avatar relatives (Mixed Content derriere CloudFront), jeton Bearer limite a l'API, redirection vers
+  `/maintenance.html` sur 502/503/504.
+- **Decisions** : pas de migration de donnees (base Railway vide) ; Access Analyzer optionnel (refuse par une SCP) ;
+  alarme CloudFront 5xx optionnelle (us-east-1 refuse, et 502/504 nocturnes).
+- **Supprime** : projets Vercel et Railway (par l'utilisateur), `vercel.json`, workflows GitHub Actions.
+- **Documentation** : `aws/README.md`, `docs/RESTORE.md`, `docs/SECURITY.md`, `docs/RECETTE.md`.

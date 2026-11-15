@@ -111,15 +111,17 @@ Variables associees (voir [`.env.example`](./.env.example)) :
 En production, herberger coturn sur un **VPS** (les hebergeurs web classiques ne gerent pas
 l'UDP) et exposer les ports 3478 (UDP/TCP) + la plage de relais UDP (49160-49200 par defaut).
 
-## Deploiement (fichiers prepares)
+## Deploiement (AWS)
 
-Aucun deploiement automatique n'est effectue par le depot ; les fichiers suivants servent de base.
+L'application est hebergee sur AWS, region `eu-north-1`, entierement decrite en Terraform (`infra/`) :
+CloudFront (frontend S3 + `/api/*` et `/hubs/*` vers l'EC2), EC2 + Docker (API), RDS PostgreSQL, S3 (fichiers),
+SES (emails), SSM (secrets), CodePipeline/CodeBuild/CodeDeploy (CI/CD sur `main`).
 
-- **Frontend (Vercel)** : [`frontend/vercel.json`](./frontend/vercel.json) configure le build Angular
-  et la reecriture SPA vers `index.html`. Renseigner `apiBaseUrl` dans `frontend/src/environments/`.
-- **Backend (conteneur)** : [`backend/Dockerfile`](./backend/Dockerfile) construit une image runtime
-  (.NET 10, port 8080). `docker compose --profile app up -d --build` lance l'API avec PostgreSQL
-  (profil `app` dans [`docker-compose.yml`](./docker-compose.yml)).
-- **Variables requises en production** : `ConnectionStrings__Default`, `Jwt__Secret`, `Cors__AllowedOrigins`,
-  `Admin__SeedEmail`/`Admin__SeedPassword`, et optionnellement `Redis__ConnectionString` (cache L2 + backplane),
-  `Turn__*` (appels via TURN) et `Storage__*` (S3).
+- **Documentation** : [`aws/README.md`](./aws/README.md) (architecture, commandes, CI/CD, supervision, arret nocturne),
+  [`docs/RESTORE.md`](./docs/RESTORE.md) (restauration), [`docs/SECURITY.md`](./docs/SECURITY.md) (revue IAM),
+  [`docs/RECETTE.md`](./docs/RECETTE.md) (checklist de recette manuelle).
+- **URL de la demo** : `terraform output cloudfront_url` (dans `infra/`). La demo dort de 23h a 8h (UTC+1).
+- **Backend en conteneur** : [`backend/Dockerfile`](./backend/Dockerfile) (.NET 10, port 8080) ;
+  `docker compose --profile app up -d --build` lance l'API avec PostgreSQL en local.
+- **Variables requises en production** (parametres SSM `/teamchat/prod/`, crees par Terraform) : `ConnectionStrings__Default`,
+  `Jwt__*`, `Cors__AllowedOrigins`, `App__PublicUrl`, `Email__*`, `Storage__*`, `Admin__Seed*`, `Google__ClientId`, `Turn__*`.

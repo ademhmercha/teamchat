@@ -63,7 +63,14 @@ phases:
         fi
       # 2. Image Docker de l'API.
       - docker build -t "$IMAGE_URI" -t "$REGISTRY/$ECR_REPOSITORY:latest" ./backend
-      # 3. Frontend Angular.
+      # 3. Frontend Angular (identifiant client Google injecte au build : sans lui le bouton Google est masque).
+      - |
+        if [ -n "${GOOGLE_CLIENT_ID:-}" ]; then
+          sed -i "s|googleClientId: ''|googleClientId: '${GOOGLE_CLIENT_ID}'|" frontend/src/environments/environment.production.ts
+          grep -q "googleClientId: '${GOOGLE_CLIENT_ID}'" frontend/src/environments/environment.production.ts
+        else
+          echo "GOOGLE_CLIENT_ID absent : connexion Google desactivee dans le frontend."
+        fi
       - cd frontend && npm ci && npm run build -- --configuration production && cd ..
 
   post_build:
