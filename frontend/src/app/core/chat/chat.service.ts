@@ -9,6 +9,7 @@ import {
   IceCandidatePayload,
   SdpPayload,
 } from '../models/call.models';
+import { MaintenanceService } from '../maintenance/maintenance.service';
 import { MessageDto } from '../models/conversation.models';
 
 type TypingKey = string;
@@ -27,6 +28,7 @@ const TYPING_THROTTLE_MS = 1500;
 @Injectable({ providedIn: 'root' })
 export class ChatService {
   private readonly auth = inject(AuthService);
+  private readonly maintenance = inject(MaintenanceService);
 
   private connection: HubConnection | null = null;
   private readonly presenceMap = new Map<string, boolean>();
@@ -136,7 +138,10 @@ export class ChatService {
     this.state.set(HubConnectionState.Connecting);
     void hub.start().then(
       () => this.state.set(HubConnectionState.Connected),
-      () => {
+      (error: unknown) => {
+        // Negociation SignalR en 502/503/504 (serveur en veille) : page de veille (garde anti-boucle incluse).
+        this.maintenance.handleHubError(error);
+
         if (hub.state === HubConnectionState.Disconnected) {
           this.state.set(HubConnectionState.Disconnected);
         }

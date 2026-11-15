@@ -73,7 +73,7 @@ phases:
         --cache-control "public,max-age=31536000,immutable"
         --exclude "index.html" --exclude "ngsw.json" --exclude "ngsw-worker.js"
         --exclude "safety-worker.js" --exclude "worker-basic.min.js" --exclude "manifest.webmanifest"
-        --exclude "maintenance.html"
+        --exclude "maintenance.html" --exclude "maintenance-config.json"
       - >-
         for f in index.html ngsw.json ngsw-worker.js safety-worker.js worker-basic.min.js manifest.webmanifest maintenance.html; do
         if [ -f "frontend/dist/frontend/browser/$f" ]; then

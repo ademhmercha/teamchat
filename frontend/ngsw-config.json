@@ -2,6 +2,15 @@
   "$schema": "./node_modules/@angular/service-worker/config/schema.json",
   "index": "/index.html",
   "navigationRequestStrategy": "performance",
+  "navigationUrls": [
+    "/**",
+    "!/**/*.*",
+    "!/**/*__*",
+    "!/**/*__*/**",
+    "!/maintenance.html",
+    "!/api/**",
+    "!/hubs/**"
+  ],
   "assetGroups": [
     {
       "name": "app",

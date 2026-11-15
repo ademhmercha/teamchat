@@ -202,3 +202,24 @@ resource "aws_scheduler_schedule" "main" {
     }
   }
 }
+
+# ---------------- Horaires affiches sur la page de veille ----------------
+# frontend/public/maintenance.html lit /maintenance-config.json : le texte suit donc les variables du scheduler.
+# Fichier gere par Terraform : buildspec.yml l'exclut de "aws s3 sync --delete".
+locals {
+  maintenance_config = jsonencode({
+    enabled   = var.scheduler_enabled
+    startHour = var.scheduler_start_hour
+    stopHour  = var.scheduler_stop_hour
+    timezone  = var.scheduler_timezone
+  })
+}
+
+resource "aws_s3_object" "maintenance_config" {
+  bucket        = aws_s3_bucket.frontend.id
+  key           = "maintenance-config.json"
+  content       = local.maintenance_config
+  content_type  = "application/json"
+  cache_control = "no-cache"
+  etag          = md5(local.maintenance_config)
+}

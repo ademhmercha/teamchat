@@ -126,11 +126,17 @@ La Lambda `teamchat-<env>-scheduler` (`infra/lambda/scheduler/handler.py`) agit 
 - **Delais** : timeout de la Lambda 900 s (maximum), attente de RDS `RDS_WAIT_SECONDS` = 780 s (un garde-fou Terraform impose
   au moins 60 s de marge) ; le code garde en plus 45 s de securite avant de demarrer l'EC2.
 - **Page de veille** : CloudFront remplace les 502/503/504 par `/maintenance.html` (`frontend/public/`, servie par le bucket frontend,
-  deployee avec le build). Les autres reponses de l'API, 404 compris, ne sont pas modifiees. La page sonde `/api/health` et ramene
-  a l'application des que l'API repond. Le texte mentionne 23h-8h UTC+1 : a adapter si `scheduler_*_hour` change.
-- **La nuit le site est indisponible** (CloudFront renvoie 502/504). Un deploiement CodePipeline lance la nuit echoue.
-- Un demarrage manuel de RDS la nuit est re-arrete dans l'heure par `enforce` (desactiver le scheduler pour travailler tard).
-- Tests : `cd infra/lambda/scheduler && python -m unittest -v` (boto3 requis, `tzdata` sous Windows).
+  deployee avec le build). Les autres reponses de l'API, 404 compris, ne sont pas modifiees.
+  - **Redirection Angular** : l'intercepteur HTTP (et l'echec de negociation SignalR) redirige vers
+    `/maintenance.html?from=<URL courante>` sur 502/503/504, ou erreur reseau (status 0) quand le navigateur est en ligne,
+    **uniquement** pour `/api/*` et `/hubs/*` ; jamais sur 401/403/404/500. Hors ligne, c'est la page `/offline`.
+  - **Pas de boucle** : aucune redirection depuis `/maintenance.html`, ni deux fois en moins de 30 s (`sessionStorage`).
+    La page sonde `/api/health` (5 s puis toutes les 30 s) et revient a `from` (chemin du meme site uniquement).
+  - **Service worker** : `ngsw-config.json` exclut `/maintenance.html`, `/api/**` et `/hubs/**` de `navigationUrls`
+    (le SW ne sert donc jamais `index.html` a leur place).
+  - **Horaires affiches** : Terraform genere `maintenance-config.json` dans le bucket frontend (`scheduler_*`), lu par la page.
+    Texte de repli dans le HTML si le fichier est absent. `buildspec.yml` l'exclut du `s3 sync --delete`.
+  - Tests : `cd frontend && npx ng test --no-watch`.
 
 Economie estimee (prix indicatifs eu-north-1, a verifier sur la page de prix AWS) : 9 h d'arret par jour = ~270 h/mois ;
 EC2 t3.micro ~0,009 $/h (~2,5 $) + RDS db.t4g.micro ~0,016 $/h (~4,3 $) = **~7 $/mois** sur ~26 $ (reste facture :

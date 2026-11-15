@@ -87,22 +87,65 @@
     <main role="status" aria-live="polite">
       <div class="moon" aria-hidden="true">🌙</div>
       <h1>La démo est en veille</h1>
-      <p>La démo est en veille (23h-8h UTC+1), elle redémarre automatiquement.</p>
+      <p id="message">La démo est en veille (23h-8h UTC+1), elle redémarre automatiquement.</p>
       <p class="hint"><span class="dot" aria-hidden="true"></span>Cette page se rechargera toute seule dès que le service sera de retour.</p>
     </main>
     <script>
-      // Interroge la sonde de sante (publique) ; des qu'elle repond 200, on revient a l'application.
-      // Pendant la veille, CloudFront renvoie cette meme page en 5xx : la reponse n'est alors pas "ok".
-      function checkBack() {
-        fetch('/api/health', { cache: 'no-store' })
-          .then(function (response) {
-            if (response.ok) {
-              location.replace('/');
+      (function () {
+        // 1. Message : horaires lus dans /maintenance-config.json (genere par Terraform depuis les variables du
+        //    scheduler). Le texte du HTML sert de repli si le fichier est absent ou illisible.
+        function utcOffset(timeZone) {
+          try {
+            var parts = new Intl.DateTimeFormat('en', { timeZone: timeZone, timeZoneName: 'shortOffset' }).formatToParts(new Date());
+            var zone = parts.filter(function (part) { return part.type === 'timeZoneName'; })[0];
+            return zone ? zone.value.replace('GMT', 'UTC') : null;
+          } catch (error) {
+            return null;
+          }
+        }
+
+        fetch('/maintenance-config.json', { cache: 'no-store' })
+          .then(function (response) { return response.ok ? response.json() : null; })
+          .then(function (config) {
+            if (!config) return;
+            var text;
+            if (config.enabled === false) {
+              text = 'Le service est momentanément indisponible, il redémarre automatiquement.';
+            } else {
+              var offset = utcOffset(config.timezone);
+              text = 'La démo est en veille (' + config.stopHour + 'h-' + config.startHour + 'h' +
+                (offset ? ' ' + offset : '') + '), elle redémarre automatiquement.';
             }
+            document.getElementById('message').textContent = text;
           })
           .catch(function () {});
-      }
-      setInterval(checkBack, 30000);
+
+        // 2. Retour : URL d'origine (?from=), uniquement un chemin de CE site (pas de redirection ouverte),
+        //    jamais la page de veille elle-meme (pas de boucle).
+        function destination() {
+          var from = new URLSearchParams(location.search).get('from') || '/';
+          try {
+            var url = new URL(from, location.origin);
+            if (url.origin !== location.origin || url.pathname === '/maintenance.html') return '/';
+            return url.pathname + url.search + url.hash;
+          } catch (error) {
+            return '/';
+          }
+        }
+
+        // 3. Des que la sonde de sante (publique) repond 200, on revient. Pendant la veille, CloudFront renvoie
+        //    cette meme page en 5xx : la reponse n'est alors pas "ok".
+        function checkBack() {
+          fetch('/api/health', { cache: 'no-store' })
+            .then(function (response) {
+              if (response.ok) location.replace(destination());
+            })
+            .catch(function () {});
+        }
+
+        setTimeout(checkBack, 5000);
+        setInterval(checkBack, 30000);
+      })();
     </script>
   </body>
 </html>
