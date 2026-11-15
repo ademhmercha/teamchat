@@ -86,6 +86,47 @@ variable "enable_pr_checks" {
   default     = false
 }
 
+# ---- Arret nocturne (Lambda scheduler) ----
+
+variable "scheduler_enabled" {
+  description = "false = toutes les planifications sont desactivees (l'infra reste allumee en permanence)."
+  type        = bool
+  default     = true
+}
+
+variable "scheduler_timezone" {
+  type    = string
+  default = "Africa/Lagos"
+}
+
+variable "scheduler_start_hour" {
+  description = "Heure de demarrage (0-23, dans scheduler_timezone)."
+  type        = number
+  default     = 8
+
+  validation {
+    condition     = var.scheduler_start_hour >= 0 && var.scheduler_start_hour <= 23 && floor(var.scheduler_start_hour) == var.scheduler_start_hour
+    error_message = "scheduler_start_hour doit etre un entier entre 0 et 23."
+  }
+}
+
+variable "scheduler_stop_hour" {
+  description = "Heure d'arret (0-23, dans scheduler_timezone)."
+  type        = number
+  default     = 23
+
+  validation {
+    condition     = var.scheduler_stop_hour >= 0 && var.scheduler_stop_hour <= 23 && floor(var.scheduler_stop_hour) == var.scheduler_stop_hour
+    error_message = "scheduler_stop_hour doit etre un entier entre 0 et 23."
+  }
+}
+
+variable "scheduler_enforce_rate" {
+  description = "Frequence du controle qui re-arrete RDS s'il a redemarre seul (RDS redemarre apres 7 jours d'arret)."
+  type        = string
+  default     = "rate(1 hour)"
+}
+
 # ---- Ressources us-east-1 (optionnelles, voir us_east_1.tf) ----
 
 variable "enable_us_east_1_resources" {

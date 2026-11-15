@@ -39,6 +39,11 @@ resource "aws_db_instance" "main" {
   performance_insights_enabled = false
   monitoring_interval          = 0
 
+  # Arrete la nuit par la Lambda scheduler (scheduler.tf).
+  tags = {
+    AutoSchedule = "true"
+  }
+
   deletion_protection       = var.db_deletion_protection
   skip_final_snapshot       = var.db_skip_final_snapshot
   final_snapshot_identifier = var.db_skip_final_snapshot ? null : "teamchat-${local.env}-final"

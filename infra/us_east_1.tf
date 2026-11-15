@@ -26,7 +26,7 @@ resource "aws_acm_certificate" "cloudfront" {
 
 # ---- Alerte : taux d'erreurs 5xx de CloudFront (les metriques CloudFront n'existent qu'en us-east-1) ----
 
-resource "aws_sns_topic" "alerts" {
+resource "aws_sns_topic" "alerts_us_east_1" {
   count    = local.us_east_1_enabled ? 1 : 0
   provider = aws.us_east_1
 
@@ -40,11 +40,11 @@ resource "aws_sns_topic" "alerts" {
   }
 }
 
-resource "aws_sns_topic_subscription" "alerts_email" {
+resource "aws_sns_topic_subscription" "alerts_us_east_1_email" {
   count    = local.us_east_1_enabled ? 1 : 0
   provider = aws.us_east_1
 
-  topic_arn = aws_sns_topic.alerts[0].arn
+  topic_arn = aws_sns_topic.alerts_us_east_1[0].arn
   protocol  = "email"
   endpoint  = var.alert_email
 }
@@ -63,7 +63,7 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_5xx" {
   threshold           = 5
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = [aws_sns_topic.alerts[0].arn]
+  alarm_actions       = [aws_sns_topic.alerts_us_east_1[0].arn]
 
   dimensions = {
     DistributionId = aws_cloudfront_distribution.main.id

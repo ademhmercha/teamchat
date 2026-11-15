@@ -14,3 +14,6 @@ db_deletion_protection    = true
 db_skip_final_snapshot    = false
 
 instance_type = "t3.micro"
+
+# Verification des pull requests par CodeBuild (connexion GitHub validee dans la console).
+enable_pr_checks = true

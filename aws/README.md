@@ -35,6 +35,8 @@ Toute l'infrastructure de production est decrite en Terraform (region eu-north-1
 | `compute.tf` | Role IAM EC2 (moindre privilege), EC2 t3.micro AL2023 (IMDSv2, Docker, agent CodeDeploy, swap), IP elastique, log group `/teamchat/api` |
 | `cdn.tf` | CloudFront : `/*` -> S3 (+ `spa-rewrite.js`), `/api/*` et `/hubs/*` -> EC2 |
 | `ses.tf` | Identite d'expedition SES |
+| `scheduler.tf` + `lambda/scheduler/` | Lambda Python 3.13 + EventBridge Scheduler : arret/demarrage nocturne de l'EC2 et de RDS |
+| `alerts.tf` | Sujet SNS `teamchat-alerts-<env>` (notifications du scheduler, alarmes) |
 | `cicd.tf` | Connexion GitHub, bucket d'artefacts, CodeBuild (`teamchat-build`, `teamchat-ci`), CodeDeploy, CodePipeline V2 |
 
 ### Commandes
@@ -97,6 +99,28 @@ Notes :
 - La chaine de connexion utilise `SSL Mode=Require;Trust Server Certificate=true` : le trafic vers RDS est chiffre,
   mais l'autorite de certification RDS n'est pas dans l'image `aspnet`.
 - Le groupe de securite de l'EC2 consomme ~55 regles de quota a cause de la liste de prefixes CloudFront.
+
+## Arret nocturne (economies)
+
+La Lambda `teamchat-<env>-scheduler` (`infra/lambda/scheduler/handler.py`) agit sur les ressources taguees `AutoSchedule=true`
+(l'EC2 et la base RDS). Fuseau `Africa/Lagos`, heures modifiables (`scheduler_stop_hour`, `scheduler_start_hour`) :
+
+| Planification | Action |
+|---|---|
+| 23h00 | `stop` : arrete l'EC2, puis RDS |
+| 08h00 | `start` : demarre RDS, **attend** qu'elle soit disponible (jusqu'a 10 min), puis demarre l'EC2 |
+| toutes les heures | `enforce` : hors des heures d'activite, re-arrete RDS si elle a redemarre seule (AWS la relance apres 7 jours d'arret) |
+
+- Resultat de chaque action : email via le sujet SNS (l'`enforce` ne previent que s'il a agi). Journaux 14 jours.
+- Role IAM : `Start/Stop` uniquement sur les ressources portant le tag (condition `aws:ResourceTag/AutoSchedule`).
+- Tout couper : `scheduler_enabled = false` puis `apply` (les planifications passent en `DISABLED`, l'infra reste allumee).
+- **La nuit le site est indisponible** (CloudFront renvoie 502/504). Un deploiement CodePipeline lance la nuit echoue.
+- Un demarrage manuel de RDS la nuit est re-arrete dans l'heure par `enforce` (desactiver le scheduler pour travailler tard).
+- Tests : `cd infra/lambda/scheduler && python -m unittest -v` (boto3 requis, `tzdata` sous Windows).
+
+Economie estimee (prix indicatifs eu-north-1, a verifier sur la page de prix AWS) : 9 h d'arret par jour = ~270 h/mois ;
+EC2 t3.micro ~0,009 $/h (~2,5 $) + RDS db.t4g.micro ~0,016 $/h (~4,3 $) = **~7 $/mois** sur ~26 $ (reste facture :
+stockage RDS, volume EBS, IPv4 publique ~3,6 $). Eteindre aussi le week-end ajouterait ~4 a 5 $/mois (non implemente).
 
 ## CI/CD
 

@@ -162,8 +162,9 @@ resource "aws_instance" "api" {
   user_data_replace_on_change = false
 
   tags = {
-    Name = "teamchat-${local.env}-api"
-    App  = "teamchat" # cible du groupe de deploiement CodeDeploy
+    Name         = "teamchat-${local.env}-api"
+    App          = "teamchat" # cible du groupe de deploiement CodeDeploy
+    AutoSchedule = "true"     # arrete la nuit par la Lambda scheduler (scheduler.tf)
   }
 
   lifecycle {
