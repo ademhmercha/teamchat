@@ -4,6 +4,11 @@
 
 locals {
   scheduler_name = "teamchat-${local.env}-scheduler"
+
+  # 900 s = maximum d'une Lambda. L'attente de RDS doit rester nettement en dessous : il faut encore
+  # du temps pour demarrer l'EC2, notifier SNS et marger (le code garde aussi 45 s de securite).
+  scheduler_timeout_seconds  = 900
+  scheduler_rds_wait_seconds = 780
 }
 
 data "archive_file" "scheduler" {
@@ -104,7 +109,7 @@ resource "aws_lambda_function" "scheduler" {
   source_code_hash = data.archive_file.scheduler.output_base64sha256
   architectures    = ["arm64"]
   memory_size      = 128
-  timeout          = 840 # 14 min : attente du demarrage de RDS (action start)
+  timeout          = local.scheduler_timeout_seconds # maximum Lambda ; attente du demarrage de RDS (action start)
 
   environment {
     variables = {
@@ -112,11 +117,18 @@ resource "aws_lambda_function" "scheduler" {
       TZ_NAME          = var.scheduler_timezone
       START_HOUR       = tostring(var.scheduler_start_hour)
       STOP_HOUR        = tostring(var.scheduler_stop_hour)
-      RDS_WAIT_SECONDS = "600"
+      RDS_WAIT_SECONDS = tostring(local.scheduler_rds_wait_seconds)
     }
   }
 
   depends_on = [aws_cloudwatch_log_group.scheduler, aws_iam_role_policy.scheduler]
+
+  lifecycle {
+    precondition {
+      condition     = local.scheduler_rds_wait_seconds <= local.scheduler_timeout_seconds - 60
+      error_message = "RDS_WAIT_SECONDS doit rester au moins 60 s sous le timeout de la Lambda (demarrage de l'EC2, SNS)."
+    }
+  }
 }
 
 # ---------------- EventBridge Scheduler ----------------

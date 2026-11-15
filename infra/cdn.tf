@@ -100,6 +100,21 @@ resource "aws_cloudfront_distribution" "main" {
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id
   }
 
+  # Origine EC2 arretee la nuit (502/504) ou API indisponible (503) : page statique du bucket frontend.
+  # Seuls ces trois codes sont remplaces : les 404 (et tous les autres 4xx/5xx) de l'API restent intacts.
+  # Le code HTTP d'origine est conserve ; la page (frontend/public/maintenance.html) sonde /api/health et
+  # ramene l'utilisateur sur l'application des que l'API repond.
+  dynamic "custom_error_response" {
+    for_each = toset([502, 503, 504])
+
+    content {
+      error_code            = custom_error_response.value
+      response_code         = custom_error_response.value
+      response_page_path    = "/maintenance.html"
+      error_caching_min_ttl = 10
+    }
+  }
+
   restrictions {
     geo_restriction {
       restriction_type = "none"

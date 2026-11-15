@@ -169,7 +169,8 @@ resource "aws_instance" "api" {
 
   lifecycle {
     # Une nouvelle AMI Amazon Linux ne doit pas remplacer le serveur.
-    ignore_changes = [ami, user_data]
+    # Le tag AutoSchedule se change a la main (true/false) pour suspendre le scheduler : Terraform ne l'ecrase pas.
+    ignore_changes = [ami, user_data, tags["AutoSchedule"], tags_all["AutoSchedule"]]
   }
 }
 

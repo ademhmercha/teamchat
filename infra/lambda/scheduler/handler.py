@@ -8,6 +8,9 @@ Evenement : {"action": "start" | "stop" | "enforce"}
 - enforce : RDS redemarre toute seule apres 7 jours d'arret ; hors des heures d'activite,
             re-arrete les bases RDS taguees qui tournent. Ne touche jamais a l'EC2.
 
+Suspension sans redeploiement : une ressource taguee AutoSchedule=false est ignoree par TOUTES les actions
+(stop, start et enforce). Remettre le tag a true pour la reintegrer.
+
 Variables d'environnement : SNS_TOPIC_ARN, TZ_NAME, START_HOUR, STOP_HOUR, RDS_WAIT_SECONDS.
 """
 
@@ -38,33 +41,63 @@ def _clients():
 # ---------------------------------------------------------------- decouverte
 
 
-def _tagged_instances(ec2):
-    """[(id, etat)] des instances EC2 taguees AutoSchedule=true (hors terminees)."""
+def _instances(ec2):
+    """[(id, etat, valeur du tag)] des instances EC2 portant le tag AutoSchedule, quelle que soit sa valeur."""
     found = []
     paginator = ec2.get_paginator("describe_instances")
     pages = paginator.paginate(
         Filters=[
-            {"Name": f"tag:{TAG_KEY}", "Values": [TAG_VALUE]},
+            {"Name": "tag-key", "Values": [TAG_KEY]},
             {"Name": "instance-state-name", "Values": ["pending", "running", "stopping", "stopped"]},
         ]
     )
     for page in pages:
         for reservation in page["Reservations"]:
             for instance in reservation["Instances"]:
-                found.append((instance["InstanceId"], instance["State"]["Name"]))
+                tags = {t["Key"]: t["Value"] for t in instance.get("Tags", [])}
+                found.append((instance["InstanceId"], instance["State"]["Name"], tags.get(TAG_KEY)))
     return found
 
 
-def _tagged_databases(rds):
-    """[(id, statut)] des bases RDS taguees AutoSchedule=true (RDS ne sait pas filtrer par tag)."""
+def _databases(rds):
+    """[(id, statut, valeur du tag)] des bases RDS portant le tag AutoSchedule (RDS ne filtre pas par tag)."""
     found = []
     paginator = rds.get_paginator("describe_db_instances")
     for page in paginator.paginate():
         for db in page["DBInstances"]:
             tags = rds.list_tags_for_resource(ResourceName=db["DBInstanceArn"])["TagList"]
-            if any(t["Key"] == TAG_KEY and t["Value"] == TAG_VALUE for t in tags):
-                found.append((db["DBInstanceIdentifier"], db["DBInstanceStatus"]))
+            value = next((t["Value"] for t in tags if t["Key"] == TAG_KEY), None)
+            if value is not None:
+                found.append((db["DBInstanceIdentifier"], db["DBInstanceStatus"], value))
     return found
+
+
+def _is_active(tag_value):
+    return (tag_value or "").strip().lower() == TAG_VALUE
+
+
+def _tagged_instances(ec2):
+    """[(id, etat)] des instances gerees (AutoSchedule=true)."""
+    return [(i, state) for i, state, value in _instances(ec2) if _is_active(value)]
+
+
+def _tagged_databases(rds):
+    """[(id, statut)] des bases gerees (AutoSchedule=true)."""
+    return [(i, status) for i, status, value in _databases(rds) if _is_active(value)]
+
+
+def _audit(ec2, rds, result):
+    """Signale les ressources suspendues (AutoSchedule=false) ; erreur si rien n'est tague du tout."""
+    instances, databases = _instances(ec2), _databases(rds)
+    for kind, items in (("ec2", instances), ("rds", databases)):
+        for resource_id, _, value in items:
+            if not _is_active(value):
+                result["skipped"].append(f"{kind}:{resource_id} (suspendu : {TAG_KEY}={value})")
+    if not instances and not databases:
+        result["errors"].append(
+            f"Aucune ressource ne porte le tag {TAG_KEY} : rien n'a ete fait "
+            f"(tag manquant sur l'EC2 et sur RDS ? ajoute {TAG_KEY}={TAG_VALUE})"
+        )
 
 
 # ------------------------------------------------------------------- actions
@@ -135,6 +168,10 @@ def is_active_hour(now, start_hour, stop_hour):
 # ------------------------------------------------------------------- handler
 
 
+class _NothingTagged(Exception):
+    """Aucune ressource AutoSchedule : on s'arrete en erreur visible plutot qu'en silence."""
+
+
 def handler(event, context):
     action = (event or {}).get("action")
     if action not in ("start", "stop", "enforce"):
@@ -144,6 +181,9 @@ def handler(event, context):
     result = {"action": action, "done": [], "skipped": [], "errors": []}
 
     try:
+        _audit(ec2, rds, result)
+        if result["errors"]:
+            raise _NothingTagged()
         if action == "stop":
             _stop_ec2(ec2, result)
             _stop_rds(rds, result)
@@ -162,6 +202,8 @@ def handler(event, context):
                 logger.info("enforce : heures d'activite, rien a faire")
                 return result
             _stop_rds(rds, result)
+    except _NothingTagged:
+        pass  # deja consigne dans result["errors"]
     except ClientError as exc:
         logger.exception("Erreur AWS pendant %s", action)
         result["errors"].append(str(exc))

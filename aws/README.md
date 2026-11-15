@@ -114,6 +114,20 @@ La Lambda `teamchat-<env>-scheduler` (`infra/lambda/scheduler/handler.py`) agit 
 - Resultat de chaque action : email via le sujet SNS (l'`enforce` ne previent que s'il a agi). Journaux 14 jours.
 - Role IAM : `Start/Stop` uniquement sur les ressources portant le tag (condition `aws:ResourceTag/AutoSchedule`).
 - Tout couper : `scheduler_enabled = false` puis `apply` (les planifications passent en `DISABLED`, l'infra reste allumee).
+- **Suspendre sans redeployer** : mettre le tag `AutoSchedule=false` sur l'EC2 et/ou RDS. La Lambda ignore alors la ressource
+  pour `stop`, `start` et `enforce` (et le signale dans la notification). Terraform n'ecrase pas ce tag (`ignore_changes`).
+  ```bash
+  aws ec2 create-tags --resources <instance_id> --tags Key=AutoSchedule,Value=false
+  aws rds add-tags-to-resource --resource-name <arn-de-la-base> --tags Key=AutoSchedule,Value=false   # ... Value=true pour reprendre
+  ```
+- **Premier deploiement** : comme Terraform ignore ce tag, une EC2/RDS creee AVANT l'ajout du tag ne le recevra pas par `apply`.
+  Ajoute-le une fois a la main (commandes ci-dessus avec `Value=true`). Si le tag manque partout, la Lambda s'arrete en erreur
+  et le dit dans l'email SNS au lieu de ne rien faire.
+- **Delais** : timeout de la Lambda 900 s (maximum), attente de RDS `RDS_WAIT_SECONDS` = 780 s (un garde-fou Terraform impose
+  au moins 60 s de marge) ; le code garde en plus 45 s de securite avant de demarrer l'EC2.
+- **Page de veille** : CloudFront remplace les 502/503/504 par `/maintenance.html` (`frontend/public/`, servie par le bucket frontend,
+  deployee avec le build). Les autres reponses de l'API, 404 compris, ne sont pas modifiees. La page sonde `/api/health` et ramene
+  a l'application des que l'API repond. Le texte mentionne 23h-8h UTC+1 : a adapter si `scheduler_*_hour` change.
 - **La nuit le site est indisponible** (CloudFront renvoie 502/504). Un deploiement CodePipeline lance la nuit echoue.
 - Un demarrage manuel de RDS la nuit est re-arrete dans l'heure par `enforce` (desactiver le scheduler pour travailler tard).
 - Tests : `cd infra/lambda/scheduler && python -m unittest -v` (boto3 requis, `tzdata` sous Windows).

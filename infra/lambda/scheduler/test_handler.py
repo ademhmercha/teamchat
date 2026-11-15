@@ -25,8 +25,9 @@ class FakeContext:
 
 
 class FakeEc2:
-    def __init__(self, instances):
+    def __init__(self, instances, tag="true"):
         self.instances = dict(instances)  # id -> etat
+        self.tag = tag  # valeur du tag AutoSchedule (None = pas de tag)
         self.stopped, self.started = [], []
 
     def get_paginator(self, _):
@@ -34,9 +35,15 @@ class FakeEc2:
 
         class P:
             def paginate(self, Filters):
+                if outer.tag is None:  # AWS filtre sur tag-key : une instance sans tag n'est pas renvoyee
+                    return [{"Reservations": []}]
+                tags = [{"Key": "AutoSchedule", "Value": outer.tag}]
                 return [{
                     "Reservations": [{
-                        "Instances": [{"InstanceId": i, "State": {"Name": s}} for i, s in outer.instances.items()]
+                        "Instances": [
+                            {"InstanceId": i, "State": {"Name": s}, "Tags": tags}
+                            for i, s in outer.instances.items()
+                        ]
                     }]
                 }]
 
@@ -52,9 +59,10 @@ class FakeEc2:
 class FakeRds:
     """Base unique ; 'transitions' = statuts successifs renvoyes apres un start."""
 
-    def __init__(self, status, tagged=True, after_start=("starting", "available")):
+    def __init__(self, status, tagged=True, after_start=("starting", "available"), tag="true"):
         self.status = status
         self.tagged = tagged
+        self.tag = tag
         self.after_start = list(after_start)
         self.transitions = []  # statuts successifs, un par interrogation apres un start
         self.calls = []
@@ -75,7 +83,7 @@ class FakeRds:
         return P()
 
     def list_tags_for_resource(self, ResourceName):
-        return {"TagList": [{"Key": "AutoSchedule", "Value": "true"}] if self.tagged else []}
+        return {"TagList": [{"Key": "AutoSchedule", "Value": self.tag}] if self.tagged else []}
 
     def start_db_instance(self, DBInstanceIdentifier):
         self.calls.append("start")
@@ -138,8 +146,43 @@ class StopTests(unittest.TestCase):
 
     def test_ressource_non_taguee_est_ignoree(self):
         rds = FakeRds("available", tagged=False)
-        run({"action": "stop"}, FakeEc2({}), rds)
+        ec2 = FakeEc2({"i-1": "running"})  # une ressource geree existe : pas d'erreur "rien de tague"
+        run({"action": "stop"}, ec2, rds)
         self.assertEqual(rds.calls, [])
+        self.assertEqual(ec2.stopped, ["i-1"])
+
+
+class SuspensionTests(unittest.TestCase):
+    """AutoSchedule=false suspend toutes les actions, sans redeploiement."""
+
+    def test_stop_ignore_les_ressources_suspendues(self):
+        ec2, rds = FakeEc2({"i-1": "running"}, tag="false"), FakeRds("available", tag="false")
+        result, _ = run({"action": "stop"}, ec2, rds)
+        self.assertEqual(ec2.stopped, [])
+        self.assertEqual(rds.calls, [])
+        self.assertEqual(result["errors"], [])
+        self.assertTrue(any("suspendu" in item for item in result["skipped"]))
+
+    def test_start_ignore_les_ressources_suspendues(self):
+        ec2, rds = FakeEc2({"i-1": "stopped"}, tag="false"), FakeRds("stopped", tag="false")
+        run({"action": "start"}, ec2, rds)
+        self.assertEqual(ec2.started, [])
+        self.assertEqual(rds.calls, [])
+
+    def test_valeur_du_tag_insensible_a_la_casse(self):
+        ec2, rds = FakeEc2({"i-1": "running"}, tag="True"), FakeRds("available", tag="TRUE")
+        run({"action": "stop"}, ec2, rds)
+        self.assertEqual(ec2.stopped, ["i-1"])
+        self.assertEqual(rds.calls, ["stop"])
+
+    def test_rien_de_tague_est_une_erreur_visible(self):
+        ec2, rds = FakeEc2({"i-1": "running"}, tag=None), FakeRds("available", tagged=False)
+        sns = FakeSns()
+        with self.assertRaises(RuntimeError):
+            run({"action": "stop"}, ec2, rds, sns=sns)
+        self.assertEqual(ec2.stopped, [])
+        self.assertEqual(rds.calls, [])
+        self.assertIn("ERREUR", sns.published[0]["Subject"])
 
 
 class StartTests(unittest.TestCase):
@@ -185,6 +228,13 @@ class EnforceTests(unittest.TestCase):
             _, sns = run({"action": "enforce"}, FakeEc2({}), rds)
         self.assertEqual(rds.calls, [])
         self.assertEqual(sns.published, [])
+
+    def test_enforce_ignore_une_base_suspendue(self):
+        rds = FakeRds("available", tag="false")
+        with self._at(3):
+            result, sns = run({"action": "enforce"}, FakeEc2({"i-1": "running"}, tag="false"), rds)
+        self.assertEqual(rds.calls, [])
+        self.assertEqual(sns.published, [])  # suspendu = rien a signaler
 
     def test_enforce_ne_touche_jamais_a_l_ec2_et_reste_silencieux_si_rien_a_faire(self):
         ec2, rds = FakeEc2({"i-1": "running"}), FakeRds("stopped")

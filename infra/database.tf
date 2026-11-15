@@ -44,6 +44,11 @@ resource "aws_db_instance" "main" {
     AutoSchedule = "true"
   }
 
+  lifecycle {
+    # Le tag AutoSchedule se change a la main (true/false) pour suspendre le scheduler : Terraform ne l'ecrase pas.
+    ignore_changes = [tags["AutoSchedule"], tags_all["AutoSchedule"]]
+  }
+
   deletion_protection       = var.db_deletion_protection
   skip_final_snapshot       = var.db_skip_final_snapshot
   final_snapshot_identifier = var.db_skip_final_snapshot ? null : "teamchat-${local.env}-final"
