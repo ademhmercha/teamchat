@@ -1,13 +1,16 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { IconComponent } from '../../shared/icon/icon';
+import { AuthShellComponent } from '../../shared/ui/auth-shell';
 import { ButtonComponent } from '../../shared/ui/button';
 
 @Component({
   selector: 'app-register',
-  imports: [ReactiveFormsModule, RouterLink, ButtonComponent],
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, AuthShellComponent, IconComponent],
   templateUrl: './register.html',
   styleUrl: './register.scss',
 })
@@ -34,6 +37,24 @@ export class RegisterComponent {
         Validators.pattern(/[^a-zA-Z0-9]/),
       ],
     ],
+  });
+
+  readonly showPassword = signal(false);
+
+  private readonly passwordValue = toSignal(this.form.controls.password.valueChanges, { initialValue: '' });
+
+  readonly strength = computed(() => {
+    const value = this.passwordValue();
+    const rules = [
+      { label: '8 caractères minimum', ok: value.length >= 8 },
+      { label: 'Une minuscule', ok: /[a-z]/.test(value) },
+      { label: 'Une majuscule', ok: /[A-Z]/.test(value) },
+      { label: 'Un chiffre', ok: /[0-9]/.test(value) },
+      { label: 'Un caractère spécial', ok: /[^a-zA-Z0-9]/.test(value) },
+    ];
+    const passed = rules.filter((rule) => rule.ok).length;
+    const level = value.length === 0 ? 0 : Math.min(4, Math.max(1, passed - (passed === 5 && value.length < 12 ? 1 : 0)));
+    return { rules, level };
   });
 
   submit(): void {

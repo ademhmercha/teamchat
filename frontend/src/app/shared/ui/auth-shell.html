@@ -1,0 +1,47 @@
+<div class="shell">
+  <aside class="pitch">
+    <span class="blob b1"></span>
+    <span class="blob b2"></span>
+    <span class="grid"></span>
+
+    <a class="pitch-brand" routerLink="/" aria-label="TeamChat, retour à l’accueil">
+      <tc-brand [size]="40" tone="light" />
+    </a>
+
+    <div class="pitch-body">
+      <h2>Là où votre équipe <span>se retrouve</span>.</h2>
+      <ul>
+        @for (point of points; track point.title) {
+          <li>
+            <span class="pitch-icon"><app-icon [name]="point.icon" [size]="20" /></span>
+            <span>
+              <strong>{{ point.title }}</strong>
+              <small>{{ point.text }}</small>
+            </span>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <div class="pitch-float" aria-hidden="true">
+      <div class="chip chat">
+        <span class="avatar">CM</span>
+        <span class="chip-text"><b>Camille</b>Je partage la maquette ✨</span>
+      </div>
+      <div class="chip call">
+        <span class="pulse"><app-icon name="video" [size]="16" /></span>
+        <span class="chip-text"><b>Appel en cours</b>12:48</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="panel">
+    <a class="back" routerLink="/">
+      <app-icon name="back" [size]="16" />
+      Retour au site
+    </a>
+    <div class="panel-inner">
+      <ng-content />
+    </div>
+  </main>
+</div>

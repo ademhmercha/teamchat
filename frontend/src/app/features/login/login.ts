@@ -4,6 +4,8 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth/auth.service';
+import { IconComponent } from '../../shared/icon/icon';
+import { AuthShellComponent } from '../../shared/ui/auth-shell';
 import { ButtonComponent } from '../../shared/ui/button';
 
 declare const google: {
@@ -17,7 +19,7 @@ declare const google: {
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, RouterLink, ButtonComponent],
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, AuthShellComponent, IconComponent],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
@@ -28,6 +30,7 @@ export class LoginComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
 
   readonly loading = signal(false);
+  readonly showPassword = signal(false);
   readonly error = signal<string | null>(null);
   readonly googleEnabled = environment.googleClientId.length > 0;
 
@@ -72,9 +75,11 @@ export class LoginComponent implements OnInit {
         callback: (response) => this.onGoogleCredential(response.credential),
       });
       google.accounts.id.renderButton(document.getElementById('google-button'), {
-        theme: 'filled_black',
+        theme: 'outline',
         size: 'large',
-        width: 320,
+        width: 380,
+        text: 'continue_with',
+        shape: 'pill',
       });
     };
     document.head.appendChild(script);
