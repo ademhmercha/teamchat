@@ -30,6 +30,8 @@ public interface IChatClient
 
     Task CallAccepted(CallSessionDto call);
 
+    Task CallHandled(Guid callId);
+
     Task CallEnded(Guid callId, CallStatus status);
 
     Task ReceiveOffer(Guid callId, string sdp);

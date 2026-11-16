@@ -98,6 +98,15 @@ public sealed class CallQueries : ICallQueries
             .Select(Project)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<CallRecord>> FindStaleAcceptedAsync(
+        DateTimeOffset startedBefore,
+        CancellationToken cancellationToken = default)
+        => await _db.Calls.AsNoTracking()
+            .Where(call => call.Status == CallStatus.Accepted && call.StartedAt < startedBefore)
+            .OrderBy(call => call.StartedAt)
+            .Select(Project)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<CallRecord>> GetHistoryForUserAsync(
         Guid userId,
         int limit,

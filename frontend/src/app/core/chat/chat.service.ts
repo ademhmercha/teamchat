@@ -51,6 +51,9 @@ export class ChatService {
   private readonly _callAccepted = new Subject<CallSessionDto>();
   readonly callAccepted$ = this._callAccepted.asObservable();
 
+  private readonly _callHandled = new Subject<string>();
+  readonly callHandled$ = this._callHandled.asObservable();
+
   private readonly _callEnded = new Subject<CallEndedPayload>();
   readonly callEnded$ = this._callEnded.asObservable();
 
@@ -116,6 +119,7 @@ export class ChatService {
     );
     hub.on('IncomingCall', (call: CallSessionDto) => this._incomingCall.next(call));
     hub.on('CallAccepted', (call: CallSessionDto) => this._callAccepted.next(call));
+    hub.on('CallHandled', (callId: string) => this._callHandled.next(callId));
     hub.on('CallEnded', (callId: string, status: number) => this._callEnded.next({ callId, status }));
     hub.on('ReceiveOffer', (callId: string, sdp: string) => this._receiveOffer.next({ callId, sdp }));
     hub.on('ReceiveAnswer', (callId: string, sdp: string) => this._receiveAnswer.next({ callId, sdp }));
@@ -264,7 +268,7 @@ export class ChatService {
     }
     this.typingTimers.set(
       key,
-      setTimeout(() => this.clearTyping(conversationId, userId), TYPING_TTL_MS),
+      window.setTimeout(() => this.clearTyping(conversationId, userId), TYPING_TTL_MS),
     );
   }
 

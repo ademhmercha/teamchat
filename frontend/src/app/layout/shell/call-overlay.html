@@ -2,19 +2,26 @@
   <div
     #callRoot
     class="call-overlay"
-    [class.minimized]="call.minimized() && call.phase() === 'active'"
+    [class.minimized]="isMinimized()"
     [class.enlarged]="call.enlarged()"
     [class.fullscreen]="fullscreen()"
+    [class.idle-controls]="!controlsVisible()"
     role="dialog"
     aria-modal="true"
+    [attr.aria-label]="'Appel avec ' + call.peerName()"
+    (pointermove)="wakeControls()"
+    (pointerdown)="wakeControls()"
+    (keydown)="onKeydown($event)"
   >
     <div
       class="call-card"
+      [class.stage]="call.phase() === 'active' || call.phase() === 'outgoing'"
       [class.video]="call.phase() === 'active' && call.showVideo()"
-      [class.audio]="call.phase() === 'active' && !call.showVideo()"
       [class.enlarged]="call.enlarged()"
       [class.incoming]="call.phase() === 'incoming'"
     >
+      <span class="sr-only" aria-live="polite">{{ call.statusText() }}</span>
+
       @if (call.phase() === 'incoming') {
         <div class="incoming-body">
           <div class="avatar-ring">
@@ -23,12 +30,29 @@
           <div class="call-name">{{ call.incoming()?.callerDisplayName }}</div>
           <div class="call-subtitle">Appel {{ call.isVideo() ? 'vidéo' : 'audio' }} entrant…</div>
           <div class="call-actions">
-            <button type="button" class="circle-btn reject" title="Refuser" (click)="call.rejectIncoming()">
-              <app-icon name="phone-off" [size]="24" />
-            </button>
-            <button type="button" class="circle-btn accept" title="Accepter" (click)="call.acceptIncoming()">
-              <app-icon name="phone" [size]="24" />
-            </button>
+            <div class="action">
+              <button
+                type="button"
+                class="circle-btn big reject"
+                aria-label="Refuser l'appel"
+                (click)="call.rejectIncoming()"
+              >
+                <app-icon name="phone-off" [size]="28" />
+              </button>
+              <span>Refuser</span>
+            </div>
+            <div class="action">
+              <button
+                #acceptButton
+                type="button"
+                class="circle-btn big accept"
+                aria-label="Accepter l'appel"
+                (click)="call.acceptIncoming()"
+              >
+                <app-icon [name]="call.isVideo() ? 'video' : 'phone'" [size]="28" />
+              </button>
+              <span>Accepter</span>
+            </div>
           </div>
         </div>
       } @else if (call.phase() === 'ended') {
@@ -37,113 +61,251 @@
           <div class="call-name">{{ call.statusText() }}</div>
         </div>
       } @else {
-        <div class="video-area" [class.audio-only]="!call.showVideo()">
+        <div class="video-area" [class.audio-only]="!call.showVideo()" #videoArea>
           <video #remoteVideo class="remote-video" autoplay playsinline></video>
+
           @if (!call.remoteHasVideo()) {
             <div class="remote-placeholder">
-              <tc-avatar [name]="call.peerName()" [src]="call.peerAvatarUrl()" size="xl" />
+              <div class="placeholder-avatar" [class.ringing]="call.phase() === 'outgoing'">
+                <tc-avatar [name]="call.peerName()" [src]="call.peerAvatarUrl()" size="xl" />
+              </div>
               <span class="placeholder-name">{{ call.peerName() }}</span>
-              <span class="call-subtitle">{{ call.statusText() }}</span>
+              <span class="call-subtitle">
+                @if (call.phase() === 'active' && call.elapsedSeconds() > 0) {
+                  {{ call.elapsedText() }}
+                } @else {
+                  {{ call.statusText() }}
+                }
+              </span>
+              @if (call.remoteMuted()) {
+                <span class="badge"><app-icon name="mic-off" [size]="14" /> Micro coupé</span>
+              }
             </div>
           }
-          @if (call.localHasVideo()) {
-            <video
-              #localVideo
-              class="local-video"
-              autoplay
-              playsinline
-              muted
-              title="Double-cliquer pour agrandir"
-              (dblclick)="toggleLocalFullscreen()"
-            ></video>
-          }
-          @if (call.remoteHasVideo()) {
-            <div class="call-info">
-              <tc-avatar [name]="call.peerName()" [src]="call.peerAvatarUrl()" size="sm" />
-              <div class="call-info-text">
-                <span class="call-name">{{ call.peerName() }}</span>
-                <span class="call-subtitle">{{ call.statusText() }}</span>
+
+          @if (!isMinimized()) {
+            <div class="top-bar">
+              <div class="peer">
+                <tc-avatar [name]="call.peerName()" [src]="call.peerAvatarUrl()" size="sm" />
+                <div class="peer-text">
+                  <span class="call-name">{{ call.peerName() }}</span>
+                  <span class="call-subtitle">
+                    @if (call.phase() === 'active' && call.elapsedSeconds() > 0) {
+                      {{ call.elapsedText() }}
+                    } @else {
+                      {{ call.statusText() }}
+                    }
+                  </span>
+                </div>
+                @if (call.remoteMuted() && call.remoteHasVideo()) {
+                  <span class="badge" title="Le micro de votre interlocuteur est coupé">
+                    <app-icon name="mic-off" [size]="14" />
+                  </span>
+                }
+              </div>
+
+              <div class="top-actions">
+                @if (call.quality(); as quality) {
+                  <span
+                    class="quality"
+                    [attr.data-quality]="quality"
+                    [attr.title]="qualityLabel(quality)"
+                    role="img"
+                    [attr.aria-label]="qualityLabel(quality)"
+                  >
+                    <i></i><i></i><i></i>
+                  </span>
+                }
+                @if (call.phase() === 'active') {
+                  <button
+                    type="button"
+                    class="ghost-btn"
+                    (click)="call.toggleMinimize()"
+                    aria-label="Réduire l'appel"
+                    title="Réduire (continuer à utiliser l'app)"
+                  >
+                    <app-icon name="pip" [size]="20" />
+                  </button>
+                  @if (call.remoteHasVideo()) {
+                    <button
+                      type="button"
+                      class="ghost-btn desk-only"
+                      [class.active]="call.enlarged()"
+                      (click)="call.toggleEnlarge()"
+                      [attr.aria-label]="call.enlarged() ? 'Vue normale' : 'Agrandir la vidéo'"
+                      [title]="call.enlarged() ? 'Vue normale' : 'Agrandir la vidéo'"
+                    >
+                      <app-icon name="maximize" [size]="20" />
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="ghost-btn desk-only"
+                    (click)="toggleFullscreen()"
+                    [attr.aria-label]="fullscreen() ? 'Quitter le plein écran' : 'Plein écran'"
+                    [title]="fullscreen() ? 'Quitter le plein écran' : 'Plein écran'"
+                  >
+                    <app-icon name="fullscreen" [size]="20" />
+                  </button>
+                }
               </div>
             </div>
           }
+
+          @if (call.localHasVideo() && !isMinimized()) {
+            <video
+              #localVideo
+              class="local-video"
+              [class.mirror]="!call.screenSharing()"
+              [class.corner-tl]="corner() === 'tl'"
+              [class.corner-tr]="corner() === 'tr'"
+              [class.corner-bl]="corner() === 'bl'"
+              [class.corner-br]="corner() === 'br'"
+              [class.dragging]="dragging()"
+              [style.transform]="dragTransform()"
+              autoplay
+              playsinline
+              muted
+              title="Glisser pour déplacer · double-clic pour agrandir"
+              (dblclick)="toggleLocalFullscreen()"
+              (pointerdown)="startDrag($event)"
+              (pointermove)="moveDrag($event)"
+              (pointerup)="endDrag($event)"
+              (pointercancel)="endDrag($event)"
+            ></video>
+          }
+
+          @if (audioBlocked()) {
+            <button type="button" class="unmute-prompt" (click)="enableAudio()">
+              <app-icon name="play" [size]="18" /> Touchez pour activer le son
+            </button>
+          }
         </div>
 
-        <div class="call-controls">
+        <div class="call-controls" [class.minimized]="isMinimized()">
           <button
             type="button"
             class="circle-btn"
-            [class.active]="call.muted()"
+            [class.off]="call.muted()"
             (click)="call.toggleMute()"
-            [title]="call.muted() ? 'Rétablir le micro' : 'Couper le micro'"
+            [attr.aria-pressed]="call.muted()"
+            [attr.aria-label]="call.muted() ? 'Réactiver le micro' : 'Couper le micro'"
+            [title]="call.muted() ? 'Réactiver le micro (Ctrl+Maj+M)' : 'Couper le micro (Ctrl+Maj+M)'"
           >
-            <app-icon [name]="call.muted() ? 'mic-off' : 'mic'" [size]="20" />
+            <app-icon [name]="call.muted() ? 'mic-off' : 'mic'" [size]="22" />
           </button>
 
           <button
             type="button"
             class="circle-btn"
-            [class.active]="!call.cameraOn()"
+            [class.off]="!call.cameraOn()"
             (click)="call.toggleCamera()"
-            [title]="call.cameraOn() ? 'Couper la caméra' : 'Activer la caméra'"
+            [attr.aria-pressed]="!call.cameraOn()"
+            [attr.aria-label]="call.cameraOn() ? 'Couper la caméra' : 'Activer la caméra'"
+            [title]="call.cameraOn() ? 'Couper la caméra (Ctrl+Maj+O)' : 'Activer la caméra (Ctrl+Maj+O)'"
           >
-            <app-icon [name]="call.cameraOn() ? 'video' : 'video-off'" [size]="20" />
+            <app-icon [name]="call.cameraOn() ? 'video' : 'video-off'" [size]="22" />
           </button>
 
-          @if (!call.minimized()) {
+          @if (!isMinimized()) {
             @if (call.canScreenShare) {
               <button
                 type="button"
                 class="circle-btn"
-                [class.active]="call.screenSharing()"
+                [class.on]="call.screenSharing()"
                 (click)="call.toggleScreenShare()"
+                [attr.aria-pressed]="call.screenSharing()"
+                [attr.aria-label]="call.screenSharing() ? 'Arrêter le partage d\'écran' : 'Partager l\'écran'"
                 [title]="call.screenSharing() ? 'Arrêter le partage' : 'Partager l\'écran'"
               >
-                <app-icon name="screen-share" [size]="20" />
+                <app-icon name="screen-share" [size]="22" />
               </button>
             }
 
-            @if (call.remoteHasVideo()) {
+            @if (call.canFlipCamera()) {
               <button
                 type="button"
                 class="circle-btn"
-                [class.active]="call.enlarged()"
-                (click)="call.toggleEnlarge()"
-                [title]="call.enlarged() ? 'Vue normale' : 'Agrandir la vidéo'"
+                (click)="call.flipCamera()"
+                aria-label="Changer de caméra"
+                title="Changer de caméra"
               >
-                <app-icon name="maximize" [size]="20" />
+                <app-icon name="refresh" [size]="22" />
               </button>
             }
 
+            <div class="menu-anchor">
+              <button
+                type="button"
+                class="circle-btn"
+                [class.on]="menuOpen()"
+                (click)="toggleMenu()"
+                aria-haspopup="true"
+                [attr.aria-expanded]="menuOpen()"
+                aria-label="Périphériques audio et vidéo"
+                title="Périphériques"
+              >
+                <app-icon name="settings" [size]="22" />
+              </button>
+
+              @if (menuOpen()) {
+                <div class="device-menu" role="menu">
+                  <label>
+                    <span>Microphone</span>
+                    <select (change)="call.selectMicrophone(valueOf($event))" [value]="call.selectedMicId() ?? ''">
+                      @for (device of call.devices().mics; track device.deviceId; let i = $index) {
+                        <option [value]="device.deviceId" [selected]="device.deviceId === call.selectedMicId()">
+                          {{ device.label || 'Microphone ' + (i + 1) }}
+                        </option>
+                      }
+                    </select>
+                  </label>
+                  <label>
+                    <span>Caméra</span>
+                    <select (change)="call.selectCamera(valueOf($event))">
+                      @for (device of call.devices().cameras; track device.deviceId; let i = $index) {
+                        <option [value]="device.deviceId" [selected]="device.deviceId === call.selectedCameraId()">
+                          {{ device.label || 'Caméra ' + (i + 1) }}
+                        </option>
+                      }
+                    </select>
+                  </label>
+                  @if (call.devices().speakers.length > 0 && supportsSpeakerChoice) {
+                    <label>
+                      <span>Haut-parleur</span>
+                      <select (change)="call.selectSpeaker(valueOf($event))">
+                        @for (device of call.devices().speakers; track device.deviceId; let i = $index) {
+                          <option [value]="device.deviceId" [selected]="device.deviceId === call.selectedSpeakerId()">
+                            {{ device.label || 'Haut-parleur ' + (i + 1) }}
+                          </option>
+                        }
+                      </select>
+                    </label>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
             <button
               type="button"
               class="circle-btn"
-              [class.active]="fullscreen()"
-              (click)="toggleFullscreen()"
-              [title]="fullscreen() ? 'Quitter le plein écran' : 'Plein écran'"
+              (click)="call.toggleMinimize()"
+              aria-label="Rétablir l'appel"
+              title="Rétablir l'appel"
             >
-              <app-icon name="fullscreen" [size]="20" />
+              <app-icon name="maximize" [size]="22" />
             </button>
           }
 
           <button
             type="button"
-            class="circle-btn"
-            (click)="call.toggleMinimize()"
-            [title]="call.minimized() ? 'Rétablir l\'appel' : 'Réduire (continuer à utiliser l\'app)'"
+            class="circle-btn hangup"
+            aria-label="Raccrocher"
+            title="Raccrocher"
+            (click)="call.hangup()"
           >
-            <app-icon name="pip" [size]="20" />
+            <app-icon name="phone-off" [size]="22" />
           </button>
-
-          <button type="button" class="circle-btn hangup" title="Raccrocher" (click)="call.hangup()">
-            <app-icon name="phone-off" [size]="20" />
-          </button>
-        </div>
-      }
-
-      @if (call.error(); as message) {
-        <div class="call-error" role="alert">
-          <span>{{ message }}</span>
-          <button type="button" class="link" (click)="call.dismissError()">Fermer</button>
         </div>
       }
     </div>

@@ -87,7 +87,8 @@ public sealed class CallTimeoutService : BackgroundService
         var calls = scope.ServiceProvider.GetRequiredService<ICallService>();
         var notifications = scope.ServiceProvider.GetRequiredService<INotificationService>();
 
-        var expired = await calls.ExpireStaleCallsAsync(timeout, cancellationToken);
+        var maxDuration = TimeSpan.FromHours(Math.Max(1, _options.MaxDurationHours));
+        var expired = await calls.ExpireStaleCallsAsync(timeout, maxDuration, cancellationToken);
 
         foreach (var call in expired)
         {

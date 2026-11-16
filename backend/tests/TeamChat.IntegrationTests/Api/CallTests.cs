@@ -73,6 +73,36 @@ public sealed class CallTests
     }
 
     [Fact]
+    public async Task Other_devices_of_the_callee_are_told_the_call_was_answered_elsewhere()
+    {
+        using var client = _fixture.Factory.CreateClient();
+        var (_, callerToken) = await ApiTestHelper.ProvisionUserAndLoginAsync(_fixture, client, "caller7@teamchat.test");
+        var (calleeId, calleeToken) = await ApiTestHelper.ProvisionUserAndLoginAsync(_fixture, client, "callee7@teamchat.test");
+
+        await using var caller = ApiTestHelper.CreateConnection(_fixture, callerToken);
+        await using var calleePhone = ApiTestHelper.CreateConnection(_fixture, calleeToken);
+        await using var calleeDesktop = ApiTestHelper.CreateConnection(_fixture, calleeToken);
+
+        var handled = new TaskCompletionSource<Guid>(TaskCreationOptions.RunContinuationsAsynchronously);
+        calleePhone.On<Guid>("CallHandled", callId => handled.TrySetResult(callId));
+
+        var desktopHandled = new TaskCompletionSource<Guid>(TaskCreationOptions.RunContinuationsAsynchronously);
+        calleeDesktop.On<Guid>("CallHandled", callId => desktopHandled.TrySetResult(callId));
+
+        await caller.StartAsync();
+        await calleePhone.StartAsync();
+        await calleeDesktop.StartAsync();
+        await WaitUntilOnlineAsync(calleeId);
+
+        var session = await caller.InvokeAsync<CallSessionDto>("CallUser", calleeId, CallType.Audio);
+        await calleeDesktop.InvokeAsync("AcceptCall", session.CallId);
+
+        Assert.Equal(session.CallId, await handled.Task.WaitAsync(TimeSpan.FromSeconds(15)));
+        await Task.Delay(300);
+        Assert.False(desktopHandled.Task.IsCompleted);
+    }
+
+    [Fact]
     public async Task Third_party_cannot_relay_signaling()
     {
         using var client = _fixture.Factory.CreateClient();

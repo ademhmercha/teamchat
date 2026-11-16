@@ -37,6 +37,7 @@ public interface ICallService
 
     Task<IReadOnlyList<CallExpiredEvent>> ExpireStaleCallsAsync(
         TimeSpan ringingTimeout,
+        TimeSpan? maxDuration = null,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<IceServerDto>> GetIceServersAsync(

@@ -205,22 +205,34 @@ public sealed class CallService : ICallService
 
     public async Task<IReadOnlyList<CallExpiredEvent>> ExpireStaleCallsAsync(
         TimeSpan ringingTimeout,
+        TimeSpan? maxDuration = null,
         CancellationToken cancellationToken = default)
     {
         var threshold = _time.GetUtcNow() - ringingTimeout;
         var stale = await _calls.FindStaleRingingAsync(threshold, cancellationToken);
-        if (stale.Count == 0)
+        var overlong = maxDuration is { } limit
+            ? await _calls.FindStaleAcceptedAsync(_time.GetUtcNow() - limit, cancellationToken)
+            : Array.Empty<CallRecord>();
+        if (stale.Count == 0 && overlong.Count == 0)
         {
             return Array.Empty<CallExpiredEvent>();
         }
 
-        var expired = new List<CallExpiredEvent>(stale.Count);
+        var expired = new List<CallExpiredEvent>(stale.Count + overlong.Count);
         foreach (var call in stale)
         {
             var now = _time.GetUtcNow();
             await _calls.UpdateStatusAsync(call.Id, CallStatus.Missed, null, now, cancellationToken);
             var message = await PostSystemMessageAsync(call, "manque", now, cancellationToken);
             expired.Add(new CallExpiredEvent(call.Id, call.CallerId, call.CalleeId, call.Type, CallStatus.Missed, message));
+        }
+
+        foreach (var call in overlong)
+        {
+            var now = _time.GetUtcNow();
+            await _calls.UpdateStatusAsync(call.Id, CallStatus.Ended, null, now, cancellationToken);
+            var message = await PostSystemMessageAsync(call, BuildEndedContent(call, now), now, cancellationToken);
+            expired.Add(new CallExpiredEvent(call.Id, call.CallerId, call.CalleeId, call.Type, CallStatus.Ended, message));
         }
 
         return expired;

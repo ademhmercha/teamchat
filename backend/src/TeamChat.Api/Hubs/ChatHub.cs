@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 using TeamChat.Api.Infrastructure;
 using TeamChat.Application.Abstractions;
 using TeamChat.Application.Calls.Dtos;
@@ -17,6 +18,7 @@ public sealed class ChatHub : Hub<IChatClient>
     private readonly IUserProfileCache _profiles;
     private readonly ICallService _calls;
     private readonly INotificationService _notifications;
+    private readonly CallOptions _callOptions;
 
     public ChatHub(
         IConversationService conversations,
@@ -24,8 +26,10 @@ public sealed class ChatHub : Hub<IChatClient>
         IPresenceTracker presence,
         IUserProfileCache profiles,
         ICallService calls,
-        INotificationService notifications)
+        INotificationService notifications,
+        IOptions<CallOptions> callOptions)
     {
+        _callOptions = callOptions.Value;
         _conversations = conversations;
         _membership = membership;
         _presence = presence;
@@ -62,10 +66,19 @@ public sealed class ChatHub : Hub<IChatClient>
         {
             await Clients.All.PresenceChanged(change.UserId, isOnline: false);
 
-            var outcome = await _calls.EndCallForDisconnectedUserAsync(change.UserId);
-            if (outcome is not null)
+            var grace = TimeSpan.FromSeconds(Math.Max(0, _callOptions.DisconnectGraceSeconds));
+            if (grace > TimeSpan.Zero)
             {
-                await NotifyCallEndedAsync(outcome);
+                await Task.Delay(grace);
+            }
+
+            if (!_presence.GetOnlineUserIds().Contains(change.UserId))
+            {
+                var outcome = await _calls.EndCallForDisconnectedUserAsync(change.UserId);
+                if (outcome is not null)
+                {
+                    await NotifyCallEndedAsync(outcome);
+                }
             }
         }
 
@@ -152,6 +165,7 @@ public sealed class ChatHub : Hub<IChatClient>
     {
         var session = await CallAsync(() => _calls.AcceptCallAsync(GetCurrentUserId(), callId));
         await Clients.Group(ChatGroups.User(session.CallerId)).CallAccepted(session);
+        await Clients.GroupExcept(ChatGroups.User(session.CalleeId), Context.ConnectionId).CallHandled(callId);
     }
 
     public async Task RejectCall(Guid callId)

@@ -36,6 +36,10 @@ public interface ICallQueries
         DateTimeOffset startedBefore,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<CallRecord>> FindStaleAcceptedAsync(
+        DateTimeOffset startedBefore,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<CallRecord>> GetHistoryForUserAsync(
         Guid userId,
         int limit,
