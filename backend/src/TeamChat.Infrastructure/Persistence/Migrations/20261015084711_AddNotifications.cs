@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace TeamChat.Infrastructure.Persistence.Migrations
 {
-    /// <inheritdoc />
     public partial class AddNotifications : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -69,7 +67,6 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                 columns: new[] { "UserId", "ReadAt" });
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

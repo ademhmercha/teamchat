@@ -11,10 +11,6 @@ public enum SignInOutcome
     NotAllowed,
 }
 
-/// <summary>
-/// Abstraction des operations ASP.NET Core Identity utilisees par l'Application.
-/// L'implementation vit dans Infrastructure (UserManager / SignInManager).
-/// </summary>
 public interface IIdentityService
 {
     Task<AppUser?> FindByEmailAsync(string email, CancellationToken cancellationToken = default);

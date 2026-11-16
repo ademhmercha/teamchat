@@ -22,7 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Requis par ASP.NET Core Identity (token providers, extensions Identity). -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 

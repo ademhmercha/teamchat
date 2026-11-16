@@ -12,10 +12,6 @@ using TeamChat.IntegrationTests.Support;
 
 namespace TeamChat.IntegrationTests.Api;
 
-/// <summary>
-/// Derriere CloudFront, Request.Scheme/Request.Host valent l'origine EC2 en http : l'API ne doit donc jamais
-/// renvoyer d'URL absolue vers son propre hote (le navigateur la bloque : Mixed Content).
-/// </summary>
 [Collection("api")]
 public sealed class RelativeUrlTests
 {
@@ -58,7 +54,6 @@ public sealed class RelativeUrlTests
         var (userId, token) = await ApiTestHelper.ProvisionUserAndLoginAsync(_fixture, client, email);
         await SetAvatarRawAsync(userId, $"{LegacyHost}/api/users/{userId}/avatar");
 
-        // Lecture unitaire, annuaire (recherche unique : evite le cache de l'annuaire) et profil courant.
         var single = await ApiTestHelper.SendAsync(client, HttpMethod.Get, $"/api/users/{userId}", token);
         var directory = await ApiTestHelper.SendAsync(client, HttpMethod.Get, $"/api/users?search={email}", token);
 
@@ -99,7 +94,6 @@ public sealed class RelativeUrlTests
         var db = scope.ServiceProvider.GetRequiredService<TeamChatDbContext>();
         foreach (var operation in new NormalizeAvatarUrls().UpOperations.OfType<SqlOperation>())
         {
-            // ExecuteSqlRaw traite {n} comme un parametre de format ; le migrateur EF, lui, envoie le SQL tel quel.
             await db.Database.ExecuteSqlRawAsync(operation.Sql.Replace("{", "{{").Replace("}", "}}"));
         }
 
@@ -141,7 +135,6 @@ public sealed class RelativeUrlTests
 
     private async Task SetAvatarRawAsync(Guid userId, string value)
     {
-        // SQL brut : contourne le convertisseur EF pour simuler une ligne ecrite par l'ancien code.
         using var scope = _fixture.Factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<TeamChatDbContext>();
         await db.Database.ExecuteSqlRawAsync(

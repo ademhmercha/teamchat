@@ -3,10 +3,6 @@ using TeamChat.Domain.Entities;
 
 namespace TeamChat.Application.Abstractions;
 
-/// <summary>
-/// Notifications persistees pour la cloche de l'application : emission sur des
-/// evenements metier (ajout a un groupe, appel manque) et consultation cote client.
-/// </summary>
 public interface INotificationService
 {
     Task<NotificationDto> NotifyGroupAddedAsync(

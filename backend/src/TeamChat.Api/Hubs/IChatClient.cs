@@ -20,34 +20,23 @@ public interface IChatClient
 
     Task PresenceSnapshot(IReadOnlyList<Guid> onlineUserIds);
 
-    /// <summary>L'utilisateur vient d'etre ajoute a une conversation de groupe.</summary>
     Task AddedToGroup(Guid conversationId);
 
-    /// <summary>La liste des conversations a change (membres, archivage, nouveau message).</summary>
     Task ConversationUpdated(Guid conversationId);
 
-    /// <summary>Le compte a ete desactive par un administrateur : le client doit
-    /// fermer la connexion et revenir a l'ecran de connexion.</summary>
     Task ForceLogout();
 
-    /// <summary>Un appel entrant sonne pour l'utilisateur.</summary>
     Task IncomingCall(CallSessionDto call);
 
-    /// <summary>Le destinataire a accepte : l'appel passe en cours.</summary>
     Task CallAccepted(CallSessionDto call);
 
-    /// <summary>L'appel est termine (raccrochage, refus, manque ou echec).</summary>
     Task CallEnded(Guid callId, CallStatus status);
 
-    /// <summary>Signalisation WebRTC : offre SDP relayee au pair.</summary>
     Task ReceiveOffer(Guid callId, string sdp);
 
-    /// <summary>Signalisation WebRTC : reponse SDP relayee au pair.</summary>
     Task ReceiveAnswer(Guid callId, string sdp);
 
-    /// <summary>Signalisation WebRTC : candidat ICE relaye au pair.</summary>
     Task ReceiveIceCandidate(Guid callId, string candidate, string? sdpMid, int? sdpMLineIndex);
 
-    /// <summary>Le compteur de notifications (ou la liste) a change pour l'utilisateur.</summary>
     Task NotificationsUpdated();
 }

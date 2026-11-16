@@ -91,7 +91,6 @@ public static class DependencyInjection
             return;
         }
 
-        // Echec au demarrage plutot qu'au premier mail si la configuration est incomplete.
         if (string.IsNullOrWhiteSpace(configuration["Email:FromAddress"]))
         {
             throw new InvalidOperationException("Email:FromAddress est requis quand Email:Provider=Ses.");

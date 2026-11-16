@@ -5,11 +5,6 @@ using TeamChat.Infrastructure.Persistence;
 
 namespace TeamChat.Infrastructure.Security;
 
-/// <summary>
-/// Appartenance a une conversation avec cache (5 min) et invalidation par
-/// conversation. Periodiquement invalide pour refleter les changements
-/// de participants (section 8 bis).
-/// </summary>
 public sealed class MembershipService : IMembershipService
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(5);

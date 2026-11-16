@@ -9,11 +9,6 @@ namespace TeamChat.Infrastructure.Persistence;
 
 public static class DbSeeder
 {
-    /// <summary>
-    /// Applique les migrations, cree les roles, la societe par defaut, le compte
-    /// proprietaire (Owner) de cette societe et le super-admin de la plateforme.
-    /// Les identifiants proviennent de la configuration, jamais en dur.
-    /// </summary>
     public static async Task InitializeAsync(IServiceProvider services, IConfiguration configuration)
     {
         using var scope = services.CreateScope();
@@ -99,8 +94,6 @@ public static class DbSeeder
             return;
         }
 
-        // Compte existant (base deja en place) : on le rattache et on s'assure
-        // qu'il possede le role Owner de sa societe.
         if (admin.DeletedAt is not null)
         {
             return;

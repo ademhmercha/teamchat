@@ -1,6 +1,5 @@
 namespace TeamChat.Application.Common;
 
-/// <summary>Options JWT liees a la section "Jwt" de la configuration.</summary>
 public sealed class JwtOptions
 {
     public const string SectionName = "Jwt";

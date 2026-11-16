@@ -14,17 +14,9 @@ import { MessageDto } from '../models/conversation.models';
 
 type TypingKey = string;
 
-/** Durée pendant laquelle un indicateur « écrit… » reste affiche sans renouvellement. */
 const TYPING_TTL_MS = 2500;
-/** Intervalle minimal entre deux StartTyping vers le serveur. */
 const TYPING_THROTTLE_MS = 1500;
 
-/**
- * Service central temps reel (SignalR, /hubs/chat).
- * Le serveur rejoins les groupes a chaque (re)connexion : le resubscribe est
- * donc automatique apres reconnexion. La presence et le typing sont exposes
- * sous forme de signals consommables par la liste et le fil.
- */
 @Injectable({ providedIn: 'root' })
 export class ChatService {
   private readonly auth = inject(AuthService);
@@ -139,7 +131,6 @@ export class ChatService {
     void hub.start().then(
       () => this.state.set(HubConnectionState.Connected),
       (error: unknown) => {
-        // Negociation SignalR en 502/503/504 (serveur en veille) : page de veille (garde anti-boucle incluse).
         this.maintenance.handleHubError(error);
 
         if (hub.state === HubConnectionState.Disconnected) {

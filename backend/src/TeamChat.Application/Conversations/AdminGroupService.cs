@@ -4,10 +4,6 @@ using TeamChat.Application.Conversations.Dtos;
 
 namespace TeamChat.Application.Conversations;
 
-/// <summary>
-/// Gestion des groupes (admin). Toute modification de membres ou archivage
-/// invalide le cache d'appartenance de la conversation (section 8 bis).
-/// </summary>
 public sealed class AdminGroupService : IAdminGroupService
 {
     private const int MaxNameLength = 100;

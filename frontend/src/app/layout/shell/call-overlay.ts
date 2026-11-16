@@ -67,7 +67,6 @@ export class CallOverlayComponent implements OnDestroy {
       return;
     }
 
-    // iOS Safari : seul l'element <video> supporte le plein ecran natif.
     this.enterVideoFullscreen(this.remoteVideo()?.nativeElement ?? this.localVideo()?.nativeElement);
   }
 

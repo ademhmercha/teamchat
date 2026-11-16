@@ -5,10 +5,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace TeamChat.Infrastructure.Persistence.Migrations
 {
-    /// <inheritdoc />
     public partial class AddMessageSequence : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(
@@ -29,7 +27,6 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                 columns: new[] { "ConversationId", "Sequence" });
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(

@@ -3,7 +3,6 @@ using TeamChat.Application.Users.Dtos;
 
 namespace TeamChat.Application.Abstractions;
 
-/// <summary>Operations en libre-service sur le profil de l'utilisateur courant.</summary>
 public interface IProfileService
 {
     Task<UserProfileDto> UpdateAsync(

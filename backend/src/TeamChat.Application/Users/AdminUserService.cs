@@ -10,7 +10,6 @@ namespace TeamChat.Application.Users;
 
 public sealed class AdminUserService : IAdminUserService
 {
-    /// <summary>Nom d'affichage des comptes supprimes (les messages sont conserves).</summary>
     public const string DeletedDisplayName = "Utilisateur supprime";
 
     private readonly IIdentityService _identity;
@@ -64,7 +63,6 @@ public sealed class AdminUserService : IAdminUserService
             });
         }
 
-        // Seul le proprietaire (Owner) peut nommer des administrateurs/proprietaires.
         if (request.Role != Roles.User && !_currentUser.IsInRole(Roles.Owner))
         {
             throw new ForbiddenException("Seul le proprietaire peut creer un administrateur.");
@@ -114,7 +112,6 @@ public sealed class AdminUserService : IAdminUserService
         var callerIsOwner = _currentUser.IsInRole(Roles.Owner);
         var currentIsManager = currentRole is Roles.Owner or Roles.Admin;
 
-        // Un administrateur ne peut pas toucher au proprietaire de la societe.
         if (!callerIsOwner && currentRole == Roles.Owner)
         {
             throw new ForbiddenException("Vous ne pouvez pas modifier le proprietaire de la societe.");
@@ -203,8 +200,6 @@ public sealed class AdminUserService : IAdminUserService
             await EnsureNotLastAdminAsync(cancellationToken);
         }
 
-        // Suppression logique : on anonymise le profil pour conserver l'historique
-        // des messages (l'auteur devient « Utilisateur supprime »).
         user.IsActive = false;
         user.DeletedAt = DateTimeOffset.UtcNow;
         user.DisplayName = DeletedDisplayName;
@@ -240,7 +235,6 @@ public sealed class AdminUserService : IAdminUserService
         EnsureSuccess(await _identity.ResetPasswordAsync(user, token, request.Password, cancellationToken));
     }
 
-    /// <summary>Interdit toute action qui supprimerait le dernier administrateur actif.</summary>
     private async Task EnsureNotLastAdminAsync(CancellationToken cancellationToken)
     {
         var activeAdmins = await _queries.CountActiveAdminsAsync(cancellationToken);

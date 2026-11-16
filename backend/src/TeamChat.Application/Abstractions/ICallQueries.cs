@@ -2,7 +2,6 @@ using TeamChat.Domain.Entities;
 
 namespace TeamChat.Application.Abstractions;
 
-/// <summary>Vue persistee d'un appel (sans logique metier).</summary>
 public sealed record CallRecord(
     Guid Id,
     Guid CallerId,
@@ -13,7 +12,6 @@ public sealed record CallRecord(
     DateTimeOffset? AnsweredAt,
     DateTimeOffset? EndedAt);
 
-/// <summary>Acces aux donnees des appels.</summary>
 public interface ICallQueries
 {
     Task<Guid> CreateAsync(
@@ -25,7 +23,6 @@ public interface ICallQueries
 
     Task<CallRecord?> FindAsync(Guid callId, CancellationToken cancellationToken = default);
 
-    /// <summary>Appel en cours (sonnerie ou accepte) impliquant l'utilisateur, s'il existe.</summary>
     Task<CallRecord?> FindActiveCallForUserAsync(Guid userId, CancellationToken cancellationToken = default);
 
     Task UpdateStatusAsync(
@@ -35,7 +32,6 @@ public interface ICallQueries
         DateTimeOffset? endedAt,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Appels encore en sonnerie demarres avant l'instant indique.</summary>
     Task<IReadOnlyList<CallRecord>> FindStaleRingingAsync(
         DateTimeOffset startedBefore,
         CancellationToken cancellationToken = default);

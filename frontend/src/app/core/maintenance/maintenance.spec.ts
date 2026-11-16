@@ -20,7 +20,7 @@ describe('maintenance (logique pure)', () => {
 
     it('traite une erreur reseau (0) comme une veille seulement si le navigateur est en ligne', () => {
       expect(isMaintenanceFailure(0, true)).toBe(true);
-      expect(isMaintenanceFailure(0, false)).toBe(false); // hors ligne : page /offline
+      expect(isMaintenanceFailure(0, false)).toBe(false);
     });
   });
 

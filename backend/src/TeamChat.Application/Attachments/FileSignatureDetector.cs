@@ -9,14 +9,8 @@ public enum AttachmentKind
     File,
 }
 
-/// <summary>Type reel d'un fichier detecte a partir de sa signature binaire.</summary>
 public sealed record DetectedFileType(string ContentType, AttachmentKind Kind);
 
-/// <summary>
-/// Detection du type reel d'un fichier a partir de sa signature (magic bytes).
-/// On ne se fie jamais a l'extension ni au Content-Type declare par le client
-/// (section 8 : « analyse du type reel, pas seulement l'extension »).
-/// </summary>
 public static class FileSignatureDetector
 {
     public static DetectedFileType? Detect(
@@ -25,7 +19,6 @@ public static class FileSignatureDetector
         string fileName,
         bool isVoice)
     {
-        // Executables et bibliotheques : rejects explicitement.
         if (StartsWith(data, 0x4D, 0x5A))
         {
             return null;
@@ -36,7 +29,6 @@ public static class FileSignatureDetector
             return null;
         }
 
-        // Images
         if (StartsWith(data, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A))
         {
             return new DetectedFileType("image/png", AttachmentKind.Image);
@@ -57,13 +49,11 @@ public static class FileSignatureDetector
             return new DetectedFileType("image/webp", AttachmentKind.Image);
         }
 
-        // PDF
         if (AsciiEquals(data, 0, "%PDF"))
         {
             return new DetectedFileType("application/pdf", AttachmentKind.File);
         }
 
-        // Archives ZIP et formats Office Open XML (memes magic bytes).
         if (StartsWith(data, 0x50, 0x4B, 0x03, 0x04))
         {
             var officeType = Normalize(declaredContentType);
@@ -77,7 +67,6 @@ public static class FileSignatureDetector
             return new DetectedFileType("application/zip", AttachmentKind.File);
         }
 
-        // Audio (messages vocaux et fichiers audio)
         if (StartsWith(data, 0x1A, 0x45, 0xDF, 0xA3))
         {
             var isVideo = Normalize(declaredContentType)?.StartsWith("video/", StringComparison.Ordinal) == true;
@@ -101,13 +90,11 @@ public static class FileSignatureDetector
             return new DetectedFileType("audio/mpeg", AttachmentKind.Voice);
         }
 
-        // Texte brut : pas de signature fiable, on se fie au type declare.
         if (Normalize(declaredContentType) == "text/plain")
         {
             return new DetectedFileType("text/plain", AttachmentKind.File);
         }
 
-        // Un upload vocal sans signature audio connue est refuse.
         _ = isVoice;
         _ = fileName;
 

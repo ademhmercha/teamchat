@@ -5,7 +5,6 @@ using TeamChat.Domain.Entities;
 
 namespace TeamChat.Infrastructure.Persistence;
 
-/// <summary>Acces aux donnees des notifications.</summary>
 public sealed class NotificationQueries : INotificationQueries
 {
     private readonly TeamChatDbContext _db;

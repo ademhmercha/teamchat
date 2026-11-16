@@ -8,12 +8,6 @@ using TeamChat.Domain.Entities;
 
 namespace TeamChat.Api.Hubs;
 
-/// <summary>
-/// Hub de messagerie et de signalisation d'appels (WebSockets, /hubs/chat).
-/// L'authentification se fait via le JWT passe en query string (access_token)
-/// par le client SignalR. Aucune logique metier ici : le hub appelle les
-/// services et relaye (y compris la signalisation WebRTC vers le pair).
-/// </summary>
 [Authorize]
 public sealed class ChatHub : Hub<IChatClient>
 {
@@ -135,15 +129,11 @@ public sealed class ChatHub : Hub<IChatClient>
             .UserStoppedTyping(conversationId, userId);
     }
 
-    /// <summary>Ouvre un appel vers un utilisateur (audio par defaut).</summary>
     public async Task<CallSessionDto> CallUser(Guid calleeId, CallType type)
     {
         var callerId = GetCurrentUserId();
         var session = await CallAsync(() => _calls.StartCallAsync(callerId, calleeId, type));
 
-        // La conversation directe peut avoir ete creee a l'instant : ses messages
-        // systeme sont diffuses au groupe de conversation, il faut donc y inscrire
-        // les connexions deja ouvertes des deux participants.
         foreach (var connectionId in _presence.GetConnectionIds(callerId))
         {
             await Groups.AddToGroupAsync(connectionId, ChatGroups.Conversation(session.ConversationId));
@@ -226,7 +216,6 @@ public sealed class ChatHub : Hub<IChatClient>
             }
             catch
             {
-                // Une notification ne doit jamais faire echouer la cloture d'appel.
             }
         }
     }

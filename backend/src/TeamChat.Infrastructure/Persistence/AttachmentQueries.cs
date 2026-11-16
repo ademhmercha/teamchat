@@ -5,7 +5,6 @@ using TeamChat.Domain.Entities;
 
 namespace TeamChat.Infrastructure.Persistence;
 
-/// <summary>Acces aux donnees des pieces jointes.</summary>
 public sealed class AttachmentQueries : IAttachmentQueries
 {
     private readonly TeamChatDbContext _db;

@@ -3,9 +3,6 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Restauration separee (mise en cache des dependances).
-# On restaure uniquement le projet API (et ses references) : la solution
-# reference aussi les projets de tests, absents de l'image a ce stade.
 COPY src/TeamChat.Domain/TeamChat.Domain.csproj src/TeamChat.Domain/
 COPY src/TeamChat.Application/TeamChat.Application.csproj src/TeamChat.Application/
 COPY src/TeamChat.Infrastructure/TeamChat.Infrastructure.csproj src/TeamChat.Infrastructure/

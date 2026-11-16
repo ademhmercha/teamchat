@@ -9,10 +9,6 @@ using TeamChat.Application.Common;
 
 namespace TeamChat.Infrastructure.Storage;
 
-/// <summary>
-/// Stockage objet S3-compatible (production) : fonctionne avec AWS S3, MinIO,
-/// ou tout service compatible via <c>ServiceURL</c> et <c>ForcePathStyle</c>.
-/// </summary>
 public sealed class S3FileStorage : IFileStorage
 {
     private readonly IAmazonS3 _client;
@@ -26,7 +22,6 @@ public sealed class S3FileStorage : IFileStorage
 
         if (!string.IsNullOrWhiteSpace(s3.Endpoint))
         {
-            // Service S3-compatible (MinIO, R2...) : URL explicite.
             config.ServiceURL = s3.Endpoint;
             if (!string.IsNullOrWhiteSpace(s3.Region))
             {
@@ -35,12 +30,9 @@ public sealed class S3FileStorage : IFileStorage
         }
         else if (!string.IsNullOrWhiteSpace(s3.Region))
         {
-            // AWS S3 natif : endpoint deduit de la region.
             config.RegionEndpoint = RegionEndpoint.GetBySystemName(s3.Region);
         }
 
-        // Cles explicites si fournies ; sinon chaine d'identifiants par defaut
-        // du SDK (role IAM de l'instance EC2, variables d'environnement, profil...).
         _client = string.IsNullOrWhiteSpace(s3.AccessKey)
             ? new AmazonS3Client(config)
             : new AmazonS3Client(new BasicAWSCredentials(s3.AccessKey, s3.SecretKey), config);

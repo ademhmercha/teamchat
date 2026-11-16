@@ -4,10 +4,6 @@ using TeamChat.Application.Tenants.Dtos;
 
 namespace TeamChat.Application.Company;
 
-/// <summary>
-/// Operations d'administration de la societe de l'utilisateur courant.
-/// Reservees au role Owner par le controleur (voir <c>CompanyController</c>).
-/// </summary>
 public sealed class CompanyService : ICompanyService
 {
     private const int MaxNameLength = 100;

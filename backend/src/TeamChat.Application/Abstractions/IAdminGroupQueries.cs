@@ -2,7 +2,6 @@ using TeamChat.Application.Conversations.Dtos;
 
 namespace TeamChat.Application.Abstractions;
 
-/// <summary>Acces aux donnees des groupes (cote requetes).</summary>
 public interface IAdminGroupQueries
 {
     Task<IReadOnlyList<GroupDto>> GetGroupsAsync(CancellationToken cancellationToken = default);
@@ -16,7 +15,6 @@ public interface IAdminGroupQueries
         DateTimeOffset now,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Remplace l'ensemble des membres. Renvoie les ajouts et retraits.</summary>
     Task<GroupOperationResult> SetMembersAsync(
         Guid groupId,
         IReadOnlyList<Guid> memberIds,
@@ -28,7 +26,6 @@ public interface IAdminGroupQueries
         DateTimeOffset now,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Renomme le groupe (null pour archiver).</summary>
     Task RenameAsync(
         Guid groupId,
         string name,
@@ -36,7 +33,6 @@ public interface IAdminGroupQueries
 
     Task UnarchiveAsync(Guid groupId, CancellationToken cancellationToken = default);
 
-    /// <summary>Suppression definitive de la conversation (cascade participants + messages).</summary>
     Task DeleteAsync(Guid groupId, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Guid>> GetParticipantIdsAsync(
@@ -45,7 +41,6 @@ public interface IAdminGroupQueries
 
     Task<bool> GroupExistsAsync(Guid groupId, CancellationToken cancellationToken = default);
 
-    /// <summary>Nombre d'identifiants correspondant a des utilisateurs existants.</summary>
     Task<int> CountExistingUsersAsync(
         IReadOnlyList<Guid> userIds,
         CancellationToken cancellationToken = default);

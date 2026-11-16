@@ -1,12 +1,7 @@
-# Arret / demarrage automatique de l'EC2 et de RDS (ressources taguees AutoSchedule=true).
-#   23h00 : stop   |   08h00 : start   |   toutes les heures : enforce (RDS redemarre seul apres 7 jours d'arret)
-# Heures et fuseau : variables scheduler_*. var.scheduler_enabled = false desactive tout.
 
 locals {
   scheduler_name = "teamchat-${local.env}-scheduler"
 
-  # 900 s = maximum d'une Lambda. L'attente de RDS doit rester nettement en dessous : il faut encore
-  # du temps pour demarrer l'EC2, notifier SNS et marger (le code garde aussi 45 s de securite).
   scheduler_timeout_seconds  = 900
   scheduler_rds_wait_seconds = 780
 }
@@ -21,8 +16,6 @@ resource "aws_cloudwatch_log_group" "scheduler" {
   name              = "/aws/lambda/${local.scheduler_name}"
   retention_in_days = 14
 }
-
-# ---------------- Role de la Lambda : limite aux ressources taguees ----------------
 
 data "aws_iam_policy_document" "lambda_assume" {
   statement {
@@ -47,7 +40,6 @@ data "aws_iam_policy_document" "scheduler" {
     resources = ["${aws_cloudwatch_log_group.scheduler.arn}:*"]
   }
 
-  # DescribeInstances n'accepte pas de ressource ciblee ; la Lambda filtre par tag.
   statement {
     sid       = "Ec2Describe"
     actions   = ["ec2:DescribeInstances"]
@@ -97,8 +89,6 @@ resource "aws_iam_role_policy" "scheduler" {
   policy = data.aws_iam_policy_document.scheduler.json
 }
 
-# ---------------- Lambda ----------------
-
 resource "aws_lambda_function" "scheduler" {
   function_name    = local.scheduler_name
   description      = "Arrete et demarre l'EC2 et RDS (tag AutoSchedule=true)"
@@ -109,7 +99,7 @@ resource "aws_lambda_function" "scheduler" {
   source_code_hash = data.archive_file.scheduler.output_base64sha256
   architectures    = ["arm64"]
   memory_size      = 128
-  timeout          = local.scheduler_timeout_seconds # maximum Lambda ; attente du demarrage de RDS (action start)
+  timeout          = local.scheduler_timeout_seconds
 
   environment {
     variables = {
@@ -130,8 +120,6 @@ resource "aws_lambda_function" "scheduler" {
     }
   }
 }
-
-# ---------------- EventBridge Scheduler ----------------
 
 data "aws_iam_policy_document" "scheduler_invoke_assume" {
   statement {
@@ -203,9 +191,6 @@ resource "aws_scheduler_schedule" "main" {
   }
 }
 
-# ---------------- Horaires affiches sur la page de veille ----------------
-# frontend/public/maintenance.html lit /maintenance-config.json : le texte suit donc les variables du scheduler.
-# Fichier gere par Terraform : buildspec.yml l'exclut de "aws s3 sync --delete".
 locals {
   maintenance_config = jsonencode({
     enabled   = var.scheduler_enabled

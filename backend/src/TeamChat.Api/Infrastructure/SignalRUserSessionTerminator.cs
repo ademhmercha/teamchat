@@ -4,11 +4,6 @@ using TeamChat.Application.Abstractions;
 
 namespace TeamChat.Api.Infrastructure;
 
-/// <summary>
-/// Ferme les sessions temps reel d'un utilisateur : diffusion de l'ordre de
-/// deconnexion aux clients, retrait des connexions du suivi de presence et
-/// notification du passage hors-ligne aux autres utilisateurs.
-/// </summary>
 public sealed class SignalRUserSessionTerminator : IUserSessionTerminator
 {
     private readonly IHubContext<ChatHub, IChatClient> _hub;

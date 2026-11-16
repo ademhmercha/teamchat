@@ -3,7 +3,6 @@ using TeamChat.Domain.Entities;
 
 namespace TeamChat.Application.Abstractions;
 
-/// <summary>Acces aux donnees des notifications (sans logique metier).</summary>
 public interface INotificationQueries
 {
     Task<NotificationDto> CreateAsync(

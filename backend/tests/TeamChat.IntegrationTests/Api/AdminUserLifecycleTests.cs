@@ -5,10 +5,6 @@ using TeamChat.IntegrationTests.Support;
 
 namespace TeamChat.IntegrationTests.Api;
 
-/// <summary>
-/// Cycle de vie administrateur d'un compte : suppression logique et
-/// reinitialisation du mot de passe.
-/// </summary>
 [Collection("api")]
 public sealed class AdminUserLifecycleTests
 {

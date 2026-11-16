@@ -1,4 +1,3 @@
-# ---------- Frontend (Angular) : prive, lu uniquement par CloudFront via OAC (policy dans cdn.tf) ----------
 
 resource "aws_s3_bucket" "frontend" {
   bucket = local.frontend_bucket_name
@@ -30,8 +29,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "frontend" {
     }
   }
 }
-
-# ---------- Uploads : fichiers et vocaux des utilisateurs, servis par l'API (pas de CORS) ----------
 
 resource "aws_s3_bucket" "uploads" {
   bucket = local.uploads_bucket_name

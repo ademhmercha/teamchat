@@ -17,13 +17,11 @@ public sealed class CallsController : ControllerBase
         _calls = calls;
     }
 
-    /// <summary>Serveurs ICE (STUN/TURN) pour la connexion WebRTC de l'utilisateur courant.</summary>
     [HttpGet("api/calls/ice-servers")]
     [ProducesResponseType(typeof(IReadOnlyList<IceServerDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<IceServerDto>>> GetIceServers(CancellationToken cancellationToken)
         => Ok(await _calls.GetIceServersAsync(User.GetUserId(), cancellationToken));
 
-    /// <summary>Historique des appels de l'utilisateur courant (recents d'abord).</summary>
     [HttpGet("api/calls/history")]
     [ProducesResponseType(typeof(IReadOnlyList<CallHistoryItemDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<CallHistoryItemDto>>> GetHistory(

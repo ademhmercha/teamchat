@@ -3,7 +3,6 @@ using TeamChat.Application.Abstractions;
 
 namespace TeamChat.Infrastructure.Email;
 
-/// <summary>En dev, l'envoi d'email se contente de journaliser le contenu (dont les liens).</summary>
 public sealed class DevEmailSender : IEmailSender
 {
     private readonly ILogger<DevEmailSender> _logger;

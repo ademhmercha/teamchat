@@ -1,9 +1,5 @@
 namespace TeamChat.Domain.Entities;
 
-/// <summary>
-/// Refresh token persiste sous forme hachee (jamais en clair). La rotation est
-/// tracee via <see cref="ReplacedByTokenHash"/> pour detecter la reutilisation.
-/// </summary>
 public class RefreshToken
 {
     public Guid Id { get; set; } = Guid.NewGuid();

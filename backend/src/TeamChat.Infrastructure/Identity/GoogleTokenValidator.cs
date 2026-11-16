@@ -10,7 +10,6 @@ public sealed class GoogleOptions
 
     public string ClientId { get; set; } = string.Empty;
 
-    /// <summary>Optionnel : restreint la connexion a un domaine de societe (ex. "exemple.com").</summary>
     public string? AllowedDomain { get; set; }
 }
 

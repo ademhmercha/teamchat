@@ -7,7 +7,6 @@ using TeamChat.Infrastructure.Storage;
 
 namespace TeamChat.UnitTests.Storage;
 
-/// <summary>Construction du client S3 : cles explicites, chaine par defaut (role IAM), endpoint ou region.</summary>
 public sealed class S3FileStorageTests : IDisposable
 {
     private static readonly string[] EnvVars = { "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN" };
@@ -16,8 +15,6 @@ public sealed class S3FileStorageTests : IDisposable
 
     public S3FileStorageTests()
     {
-        // Identifiants factices dans l'environnement : la chaine par defaut les trouve,
-        // le test ne depend ni du profil de la machine ni du reseau (IMDS).
         foreach (var name in EnvVars)
         {
             _saved[name] = Environment.GetEnvironmentVariable(name);
@@ -42,8 +39,6 @@ public sealed class S3FileStorageTests : IDisposable
         var client = CreateClient(new S3StorageOptions { Bucket = "b", Region = "eu-north-1", Endpoint = "" });
 
         var credentials = GetCredentials(client);
-        // Chaine par defaut : le SDK resout les identifiants a la premiere requete, donc rien
-        // de type BasicAWSCredentials (cles explicites) n'est construit par S3FileStorage.
         Assert.IsNotType<BasicAWSCredentials>(credentials);
         if (credentials is not null)
         {

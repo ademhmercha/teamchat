@@ -7,11 +7,6 @@ using TeamChat.Domain.Entities;
 
 namespace TeamChat.Api.Infrastructure;
 
-/// <summary>
-/// Service d'arriere-plan qui bascule en "manque" les appels restes en sonnerie
-/// au-dela du delai configure, puis notifie les deux participants et diffuse le
-/// message systeme correspondant.
-/// </summary>
 public sealed class CallTimeoutService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;

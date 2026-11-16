@@ -16,7 +16,6 @@ const VARIANT_ICON: Record<ToastVariant, string> = {
   info: 'info',
 };
 
-/** Le message d'erreur reste affiché plus longtemps : il demande une reaction. */
 const VARIANT_DURATION: Record<ToastVariant, number> = {
   success: 4500,
   info: 5000,
@@ -25,14 +24,6 @@ const VARIANT_DURATION: Record<ToastVariant, number> = {
 
 const MAX_VISIBLE = 5;
 
-/**
- * Notifications globales (systeme « toast »), pouvues depuis n'importe
- * quel composant et affichees par ToastHostComponent monte dans app.html
- * (hors router-outlet : le message survit donc aux changements de route).
- *
- * Utilisee pour le feedback transverse ; les erreurs liees a un formulaire
- * ou a un chargement de page restent en message inline, a cote de l'action.
- */
 @Injectable({ providedIn: 'root' })
 export class ToastService {
   private readonly _items = signal<Toast[]>([]);
@@ -58,7 +49,6 @@ export class ToastService {
 
   private push(message: string, variant: ToastVariant): void {
     const id = ++this.nextId;
-    // La file est bornée : un empilement infini masquerait la base de l'ecran.
     this._items.update((items) => [
       ...items.slice(Math.max(0, items.length - (MAX_VISIBLE - 1))),
       { id, message, variant, icon: VARIANT_ICON[variant] },

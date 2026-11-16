@@ -5,7 +5,6 @@ using TeamChat.Domain.Entities;
 
 namespace TeamChat.Infrastructure.Persistence;
 
-/// <summary>Acces aux donnees des groupes (admin).</summary>
 public sealed class AdminGroupQueries : IAdminGroupQueries
 {
     private readonly TeamChatDbContext _db;

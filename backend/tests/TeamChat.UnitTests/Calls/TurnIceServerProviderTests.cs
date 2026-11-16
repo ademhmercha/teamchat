@@ -6,10 +6,6 @@ using TeamChat.Infrastructure.Calls;
 
 namespace TeamChat.UnitTests.Calls;
 
-/// <summary>
-/// Configuration ICE : STUN toujours present, TURN ajoute uniquement si un secret
-/// est configure, avec des identifiants temporaires (TURN REST API / HMAC-SHA1).
-/// </summary>
 public sealed class TurnIceServerProviderTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 17, 12, 0, 0, TimeSpan.Zero);
@@ -64,11 +60,9 @@ public sealed class TurnIceServerProviderTests
         Assert.Equal("turn:turn.example.com:3478?transport=udp", turn.Urls[0]);
         Assert.Equal("turn:turn.example.com:3478?transport=tcp", turn.Urls[1]);
 
-        // username = horodatage d'expiration Unix (now + TTL).
         var expectedUsername = Now.AddSeconds(3600).ToUnixTimeSeconds().ToString();
         Assert.Equal(expectedUsername, turn.Username);
 
-        // credential = base64(HMAC-SHA1(secret, username)).
         using var hmac = new HMACSHA1(Encoding.UTF8.GetBytes(secret));
         var expectedCredential = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(expectedUsername)));
         Assert.Equal(expectedCredential, turn.Credential);

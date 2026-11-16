@@ -230,10 +230,6 @@ public sealed class ConversationService : IConversationService
         }
     }
 
-    /// <summary>
-    /// Verifie que l'utilisateur cible existe, est actif et appartient a la meme
-    /// societe (le filtre global exclut les autres societes).
-    /// </summary>
     private async Task EnsureSameTenantUserAsync(Guid otherUserId, CancellationToken cancellationToken)
     {
         var target = await _users.GetProfileAsync(otherUserId, cancellationToken);

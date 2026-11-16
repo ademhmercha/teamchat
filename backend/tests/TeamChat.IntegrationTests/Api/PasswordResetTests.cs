@@ -7,7 +7,6 @@ using TeamChat.IntegrationTests.Support;
 
 namespace TeamChat.IntegrationTests.Api;
 
-/// <summary>Mot de passe oublie / reinitialisation en libre-service.</summary>
 [Collection("api")]
 public sealed class PasswordResetTests
 {

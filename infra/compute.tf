@@ -2,12 +2,9 @@ data "aws_ssm_parameter" "al2023_ami" {
   name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
 }
 
-# Cle KMS geree par AWS pour les SecureString SSM (alias/aws/ssm).
 data "aws_kms_alias" "ssm" {
   name = "alias/aws/ssm"
 }
-
-# ---------------- Role IAM de l'instance (moindre privilege) ----------------
 
 data "aws_iam_policy_document" "ec2_assume" {
   statement {
@@ -25,14 +22,12 @@ resource "aws_iam_role" "ec2" {
   assume_role_policy = data.aws_iam_policy_document.ec2_assume.json
 }
 
-# Session Manager (acces sans SSH).
 resource "aws_iam_role_policy_attachment" "ec2_ssm_core" {
   role       = aws_iam_role.ec2.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 data "aws_iam_policy_document" "ec2" {
-  # Authentification Docker aupres d'ECR : cette action n'accepte pas de ressource ciblee.
   statement {
     sid       = "EcrAuthToken"
     actions   = ["ecr:GetAuthorizationToken"]
@@ -80,29 +75,24 @@ data "aws_iam_policy_document" "ec2" {
     resources = ["${aws_s3_bucket.uploads.arn}/*"]
   }
 
-  # Sans ListBucket, S3 renvoie 403 au lieu de 404 pour une cle absente.
   statement {
     sid       = "UploadsList"
     actions   = ["s3:ListBucket"]
     resources = [aws_s3_bucket.uploads.arn]
   }
 
-  # L'agent CodeDeploy telecharge la revision depuis le bucket d'artefacts du pipeline (cicd.tf, phase 3).
   statement {
     sid       = "ReadPipelineArtifacts"
     actions   = ["s3:GetObject", "s3:GetObjectVersion"]
     resources = ["arn:aws:s3:::${local.artifacts_bucket_name}/*"]
   }
 
-  # Le groupe est cree par Terraform : pas besoin de logs:CreateLogGroup.
   statement {
     sid       = "ApiLogs"
     actions   = ["logs:CreateLogStream", "logs:PutLogEvents"]
     resources = ["${aws_cloudwatch_log_group.api.arn}:*"]
   }
 
-  # Agent CloudWatch (monitoring.tf) : metriques memoire/disque, uniquement dans le namespace CWAgent,
-  # et lecture de SA configuration (parametre SSM hors de /teamchat/<env>/).
   statement {
     sid       = "CloudWatchAgentMetrics"
     actions   = ["cloudwatch:PutMetricData"]
@@ -139,14 +129,10 @@ resource "aws_iam_instance_profile" "ec2" {
   role = aws_iam_role.ec2.name
 }
 
-# ---------------- Journaux ----------------
-
 resource "aws_cloudwatch_log_group" "api" {
   name              = local.log_group
   retention_in_days = 14
 }
-
-# ---------------- Instance ----------------
 
 resource "aws_instance" "api" {
   ami                    = data.aws_ssm_parameter.al2023_ami.value
@@ -155,18 +141,15 @@ resource "aws_instance" "api" {
   vpc_security_group_ids = [aws_security_group.ec2.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2.name
 
-  # IP publique necessaire pour joindre ECR, SSM, S3 sans NAT Gateway ; l'IP elastique la rend stable.
   associate_public_ip_address = true
 
-  # "standard" : pas de credits CPU illimites facturables en cas de pic prolonge.
   credit_specification {
     cpu_credits = "standard"
   }
 
   metadata_options {
-    http_endpoint = "enabled"
-    http_tokens   = "required" # IMDSv2 obligatoire
-    # 2 sauts : le conteneur Docker doit atteindre l'IMDS pour obtenir les identifiants du role IAM.
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
     http_put_response_hop_limit = 2
   }
 
@@ -183,13 +166,11 @@ resource "aws_instance" "api" {
 
   tags = {
     Name         = "teamchat-${local.env}-api"
-    App          = "teamchat" # cible du groupe de deploiement CodeDeploy
-    AutoSchedule = "true"     # arrete la nuit par la Lambda scheduler (scheduler.tf)
+    App          = "teamchat"
+    AutoSchedule = "true"
   }
 
   lifecycle {
-    # Une nouvelle AMI Amazon Linux ne doit pas remplacer le serveur.
-    # Le tag AutoSchedule se change a la main (true/false) pour suspendre le scheduler : Terraform ne l'ecrase pas.
     ignore_changes = [ami, user_data, tags["AutoSchedule"], tags_all["AutoSchedule"]]
   }
 }

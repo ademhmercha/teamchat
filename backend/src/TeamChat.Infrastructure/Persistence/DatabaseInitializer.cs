@@ -4,7 +4,6 @@ using Microsoft.Extensions.Hosting;
 
 namespace TeamChat.Infrastructure.Persistence;
 
-/// <summary>Applique les migrations et le seed au demarrage de l'application.</summary>
 public sealed class DatabaseInitializer : IHostedService
 {
     private readonly IServiceProvider _services;

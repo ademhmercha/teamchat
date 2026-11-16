@@ -1,6 +1,5 @@
 namespace TeamChat.Api.Hubs;
 
-/// <summary>Noms des groupes SignalR partages entre le hub et les controllers.</summary>
 public static class ChatGroups
 {
     private const string ConversationPrefix = "conversation:";

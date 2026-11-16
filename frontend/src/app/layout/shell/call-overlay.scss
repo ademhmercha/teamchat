@@ -9,7 +9,6 @@
   z-index: 1000;
   animation: tc-fade-in var(--tc-normal);
 
-  // Appel reduit : petit widget flottant, sans fond bloquant, l'app reste utilisable.
   &.minimized {
     background: transparent;
     backdrop-filter: none;
@@ -330,7 +329,6 @@
   }
 }
 
-// Plein ecran : le widget d'appel remplace l'app, controles toujours accessibles.
 .call-overlay:fullscreen,
 .call-overlay.fullscreen {
   background: var(--tc-black);

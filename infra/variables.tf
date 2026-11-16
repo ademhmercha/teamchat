@@ -9,8 +9,6 @@ variable "environment" {
   default     = "prod"
 }
 
-# ---- Base de donnees ----
-
 variable "db_name" {
   type    = string
   default = "teamchat"
@@ -49,14 +47,10 @@ variable "db_skip_final_snapshot" {
   default     = false
 }
 
-# ---- Serveur ----
-
 variable "instance_type" {
   type    = string
   default = "t3.micro"
 }
-
-# ---- CI/CD ----
 
 variable "github_repository" {
   description = "Depot GitHub (proprietaire/nom) surveille par le pipeline."
@@ -85,8 +79,6 @@ variable "enable_pr_checks" {
   type        = bool
   default     = false
 }
-
-# ---- Securite et couts ----
 
 variable "budget_name" {
   description = "Nom du budget AWS Budgets (le nom exact de ton budget existant si tu l'importes)."
@@ -117,8 +109,6 @@ variable "ecr_scan_fail_on_critical" {
   type        = bool
   default     = true
 }
-
-# ---- Arret nocturne (Lambda scheduler) ----
 
 variable "scheduler_enabled" {
   description = "false = toutes les planifications sont desactivees (l'infra reste allumee en permanence)."
@@ -159,8 +149,6 @@ variable "scheduler_enforce_rate" {
   default     = "rate(1 hour)"
 }
 
-# ---- Ressources us-east-1 (optionnelles, voir us_east_1.tf) ----
-
 variable "enable_us_east_1_resources" {
   description = "Cree les ressources imposees en us-east-1 (certificat ACM, alarme CloudFront). Desactive : le compte peut bloquer cette region."
   type        = bool
@@ -179,8 +167,6 @@ variable "alert_email" {
   default     = ""
 }
 
-# ---- Emails (SES) ----
-
 variable "ses_from_address" {
   description = "Adresse d'expedition verifiee dans SES (Email__FromAddress). Une verification par email est envoyee a la creation."
   type        = string
@@ -190,10 +176,6 @@ variable "ses_from_address" {
     error_message = "Renseigne une vraie adresse email (pas @example.com), par exemple via TF_VAR_ses_from_address."
   }
 }
-
-# ---- Secrets fournis par toi : jamais dans un tfvars committe ----
-# Passe-les par l'environnement (TF_VAR_admin_seed_password=...) ou un fichier *.auto.tfvars
-# local (ignore par git). Laisse vide pour ne pas creer le parametre SSM correspondant.
 
 variable "admin_seed_email" {
   description = "Admin__SeedEmail : email du compte SuperAdmin cree au premier demarrage."

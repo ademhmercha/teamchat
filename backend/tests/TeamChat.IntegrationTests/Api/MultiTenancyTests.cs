@@ -11,10 +11,6 @@ using UpdateUserRequest = TeamChat.Application.Users.Dtos.UpdateUserRequest;
 
 namespace TeamChat.IntegrationTests.Api;
 
-/// <summary>
-/// Isolations et regles multi-societes : inscription d'une societe, cloture
-/// des donnees par societe et permissions Owner / Admin.
-/// </summary>
 [Collection("api")]
 public sealed class MultiTenancyTests
 {
@@ -85,7 +81,6 @@ public sealed class MultiTenancyTests
         var ownerA = await RegisterCompanyAsync(client, "Alpha", "owner-alpha@teamchat.test");
         var ownerB = await RegisterCompanyAsync(client, "Beta", "owner-beta@teamchat.test");
 
-        // Requete authentifiee : l'annuaire de Alpha ne doit pas voir owner-beta.
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/users?search=owner-beta");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ownerA.Token);
         var response = await client.SendAsync(request);

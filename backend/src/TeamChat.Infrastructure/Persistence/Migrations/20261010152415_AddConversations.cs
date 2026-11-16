@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace TeamChat.Infrastructure.Persistence.Migrations
 {
-    /// <inheritdoc />
     public partial class AddConversations : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -117,7 +115,6 @@ namespace TeamChat.Infrastructure.Persistence.Migrations
                 column: "SenderId");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

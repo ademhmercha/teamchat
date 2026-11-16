@@ -18,10 +18,8 @@ public sealed class TeamChatDbContext : IdentityDbContext<AppUser, IdentityRole<
         _tenant = tenant;
     }
 
-    /// <summary>Societe courante (evaluee a chaque requete a partir du jeton).</summary>
     public Guid? CurrentTenantId => _tenant.TenantId;
 
-    /// <summary>Vrai hors contexte authentifie (login, refresh, inscription, seed) : le filtre est ignore.</summary>
     public bool TenantFilterBypassed => _tenant.FilterDisabled;
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
@@ -58,8 +56,6 @@ public sealed class TeamChatDbContext : IdentityDbContext<AppUser, IdentityRole<
             entity.Property(u => u.DisplayName).HasMaxLength(100).IsRequired();
             entity.Property(u => u.AvatarUrl)
                 .HasMaxLength(2048)
-                // Ecriture ET lecture : d'anciennes lignes contenant une URL absolue (http://hote-ec2/api/...)
-                // ressortent en chemin relatif, quelle que soit la requete qui les lit.
                 .HasConversion(new ValueConverter<string?, string>(
                     v => AvatarUrls.Normalize(v)!,
                     v => AvatarUrls.Normalize(v)));
@@ -208,7 +204,6 @@ public sealed class TeamChatDbContext : IdentityDbContext<AppUser, IdentityRole<
         return base.SaveChangesAsync(cancellationToken);
     }
 
-    /// <summary>Renseigne la societe courante sur les entites tenant-scoped creees.</summary>
     private void StampTenant()
     {
         if (CurrentTenantId is not { } tenantId)

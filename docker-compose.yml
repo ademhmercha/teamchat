@@ -8,7 +8,6 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-teamchat}
       POSTGRES_USER: ${POSTGRES_USER:-teamchat}
-      # Valeur de developpement uniquement : surcharger via .env (jamais un secret ici).
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-teamchat_dev_only}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
@@ -21,8 +20,6 @@ services:
       retries: 10
       start_period: 10s
 
-  # API dans un conteneur (optionnel) : `docker compose --profile app up -d --build`.
-  # Reutilise l'image PostgreSQL ci-dessus ; renseigner les secrets via .env.
   api:
     build:
       context: ./backend
@@ -46,18 +43,14 @@ services:
       Admin__SeedPassword: ${Admin__SeedPassword:-}
       Storage__Provider: ${Storage__Provider:-Local}
       Storage__LocalPath: /app/uploads
-      # TURN : meme secret que le service `coturn` (profil `turn`). `TURN_URLS` est l'URL
-      # joignable par le NAVIGATEUR (localhost en dev, IP/domaine public en prod), pas le
-      # nom de service Docker.
       Turn__StunUrls: ${Turn__StunUrls:-stun:stun.l.google.com:19302}
       Turn__Urls: ${TURN_URLS:-turn:localhost:3478}
       Turn__Secret: ${TURN_SECRET:-teamchat_turn_dev_only}
     ports:
-      - "${API_PORT:-8080}:8080"
+      - "${API_PORT:-5285}:8080"
     volumes:
       - api-uploads:/app/uploads
 
-  # Cache distribue L2 optionnel : demarrer avec `docker compose --profile redis up -d`.
   redis:
     image: redis:7-alpine
     container_name: teamchat-redis
@@ -74,9 +67,6 @@ services:
       timeout: 3s
       retries: 10
 
-  # Serveur TURN optionnel (relais NAT pour les appels) : demarrer avec
-  # `docker compose --profile turn up -d`. Le secret doit rester identique a
-  # `Turn__Secret` cote API (TURN REST API, identifiants temporaires).
   coturn:
     image: coturn/coturn:4.6-alpine
     container_name: teamchat-coturn

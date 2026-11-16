@@ -1,10 +1,5 @@
 namespace TeamChat.Domain.Entities;
 
-/// <summary>
-/// Journal d'un appel 1-a-1 (audio ou video). Le cycle de vie est pilote par le
-/// hub de signalisation : Ringing -> Accepted -> Ended, ou Rejected / Missed / Failed.
-/// Les participants sont toujours deux utilisateurs (pas d'appel de groupe).
-/// </summary>
 public sealed class CallLog : ITenantScoped
 {
     public Guid Id { get; set; }

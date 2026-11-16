@@ -479,7 +479,6 @@ export class ThreadComponent {
     return dot > 0 ? fileName.slice(dot + 1).toUpperCase().slice(0, 5) : '';
   }
 
-  /** Tronque un nom de fichier au milieu en conservant l'extension (rapport_ann…pdf). */
   fileLabel(fileName: string, max = 32): string {
     if (fileName.length <= max) {
       return fileName;
@@ -627,7 +626,6 @@ export class ThreadComponent {
       : (conversation.otherDisplayName ?? 'Conversation');
   }
 
-  /** Avatar de l'en-tête : un groupe n'a pas d'image, seules les conversations directes en ont une. */
   getHeaderAvatarUrl(): string | null {
     if (this.isGroup()) {
       return null;

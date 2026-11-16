@@ -149,7 +149,6 @@ public sealed class AttachmentService : IAttachmentService
         }
         catch
         {
-            // La compensation best-effort ne doit pas masquer l'erreur initiale.
         }
     }
 

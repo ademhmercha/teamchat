@@ -84,7 +84,6 @@ public sealed class AuthService : IAuthService
                 new FluentValidation.Results.ValidationFailure(string.Empty, e)));
         }
 
-        // Le lien du mail vient de App:PublicUrl ; sans cette config, pas de mail (lien inutilisable).
         if (!string.IsNullOrWhiteSpace(_appOptions.PublicUrl))
         {
             await _email.SendAsync(
@@ -156,7 +155,6 @@ public sealed class AuthService : IAuthService
 
         if (stored.RevokedAt is not null)
         {
-            // Reutilisation d'un token deja tourne : on revoque toute la famille par precaution.
             await _refreshTokens.RevokeAllForUserAsync(stored.UserId, cancellationToken);
             throw new UnauthorizedException("Refresh token deja utilise.");
         }
@@ -243,14 +241,12 @@ public sealed class AuthService : IAuthService
     {
         var user = await _identity.FindByEmailAsync(request.Email, cancellationToken);
 
-        // Reponse volontairement identique que le compte existe ou non (anti-enumeration).
         if (user is null || user.DeletedAt is not null || !user.IsActive)
         {
             return;
         }
 
         var token = await _identity.GeneratePasswordResetTokenAsync(user, cancellationToken);
-        // App:PublicUrl d'abord : derriere CloudFront, l'hote de la requete est celui de l'EC2, pas le domaine public.
         var baseUrl = string.IsNullOrWhiteSpace(_appOptions.PublicUrl) ? fallbackBaseUrl : _appOptions.PublicUrl;
         await _email.SendAsync(
             EmailTemplates.PasswordReset(user.Email!, user.DisplayName, baseUrl, user.Id, token),
@@ -274,7 +270,6 @@ public sealed class AuthService : IAuthService
                 new FluentValidation.Results.ValidationFailure(nameof(request.Password), e)));
         }
 
-        // Un changement de mot de passe invalide toutes les sessions existantes.
         await _refreshTokens.RevokeAllForUserAsync(user.Id, cancellationToken);
         await _profileCache.InvalidateAsync(user.Id, cancellationToken);
     }

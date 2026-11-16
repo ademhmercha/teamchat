@@ -1,9 +1,4 @@
-﻿export const NotificationType = {
-  GroupAdded: 0,
-  MissedCall: 1,
-} as const;
-
-export interface NotificationDto {
+﻿export interface NotificationDto {
   id: string;
   type: number;
   title: string;

@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 
 namespace TeamChat.IntegrationTests.Support;
 
-/// <summary>Fabrique d'API parametree sur une base de test isolee (Postgres dans un conteneur).</summary>
 public sealed class TeamChatApiFactory : WebApplicationFactory<Program>
 {
     private readonly string _connectionString;

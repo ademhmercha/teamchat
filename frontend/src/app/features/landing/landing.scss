@@ -4,8 +4,7 @@
   flex-direction: column;
   background: var(--tc-bg);
   color: var(--tc-text);
-  /* clip (et non hidden) : ne cree pas de conteneur de defilement, donc le
-     .topnav en position: sticky reste bien collant en haut de la fenetre. */
+  
   overflow-x: clip;
 }
 
@@ -16,7 +15,6 @@
   padding: 0 1.5rem;
 }
 
-/* ---------- Barre de navigation ---------- */
 .topnav {
   position: sticky;
   top: 0;
@@ -93,7 +91,6 @@
   margin-left: auto;
 }
 
-/* Bouton burger : masque sur desktop, affiche sous 680 px. */
 .nav-burger {
   display: none;
   align-items: center;
@@ -113,13 +110,10 @@
   background: var(--tc-surface-2);
 }
 
-/* Panneau deroulant mobile : cache par defaut (visibility: hidden le retire
-   du tab order et de l'arbre d'accessibilite). */
 .nav-mobile {
   display: none;
 }
 
-/* ---------- Hero ---------- */
 .hero {
   display: grid;
   grid-template-columns: 1.05fr 0.95fr;
@@ -199,7 +193,6 @@
   }
 }
 
-/* ---------- Maquette d'application ---------- */
 .hero-mock {
   position: relative;
   animation: tc-fade-up var(--tc-slow);
@@ -384,7 +377,6 @@
   font-weight: 600;
 }
 
-/* ---------- Bandeau de points forts ---------- */
 .highlights {
   border-top: 1px solid var(--tc-border);
   border-bottom: 1px solid var(--tc-border);
@@ -424,7 +416,6 @@
   color: var(--tc-text-muted);
 }
 
-/* ---------- Sections ---------- */
 .section {
   padding-top: 4.5rem;
   padding-bottom: 1rem;
@@ -495,7 +486,6 @@
   color: var(--tc-primary);
 }
 
-/* ---------- Sécurité ---------- */
 .security {
   margin-top: 3.5rem;
   padding-top: 3.5rem;
@@ -585,7 +575,6 @@
   border: 1px dashed color-mix(in srgb, var(--tc-on-accent) 30%, transparent);
 }
 
-/* ---------- Étapes ---------- */
 .steps {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -635,7 +624,6 @@
   color: var(--tc-primary);
 }
 
-/* ---------- Bandeau d'appel à l'action ---------- */
 .cta-band {
   margin-top: 4.5rem;
   padding: 3rem 0;
@@ -670,7 +658,6 @@
   gap: 0.75rem;
 }
 
-/* ---------- Pied de page ---------- */
 .footer {
   margin-top: auto;
   padding: 1.6rem 0;
@@ -721,7 +708,6 @@
   font-size: 0.82rem;
 }
 
-/* ---------- Responsive ---------- */
 @media (max-width: 960px) {
   .hero {
     grid-template-columns: 1fr;

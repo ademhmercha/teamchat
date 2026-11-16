@@ -157,7 +157,6 @@ public sealed class AdminGroupsController : ControllerBase
             }
             catch
             {
-                // Une notification ne doit jamais faire echouer la mutation de groupe.
             }
         }
 

@@ -32,17 +32,6 @@ export interface IceServerDto {
   credential: string | null;
 }
 
-export interface CallHistoryItemDto {
-  id: string;
-  otherUserId: string;
-  otherDisplayName: string;
-  type: number;
-  status: number;
-  startedAt: string;
-  durationSeconds: number | null;
-  outgoing: boolean;
-}
-
 export interface IceCandidatePayload {
   callId: string;
   candidate: string;

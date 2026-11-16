@@ -4,12 +4,6 @@ using TeamChat.Application.Abstractions;
 
 namespace TeamChat.Infrastructure.Caching;
 
-/// <summary>
-/// Implementation de <see cref="ICacheService"/> basee sur HybridCache.
-/// - L1 memoire locale toujours active.
-/// - L2 Redis active uniquement si Redis:ConnectionString est renseignee (voir DependencyInjection).
-/// HybridCache protege nativement contre le cache stampede.
-/// </summary>
 public sealed class HybridCacheService : ICacheService
 {
     private readonly HybridCache _cache;

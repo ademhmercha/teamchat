@@ -5,7 +5,6 @@ using TeamChat.Domain.Entities;
 
 namespace TeamChat.Infrastructure.Persistence;
 
-/// <summary>Acces aux donnees des appels.</summary>
 public sealed class CallQueries : ICallQueries
 {
     private static readonly Expression<Func<CallLog, CallRecord>> Project = call => new CallRecord(

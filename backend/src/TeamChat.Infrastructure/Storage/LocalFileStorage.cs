@@ -5,10 +5,6 @@ using TeamChat.Application.Common;
 
 namespace TeamChat.Infrastructure.Storage;
 
-/// <summary>
-/// Stockage sur disque local (developpement). Les cles sont des identifiants
-/// aleatoires generes cote serveur ; le nom d'origine n'est jamais utilise.
-/// </summary>
 public sealed class LocalFileStorage : IFileStorage
 {
     private readonly string _basePath;

@@ -1,13 +1,11 @@
 namespace TeamChat.Application.Common;
 
-/// <summary>Configuration du stockage des pieces jointes (section 10).</summary>
 public sealed class StorageOptions
 {
     public const string SectionName = "Storage";
 
     public string Provider { get; set; } = "Local";
 
-    /// <summary>Repertoire de base du stockage disque (dev). Chemin relatif resolu depuis le repertoire de l'application.</summary>
     public string LocalPath { get; set; } = "uploads";
 
     public long MaxFileSizeBytes { get; set; } = 25 * 1024 * 1024;

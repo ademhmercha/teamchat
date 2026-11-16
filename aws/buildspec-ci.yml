@@ -1,11 +1,3 @@
-# CodeBuild - verification des pull requests (remplace l'ancienne CI GitHub Actions).
-# Projet CodeBuild separe (teamchat-ci), declenche par webhook GitHub sur PULL_REQUEST_CREATED /
-# PULL_REQUEST_UPDATED / PULL_REQUEST_REOPENED. Le statut s'affiche sur la PR.
-# Ne deploie rien. Mode "privileged" requis (build Docker).
-#
-# Par defaut : build + tests UNITAIRES + build de l'image et du frontend. Les tests d'integration
-# (Testcontainers, lents et dependants de Docker Hub) tournent dans le pipeline main avant le deploiement ;
-# mettre RUN_INTEGRATION_TESTS=true dans le projet CodeBuild pour les lancer aussi sur les PR.
 version: 0.2
 
 env:

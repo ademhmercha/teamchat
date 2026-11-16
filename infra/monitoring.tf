@@ -1,8 +1,3 @@
-# Supervision : alarmes CloudWatch -> SNS (alerts.tf), agent CloudWatch (memoire, disque), tableau de bord.
-#
-# La Lambda scheduler arrete l'EC2 et RDS la nuit : les metriques disparaissent alors. Toutes les alarmes
-# utilisent treat_missing_data = "notBreaching" pour ne pas sonner chaque nuit.
-# Aucune action "OK" : sinon un email a chaque redemarrage du matin.
 
 locals {
   alarm_actions = [aws_sns_topic.alerts.arn]
@@ -13,10 +8,6 @@ locals {
   metrics_namespace = "TeamChat/${local.env}"
 }
 
-# ---------------- EC2 ----------------
-
-# Panne materielle de l'hote AWS : notification ET recuperation automatique (redemarrage sur un autre hote,
-# meme IP elastique et meme disque).
 resource "aws_cloudwatch_metric_alarm" "ec2_status_system" {
   alarm_name          = "teamchat-${local.env}-ec2-status-check-system"
   alarm_description   = "Controle d'etat SYSTEME de l'EC2 en echec : recuperation automatique"
@@ -32,7 +23,6 @@ resource "aws_cloudwatch_metric_alarm" "ec2_status_system" {
   alarm_actions       = concat(local.alarm_actions, ["arn:aws:automate:${var.aws_region}:ec2:recover"])
 }
 
-# Probleme dans le systeme d'exploitation de l'instance (noyau, reseau) : notification seulement.
 resource "aws_cloudwatch_metric_alarm" "ec2_status_instance" {
   alarm_name          = "teamchat-${local.env}-ec2-status-check-instance"
   alarm_description   = "Controle d'etat INSTANCE de l'EC2 en echec"
@@ -63,7 +53,6 @@ resource "aws_cloudwatch_metric_alarm" "ec2_cpu" {
   alarm_actions       = local.alarm_actions
 }
 
-# Metriques de l'agent CloudWatch (namespace CWAgent) : voir plus bas.
 resource "aws_cloudwatch_metric_alarm" "ec2_memory" {
   alarm_name          = "teamchat-${local.env}-ec2-memory-high"
   alarm_description   = "Memoire de l'EC2 superieure a 90 % pendant 10 minutes (1 Go : surveiller le swap)"
@@ -93,8 +82,6 @@ resource "aws_cloudwatch_metric_alarm" "ec2_disk" {
   treat_missing_data  = "notBreaching"
   alarm_actions       = local.alarm_actions
 }
-
-# ---------------- RDS ----------------
 
 resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
   alarm_name          = "teamchat-${local.env}-rds-cpu-high"
@@ -141,16 +128,6 @@ resource "aws_cloudwatch_metric_alarm" "rds_connections" {
   alarm_actions       = local.alarm_actions
 }
 
-# ---------------- Disponibilite de l'API : erreurs dans les journaux ----------------
-# Choix : filtre de metriques sur /teamchat/api, plutot qu'un health check Route 53.
-#   - Filtre de metriques + alarme : ~0,10 $/mois (metrique personnalisee dans le quota gratuit des 10),
-#     region eu-north-1, aucune ressource en us-east-1.
-#   - Route 53 health check : ~0,50 a 2,50 $/mois selon les options (HTTPS, intervalle rapide), ET ses
-#     metriques n'existent qu'en us-east-1 : alarme et sujet SNS y seraient necessaires, region que la SCP du
-#     compte refuse. Il ne serait de toute facon pas utilisable ici.
-# Limite : une panne totale (plus aucun journal) n'est pas vue par ce filtre ; elle l'est par les controles
-# d'etat de l'EC2 ci-dessus. L'API doit journaliser en JSON (appsettings.Production.json).
-
 resource "aws_cloudwatch_log_metric_filter" "api_errors" {
   name           = "teamchat-${local.env}-api-errors"
   log_group_name = aws_cloudwatch_log_group.api.name
@@ -177,13 +154,7 @@ resource "aws_cloudwatch_metric_alarm" "api_errors" {
   alarm_actions       = local.alarm_actions
 }
 
-# ---------------- Agent CloudWatch : memoire et disque ----------------
-# Installe et configure par SSM State Manager (pas de user_data : il est ignore sur l'instance existante, et
-# l'association couvre aussi une instance recreee). Cible : toute instance taguee App=teamchat.
-# L'agent reste installe quand le scheduler arrete l'instance ; l'association se reapplique au demarrage.
-
 locals {
-  # Hors de /teamchat/<env>/ : start.sh transforme chaque parametre de ce chemin en variable d'environnement.
   cloudwatch_agent_param = "/cloudwatch-agent/teamchat-${local.env}/config"
 }
 
@@ -239,13 +210,10 @@ resource "aws_ssm_association" "cloudwatch_agent_configure" {
     values = ["teamchat"]
   }
 
-  # Reessaye souvent : au premier passage l'installation ci-dessus peut ne pas etre terminee.
   schedule_expression = "rate(30 minutes)"
 
   depends_on = [aws_ssm_association.cloudwatch_agent_install, aws_ssm_parameter.cloudwatch_agent_config]
 }
-
-# ---------------- Tableau de bord ----------------
 
 locals {
   dashboard_widgets = [
@@ -297,7 +265,7 @@ locals {
       type = "metric", x = 12, y = 6, width = 12, height = 6
       properties = {
         title  = "CloudFront : requetes et erreurs"
-        region = "us-east-1" # les metriques CloudFront n'existent qu'en us-east-1
+        region = "us-east-1"
         view   = "timeSeries"
         period = 300
         metrics = [

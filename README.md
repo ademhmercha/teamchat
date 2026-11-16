@@ -1,127 +1,97 @@
 # TeamChat
 
-Messagerie interne pour les employes d'une societe : annuaire, conversations privees,
-groupes (crees par l'admin), messages temps reel, fichiers, vocaux et appels WebRTC 1-a-1.
+Messagerie d'entreprise en temps réel : conversations, fichiers, vocaux et appels audio/vidéo, pour plusieurs sociétés isolées les unes des autres. Hébergée sur AWS et déployée automatiquement.
 
-Le cahier des charges complet et la source de verite du projet sont dans [`CLAUDE.md`](./CLAUDE.md).
-L'avancement est suivi dans [`PROGRESS.md`](./PROGRESS.md).
+**Démo en ligne : [https://d1snkg4ggeeeq3.cloudfront.net](https://d1snkg4ggeeeq3.cloudfront.net)**
+La démo est mise en veille chaque nuit de 23h à 8h (UTC+1) pour limiter les coûts ; elle redémarre toute seule.
 
-## Stack
+## Aperçu
 
-- **Backend** : ASP.NET Core Web API (.NET 10 LTS) + SignalR, Clean Architecture
-- **Base de donnees** : PostgreSQL + EF Core (Npgsql)
-- **Auth** : ASP.NET Core Identity + JWT (access + refresh avec rotation) + Google
-- **Frontend** : Angular 21 (composants standalone, signals)
-- **Appels** : WebRTC (signalisation via SignalR), STUN/TURN
-- **Cache** : HybridCache (memoire L1 par defaut, Redis L2 optionnel). Redis active aussi le backplane SignalR (multi-instances)
-- **Tests** : xUnit, Moq, FluentAssertions, Testcontainers ; Jasmine/Jest cote frontend
-- **DevOps** : Docker, docker-compose
-- **Hebergement AWS** : CloudFront + S3 (frontend), EC2 + ECR (API), RDS PostgreSQL, S3 (fichiers), SSM Parameter Store, CloudWatch
-- **CI/CD AWS** : CodePipeline, CodeBuild (tests + build, verification des PR), CodeDeploy. Voir [`aws/README.md`](./aws/README.md)
-
-## Prerequis
-
-- [.NET SDK 10](https://dotnet.microsoft.com/download) (`dotnet --version` >= 10)
-- [Node.js](https://nodejs.org/) 20.19+ (Angular 21)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) avec Docker Compose
-- Git
-
-## Structure
-
-```
-teamchat/
-├── CLAUDE.md              # cahier des charges (source de verite)
-├── PROGRESS.md            # journal d'avancement
-├── docker-compose.yml     # PostgreSQL (+ Redis en profil optionnel)
-├── .env.example           # variables d'environnement (copier en .env)
-├── .github/workflows/     # CI backend + frontend
-├── backend/
-│   ├── TeamChat.sln
-│   ├── src/               # Domain, Application, Infrastructure, Api
-│   └── tests/             # UnitTests, IntegrationTests
-└── frontend/              # application Angular
-```
-
-## Lancer en local
-
-```bash
-# 1. Base de donnees (+ Redis optionnel)
-docker compose up -d postgres
-docker compose --profile redis up -d         # ajoute Redis (cache L2)
-
-# 2. Backend
-dotnet run --project backend/src/TeamChat.Api
-
-# 3. Frontend
-cd frontend && npm install && npm start      # http://localhost:4200
-```
-
-## Tests et build
-
-```bash
-dotnet build backend/TeamChat.sln
-dotnet test  backend/TeamChat.sln
-cd frontend && npm run build
-```
-
-## Variables d'environnement
-
-Voir [`.env.example`](./.env.example). Aucun secret ne doit etre committe :
-utiliser `.env` (ignore par git) ou `dotnet user-secrets` en developpement.
-
-## Administration
-
-L'espace `/admin` (role `Admin`) propose :
-- un **tableau de bord** : utilisateurs actifs, messages sur 7 jours (graphique), groupes les plus actifs ;
-- la **gestion des utilisateurs** : creation avec invitation par email, changement de role, activation/desactivation ;
-- la **gestion des groupes** : creation, membres, archivage.
-
-La desactivation d'un compte revoque les tokens, invalide les caches (profil, annuaire, appartenances)
-et ferme les sessions temps reel (SignalR) via un evenement `ForceLogout`.
-
-## Appels WebRTC (STUN / TURN)
-
-Les appels audio/video utilisent WebRTC. La signalisation passe par SignalR ; l'API fournit
-la liste des serveurs ICE via `GET /api/calls/ice-servers`.
-
-- **STUN** (par defaut) : suffit sur la plupart des reseaux. Le navigateur decouvre son
-  adresse publique via `Turn__StunUrls` (defaut `stun:stun.l.google.com:19302`).
-- **TURN** (recommande en production) : necessaire derriere un NAT symetrique (reseau mobile,
-  entreprise stricte). L'API ne renvoie TURN que si `Turn__Urls` **et** `Turn__Secret` sont
-  definis, avec des identifiants **temporaires** generes par requete (HMAC-SHA1, mecanisme
-  "TURN REST API" de coturn) — aucun secret statique n'est expose au client.
-
-Lancer un serveur TURN local avec le profil Compose `turn` :
-
-```bash
-# TURN_URLS = URL joignable par le navigateur ; TURN_SECRET doit valoir Turn__Secret.
-TURN_URLS=turn:localhost:3478 TURN_SECRET=un-secret-long \
-  docker compose --profile turn up -d
-```
-
-Variables associees (voir [`.env.example`](./.env.example)) :
-
-| Variable | Role |
+| Fonctionnalité | Détail |
 |---|---|
-| `Turn__StunUrls` | URLs STUN (separees par des virgules) |
-| `Turn__Urls` | URLs TURN distribuees au navigateur (vide = pas de TURN) |
-| `Turn__Secret` | Secret partage avec coturn (`--static-auth-secret`) |
-| `TURN_SECRET` / `TURN_REALM` / `TURN_PORT` / `TURN_URLS` | Reglages du service `coturn` du compose |
+| Messagerie temps réel | Conversations privées et groupes, modification et suppression, « en train d'écrire », messages non lus, présence en ligne |
+| Fichiers et vocaux | Images et documents (types et taille contrôlés), messages vocaux enregistrés dans le navigateur |
+| Appels | Audio et vidéo en 1-à-1 (WebRTC), caméra optionnelle, partage d'écran |
+| Annuaire | Recherche des collègues, pastille en ligne / hors ligne |
+| Administration | Membres, rôles, groupes et tableau de bord de statistiques ; chaque société est isolée |
+| Connexion sécurisée | Email et mot de passe ou compte Google ; jetons de courte durée renouvelés automatiquement |
+| Application installable | PWA : s'installe sur mobile et ordinateur, page hors ligne |
 
-En production, herberger coturn sur un **VPS** (les hebergeurs web classiques ne gerent pas
-l'UDP) et exposer les ports 3478 (UDP/TCP) + la plage de relais UDP (49160-49200 par defaut).
+## Architecture
 
-## Deploiement (AWS)
+![Architecture de TeamChat](docs/architecture.png)
 
-L'application est hebergee sur AWS, region `eu-north-1`, entierement decrite en Terraform (`infra/`) :
-CloudFront (frontend S3 + `/api/*` et `/hubs/*` vers l'EC2), EC2 + Docker (API), RDS PostgreSQL, S3 (fichiers),
-SES (emails), SSM (secrets), CodePipeline/CodeBuild/CodeDeploy (CI/CD sur `main`).
+1. **Point d'entrée unique** : CloudFront, en HTTPS, qui répartit le trafic.
+2. **Site** : application Angular statique, stockée dans S3.
+3. **API** : ASP.NET Core et SignalR (temps réel) dans un conteneur Docker sur EC2, joignable uniquement via CloudFront.
+4. **Données** : PostgreSQL (RDS, base privée), fichiers dans S3, emails via SES.
+5. **Secrets** : stockés dans SSM Parameter Store et lus au déploiement ; aucun secret ni clé d'accès dans le dépôt.
 
-- **Documentation** : [`aws/README.md`](./aws/README.md) (architecture, commandes, CI/CD, supervision, arret nocturne),
-  [`docs/RESTORE.md`](./docs/RESTORE.md) (restauration), [`docs/SECURITY.md`](./docs/SECURITY.md) (revue IAM),
-  [`docs/RECETTE.md`](./docs/RECETTE.md) (checklist de recette manuelle).
-- **URL de la demo** : `terraform output cloudfront_url` (dans `infra/`). La demo dort de 23h a 8h (UTC+1).
-- **Backend en conteneur** : [`backend/Dockerfile`](./backend/Dockerfile) (.NET 10, port 8080) ;
-  `docker compose --profile app up -d --build` lance l'API avec PostgreSQL en local.
-- **Variables requises en production** (parametres SSM `/teamchat/prod/`, crees par Terraform) : `ConnectionStrings__Default`,
-  `Jwt__*`, `Cors__AllowedOrigins`, `App__PublicUrl`, `Email__*`, `Storage__*`, `Admin__Seed*`, `Google__ClientId`, `Turn__*`.
+## Technologies
+
+| Domaine | Choix |
+|---|---|
+| Frontend | Angular 21 (composants standalone, signals), PWA |
+| Backend | ASP.NET Core (.NET 10), SignalR, Clean Architecture |
+| Base de données | PostgreSQL 16 (Amazon RDS), EF Core, cache HybridCache (Redis optionnel) |
+| Appels | WebRTC, signalisation par SignalR, STUN |
+| Cloud | AWS `eu-north-1` : CloudFront, S3, EC2, RDS, SES, SSM, ECR |
+| Infrastructure | Terraform |
+| CI/CD | CodePipeline, CodeBuild, CodeDeploy |
+| Tests | xUnit, Moq, Testcontainers (PostgreSQL), Vitest |
+
+## Déploiement continu
+
+```text
+Pull request ──► build + tests (CodeBuild)
+Merge sur main ──► tests + image Docker + scan de sécurité ──► déploiement (CodeDeploy) ──► contrôle de santé
+```
+
+- **Tests** : les tests unitaires et d'intégration (sur une vraie base PostgreSQL) doivent passer avant toute publication.
+- **Scan de sécurité** : l'image Docker est analysée ; une vulnérabilité critique bloque le déploiement.
+- **Annulation automatique** : si l'API ne répond pas après le déploiement, CodeDeploy revient à la version précédente.
+
+## Exploitation
+
+| Domaine | En place |
+|---|---|
+| Surveillance | Alarmes CloudWatch (serveur, base, erreurs de l'API) avec alertes par email, tableau de bord, journaux JSON |
+| Coûts | Arrêt automatique du serveur et de la base chaque nuit (Lambda), budget AWS avec alertes |
+| Sécurité | Droits IAM minimaux, base privée, accès public S3 bloqué, mots de passe hachés, journal d'audit CloudTrail |
+| Sauvegardes | Sauvegardes automatiques de la base, fichiers versionnés, restauration documentée |
+| Reproductibilité | Toute l'infrastructure est décrite en Terraform |
+
+Détails : [`aws/README.md`](./aws/README.md), [`docs/RESTORE.md`](./docs/RESTORE.md), [`docs/SECURITY.md`](./docs/SECURITY.md), [`docs/RECETTE.md`](./docs/RECETTE.md).
+
+## Lancer le projet en local
+
+Prérequis : [.NET SDK 10](https://dotnet.microsoft.com/download), [Node.js](https://nodejs.org/) 20.19+, [Docker](https://www.docker.com/products/docker-desktop/).
+
+```bash
+docker compose --profile app up -d --build   # PostgreSQL + API sur http://localhost:5285
+cd frontend && npm install                   # dépendances du site
+npm start                                    # site sur http://localhost:4200
+```
+
+Créez ensuite votre société sur `/register`. Tests : `dotnet test backend/TeamChat.sln` et `cd frontend && npm test`.
+
+## Structure du projet
+
+| Dossier | Rôle |
+|---|---|
+| `backend/` | API .NET (Domain, Application, Infrastructure, Api) et ses tests |
+| `frontend/` | Application Angular |
+| `infra/` | Infrastructure AWS en Terraform (réseau, base, CDN, pipeline, supervision) |
+| `aws/` | Scripts de déploiement, build des pull requests, fonction CloudFront |
+| `docs/` | Restauration, sécurité, recette |
+
+## Prochaines étapes
+
+- **Domaine personnalisé** avec HTTPS (Route 53 et ACM).
+- **Serveur TURN** pour les appels derrière des réseaux restrictifs.
+- **Pré-production** : un second environnement identique, déployé par le même Terraform.
+- **Montée en charge** : plusieurs instances d'API, Redis pour le cache et le temps réel, base redimensionnée.
+
+## Auteur
+
+**Adem Hmercha** · [github.com/ademhmercha](https://github.com/ademhmercha)

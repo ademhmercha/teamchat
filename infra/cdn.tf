@@ -18,7 +18,6 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
   signing_protocol                  = "sigv4"
 }
 
-# Routes Angular -> index.html ; associee au comportement par defaut seulement.
 resource "aws_cloudfront_function" "spa_rewrite" {
   name    = "teamchat-${local.env}-spa-rewrite"
   runtime = "cloudfront-js-2.0"
@@ -48,7 +47,6 @@ resource "aws_cloudfront_distribution" "main" {
     origin_access_control_id = aws_cloudfront_origin_access_control.frontend.id
   }
 
-  # CloudFront exige un nom DNS (pas une IP) : DNS public de l'IP elastique.
   origin {
     origin_id   = local.api_origin_id
     domain_name = aws_eip.api.public_dns
@@ -63,7 +61,6 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  # Frontend (S3) par defaut.
   default_cache_behavior {
     target_origin_id       = local.s3_origin_id
     viewer_protocol_policy = "redirect-to-https"
@@ -78,7 +75,6 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  # API REST.
   ordered_cache_behavior {
     path_pattern             = "/api/*"
     target_origin_id         = local.api_origin_id
@@ -89,7 +85,6 @@ resource "aws_cloudfront_distribution" "main" {
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id
   }
 
-  # SignalR (negociation + WebSockets).
   ordered_cache_behavior {
     path_pattern             = "/hubs/*"
     target_origin_id         = local.api_origin_id
@@ -100,10 +95,6 @@ resource "aws_cloudfront_distribution" "main" {
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id
   }
 
-  # Origine EC2 arretee la nuit (502/504) ou API indisponible (503) : page statique du bucket frontend.
-  # Seuls ces trois codes sont remplaces : les 404 (et tous les autres 4xx/5xx) de l'API restent intacts.
-  # Le code HTTP d'origine est conserve ; la page (frontend/public/maintenance.html) sonde /api/health et
-  # ramene l'utilisateur sur l'application des que l'API repond.
   dynamic "custom_error_response" {
     for_each = toset([502, 503, 504])
 
@@ -126,7 +117,6 @@ resource "aws_cloudfront_distribution" "main" {
   }
 }
 
-# Le bucket frontend n'est lisible que par cette distribution (OAC) et uniquement en HTTPS.
 data "aws_iam_policy_document" "frontend" {
   statement {
     sid       = "AllowCloudFrontRead"

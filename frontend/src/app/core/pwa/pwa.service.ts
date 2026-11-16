@@ -6,19 +6,13 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-/**
- * Fonctionnalites PWA : invite d'installation (beforeinstallprompt) et detection
- * d'une nouvelle version du service worker (mise a jour disponible).
- */
 @Injectable({ providedIn: 'root' })
 export class PwaService {
   private readonly swUpdate = inject(SwUpdate);
 
   private deferredPrompt: BeforeInstallPromptEvent | null = null;
 
-  /** Le navigateur propose-t-il d'installer l'application ? */
   readonly canInstall = signal(false);
-  /** Une nouvelle version est-elle prete (a activer par l'utilisateur) ? */
   readonly updateAvailable = signal(false);
 
   constructor() {
@@ -45,7 +39,6 @@ export class PwaService {
     }
   }
 
-  /** Affiche l'invite d'installation native (si disponible). */
   async install(): Promise<void> {
     const prompt = this.deferredPrompt;
     if (!prompt) {
@@ -58,7 +51,6 @@ export class PwaService {
     this.canInstall.set(false);
   }
 
-  /** Active la nouvelle version et recharge la page. */
   reloadForUpdate(): void {
     this.swUpdate
       .activateUpdate()

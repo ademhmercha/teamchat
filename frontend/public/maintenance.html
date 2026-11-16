@@ -92,8 +92,6 @@
     </main>
     <script>
       (function () {
-        // 1. Message : horaires lus dans /maintenance-config.json (genere par Terraform depuis les variables du
-        //    scheduler). Le texte du HTML sert de repli si le fichier est absent ou illisible.
         function utcOffset(timeZone) {
           try {
             var parts = new Intl.DateTimeFormat('en', { timeZone: timeZone, timeZoneName: 'shortOffset' }).formatToParts(new Date());
@@ -120,8 +118,6 @@
           })
           .catch(function () {});
 
-        // 2. Retour : URL d'origine (?from=), uniquement un chemin de CE site (pas de redirection ouverte),
-        //    jamais la page de veille elle-meme (pas de boucle).
         function destination() {
           var from = new URLSearchParams(location.search).get('from') || '/';
           try {
@@ -133,8 +129,6 @@
           }
         }
 
-        // 3. Des que la sonde de sante (publique) repond 200, on revient. Pendant la veille, CloudFront renvoie
-        //    cette meme page en 5xx : la reponse n'est alors pas "ok".
         function checkBack() {
           fetch('/api/health', { cache: 'no-store' })
             .then(function (response) {
