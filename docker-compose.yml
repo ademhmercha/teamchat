@@ -47,7 +47,7 @@ services:
       Turn__Urls: ${TURN_URLS:-turn:localhost:3478}
       Turn__Secret: ${TURN_SECRET:-teamchat_turn_dev_only}
     ports:
-      - "${API_PORT:-8080}:8080"
+      - "${API_PORT:-5285}:8080"
     volumes:
       - api-uploads:/app/uploads
 
