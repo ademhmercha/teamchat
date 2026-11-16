@@ -2,7 +2,7 @@
 
 Messagerie d'entreprise en temps réel : conversations, fichiers, vocaux et appels audio/vidéo, pour plusieurs sociétés isolées les unes des autres. Hébergée sur AWS et déployée automatiquement.
 
-**Démo en ligne : [https://xxxxxxxxxxxx.cloudfront.net](https://xxxxxxxxxxxx.cloudfront.net)**
+**Démo en ligne : [https://d1snkg4ggeeeq3.cloudfront.net](https://d1snkg4ggeeeq3.cloudfront.net)**
 La démo est mise en veille chaque nuit de 23h à 8h (UTC+1) pour limiter les coûts ; elle redémarre toute seule.
 
 ## Aperçu
