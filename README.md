@@ -58,10 +58,8 @@ Merge sur main ──► tests + image Docker + scan de sécurité ──► dé
 | Surveillance | Alarmes CloudWatch (serveur, base, erreurs de l'API) avec alertes par email, tableau de bord, journaux JSON |
 | Coûts | Arrêt automatique du serveur et de la base chaque nuit (Lambda), budget AWS avec alertes |
 | Sécurité | Droits IAM minimaux, base privée, accès public S3 bloqué, mots de passe hachés, journal d'audit CloudTrail |
-| Sauvegardes | Sauvegardes automatiques de la base, fichiers versionnés, restauration documentée |
+| Sauvegardes | Sauvegardes automatiques de la base (restauration à un instant donné), fichiers versionnés |
 | Reproductibilité | Toute l'infrastructure est décrite en Terraform |
-
-Détails : [`aws/README.md`](./aws/README.md), [`docs/RESTORE.md`](./docs/RESTORE.md), [`docs/SECURITY.md`](./docs/SECURITY.md), [`docs/RECETTE.md`](./docs/RECETTE.md).
 
 ## Lancer le projet en local
 
@@ -83,7 +81,7 @@ Créez ensuite votre société sur `/register`. Tests : `dotnet test backend/Tea
 | `frontend/` | Application Angular |
 | `infra/` | Infrastructure AWS en Terraform (réseau, base, CDN, pipeline, supervision) |
 | `aws/` | Scripts de déploiement, build des pull requests, fonction CloudFront |
-| `docs/` | Restauration, sécurité, recette |
+| `docs/` | Schéma d'architecture |
 
 ## Prochaines étapes
 
