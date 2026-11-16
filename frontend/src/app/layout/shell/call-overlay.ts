@@ -43,6 +43,7 @@ export class CallOverlayComponent implements OnDestroy {
 
   private readonly localVideo = viewChild<ElementRef<HTMLVideoElement>>('localVideo');
   private readonly remoteVideo = viewChild<ElementRef<HTMLVideoElement>>('remoteVideo');
+  private readonly screenVideo = viewChild<ElementRef<HTMLVideoElement>>('screenVideo');
   private readonly callRoot = viewChild<ElementRef<HTMLElement>>('callRoot');
   private readonly videoArea = viewChild<ElementRef<HTMLElement>>('videoArea');
   private readonly acceptButton = viewChild<ElementRef<HTMLButtonElement>>('acceptButton');
@@ -66,6 +67,17 @@ export class CallOverlayComponent implements OnDestroy {
         element.srcObject = stream;
         if (stream) {
           this.tryPlay(element);
+        }
+      }
+    });
+
+    effect(() => {
+      const stream = this.call.remoteScreenStream();
+      const element = this.screenVideo()?.nativeElement;
+      if (element && element.srcObject !== stream) {
+        element.srcObject = stream;
+        if (stream) {
+          void element.play().catch(() => undefined);
         }
       }
     });

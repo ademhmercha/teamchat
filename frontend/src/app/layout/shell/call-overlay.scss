@@ -305,6 +305,63 @@ $phone: 768px;
   background: var(--tc-black);
 }
 
+.screen-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--tc-black);
+  z-index: 1;
+}
+
+.remote-video.hidden-video {
+  visibility: hidden;
+}
+
+.remote-video.thumb {
+  inset: auto auto 12px 12px;
+  width: 140px;
+  height: 100px;
+  z-index: 3;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.share-banner {
+  position: absolute;
+  z-index: 5;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.4rem 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: var(--tc-primary);
+  color: var(--tc-on-accent);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  button {
+    border: none;
+    border-radius: 999px;
+    padding: 0.3rem 0.75rem;
+    background: rgba(255, 255, 255, 0.22);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.34);
+    }
+  }
+}
+
 .remote-placeholder {
   position: absolute;
   inset: 0;
@@ -668,6 +725,15 @@ $phone: 768px;
 
     .stage .circle-btn.hangup {
       width: 72px;
+    }
+
+    .remote-video.thumb {
+      width: 96px;
+      height: 128px;
+    }
+
+    .share-banner {
+      top: calc(64px + env(safe-area-inset-top));
     }
 
     .local-video {

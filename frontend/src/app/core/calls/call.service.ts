@@ -37,6 +37,7 @@ interface StatsEntry {
 interface PeerState {
   mic: boolean;
   cam: boolean;
+  screen: boolean;
 }
 
 class CallCancelled extends Error {}
@@ -66,6 +67,7 @@ export class CallService {
   private stateChannel: RTCDataChannel | null = null;
   private localStream: MediaStream | null = null;
   private screenStream: MediaStream | null = null;
+  private screenSender: RTCRtpSender | null = null;
   private cameraTrack: MediaStreamTrack | null = null;
   private screenTrack: MediaStreamTrack | null = null;
   private audioSender: RTCRtpSender | null = null;
@@ -80,7 +82,6 @@ export class CallService {
   private polite = false;
   private makingOffer = false;
   private ignoreOffer = false;
-  private cameraWasOn = false;
   private facing: 'user' | 'environment' = 'user';
   private iceRestarts = 0;
   private connectedAt: number | null = null;
@@ -105,6 +106,8 @@ export class CallService {
   readonly localStreamSignal = signal<MediaStream | null>(null);
   readonly remoteStream = signal<MediaStream | null>(null);
   readonly remoteHasVideo = signal(false);
+  readonly remoteScreenStream = signal<MediaStream | null>(null);
+  readonly remoteHasScreen = signal(false);
   readonly quality = signal<CallQuality | null>(null);
   readonly elapsedSeconds = signal(0);
   readonly devices = signal<CallDevices>({ mics: [], cameras: [], speakers: [] });
@@ -118,8 +121,10 @@ export class CallService {
   readonly canScreenShare = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getDisplayMedia;
   readonly isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches === true;
 
-  readonly localHasVideo = computed(() => this.cameraOn() || this.screenSharing());
-  readonly showVideo = computed(() => this.remoteHasVideo() || this.localHasVideo());
+  readonly localHasVideo = computed(() => this.cameraOn());
+  readonly showVideo = computed(
+    () => this.remoteHasVideo() || this.remoteHasScreen() || this.cameraOn() || this.screenSharing(),
+  );
   readonly canFlipCamera = computed(() => this.isTouch && this.devices().cameras.length > 1);
   readonly elapsedText = computed(() => {
     const total = this.elapsedSeconds();
@@ -132,7 +137,9 @@ export class CallService {
   });
 
   private readonly remoteMedia = new MediaStream();
+  private readonly remoteScreenMedia = new MediaStream();
   private readonly remoteVideoFlag = signal(false);
+  private readonly remoteScreenFlag = signal(false);
 
   readonly visible = computed(() => this.phase() !== 'idle');
 
@@ -314,11 +321,6 @@ export class CallService {
   }
 
   async toggleCamera(): Promise<void> {
-    if (this.screenSharing()) {
-      this.cameraWasOn = false;
-      await this.stopScreenShare();
-    }
-
     if (this.cameraOn()) {
       await this.stopCamera();
       return;
@@ -394,17 +396,17 @@ export class CallService {
         return;
       }
 
-      this.cameraWasOn = this.cameraOn();
-      if (this.cameraTrack) {
-        this.cameraTrack.stop();
-        this.cameraTrack = null;
-        this.cameraOn.set(false);
+      const peer = this.peer;
+      if (!peer) {
+        display.getTracks().forEach((item) => item.stop());
+        this.toast.error("Le partage d'écran n'est possible qu'une fois la communication établie.");
+        return;
       }
 
       this.screenStream = display;
       this.screenTrack = track;
       track.onended = () => void this.stopScreenShare();
-      await this.applyVideoTrack(track);
+      this.screenSender = peer.addTrack(track, display);
       this.screenSharing.set(true);
       this.sendState();
     } catch (error) {
@@ -427,7 +429,7 @@ export class CallService {
   }
 
   toggleEnlarge(): void {
-    if (!this.remoteHasVideo()) {
+    if (!this.remoteHasVideo() && !this.remoteHasScreen()) {
       return;
     }
 
@@ -471,17 +473,18 @@ export class CallService {
     }
 
     this.screenTrack?.stop();
+    const sender = this.screenSender;
+    if (sender && this.peer && this.peer.signalingState !== 'closed') {
+      try {
+        this.peer.removeTrack(sender);
+      } catch {
+        void sender.replaceTrack(null).catch(() => undefined);
+      }
+    }
+    this.screenSender = null;
     this.screenTrack = null;
     this.screenStream = null;
     this.screenSharing.set(false);
-
-    if (this.cameraWasOn) {
-      this.cameraWasOn = false;
-      await this.startCamera();
-      return;
-    }
-
-    await this.replaceLocalVideoTrack(null);
     this.sendState();
   }
 
@@ -689,7 +692,13 @@ export class CallService {
     const hasLiveVideo = this.remoteMedia.getVideoTracks().some((track) => track.readyState !== 'ended');
     const visible = hasLiveVideo && this.remoteVideoFlag();
     this.remoteHasVideo.set(visible);
-    if (!visible) {
+
+    const hasLiveScreen = this.remoteScreenMedia.getVideoTracks().some((track) => track.readyState !== 'ended');
+    const screenVisible = hasLiveScreen && this.remoteScreenFlag();
+    this.remoteHasScreen.set(screenVisible);
+    this.remoteScreenStream.set(hasLiveScreen ? this.remoteScreenMedia : null);
+
+    if (!visible && !screenVisible) {
       this.enlarged.set(false);
     }
   }
@@ -849,17 +858,27 @@ export class CallService {
 
     peer.ontrack = (event) => {
       const track = event.track;
-      if (!this.remoteMedia.getTracks().includes(track)) {
-        this.remoteMedia.addTrack(track);
+      const isScreen = track.kind === 'video' && (event.streams[0]?.getAudioTracks().length ?? 0) === 0;
+      const target = isScreen ? this.remoteScreenMedia : this.remoteMedia;
+      if (!target.getTracks().includes(track)) {
+        target.addTrack(track);
       }
 
       if (track.kind === 'video') {
         track.onunmute = () => {
-          this.remoteVideoFlag.set(true);
+          if (!isScreen) {
+            this.remoteVideoFlag.set(true);
+          }
           this.refreshRemoteVideo();
         };
         track.onended = () => {
-          this.remoteMedia.removeTrack(track);
+          target.removeTrack(track);
+          this.refreshRemoteVideo();
+        };
+        track.onmute = () => {
+          if (isScreen) {
+            target.removeTrack(track);
+          }
           this.refreshRemoteVideo();
         };
       }
@@ -889,7 +908,7 @@ export class CallService {
       return;
     }
 
-    const state: PeerState = { mic: !this.muted(), cam: this.localHasVideo() };
+    const state: PeerState = { mic: !this.muted(), cam: this.cameraOn(), screen: this.screenSharing() };
     channel.send(JSON.stringify(state));
   }
 
@@ -898,6 +917,7 @@ export class CallService {
       const state = JSON.parse(String(data)) as Partial<PeerState>;
       this.remoteMuted.set(state.mic === false);
       this.remoteVideoFlag.set(state.cam === true);
+      this.remoteScreenFlag.set(state.screen === true);
       this.refreshRemoteVideo();
     } catch {
       return;
@@ -1161,6 +1181,7 @@ export class CallService {
     this.screenStream = null;
     this.cameraTrack = null;
     this.screenTrack = null;
+    this.screenSender = null;
     this.audioSender = null;
     this.videoSender = null;
     this.tracksAdded = false;
@@ -1168,7 +1189,6 @@ export class CallService {
     this.canNegotiate = false;
     this.makingOffer = false;
     this.ignoreOffer = false;
-    this.cameraWasOn = false;
     this.facing = 'user';
     this.iceRestarts = 0;
     this.connectedAt = null;
@@ -1182,8 +1202,12 @@ export class CallService {
     this.remoteMuted.set(false);
     this.cameraOn.set(false);
     this.screenSharing.set(false);
+    this.remoteScreenMedia.getTracks().forEach((track) => this.remoteScreenMedia.removeTrack(track));
     this.remoteVideoFlag.set(false);
+    this.remoteScreenFlag.set(false);
     this.remoteHasVideo.set(false);
+    this.remoteHasScreen.set(false);
+    this.remoteScreenStream.set(null);
     this.quality.set(null);
     this.elapsedSeconds.set(0);
     this.minimized.set(false);

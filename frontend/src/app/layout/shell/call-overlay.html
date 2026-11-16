@@ -62,9 +62,20 @@
         </div>
       } @else {
         <div class="video-area" [class.audio-only]="!call.showVideo()" #videoArea>
-          <video #remoteVideo class="remote-video" autoplay playsinline></video>
+          <video
+            #remoteVideo
+            class="remote-video"
+            [class.thumb]="call.remoteHasScreen() && call.remoteHasVideo()"
+            [class.hidden-video]="call.remoteHasScreen() && !call.remoteHasVideo()"
+            autoplay
+            playsinline
+          ></video>
 
-          @if (!call.remoteHasVideo()) {
+          @if (call.remoteHasScreen()) {
+            <video #screenVideo class="screen-video" autoplay playsinline muted></video>
+          }
+
+          @if (!call.remoteHasVideo() && !call.remoteHasScreen()) {
             <div class="remote-placeholder">
               <div class="placeholder-avatar" [class.ringing]="call.phase() === 'outgoing'">
                 <tc-avatar [name]="call.peerName()" [src]="call.peerAvatarUrl()" size="xl" />
@@ -126,7 +137,7 @@
                   >
                     <app-icon name="pip" [size]="20" />
                   </button>
-                  @if (call.remoteHasVideo()) {
+                  @if (call.remoteHasVideo() || call.remoteHasScreen()) {
                     <button
                       type="button"
                       class="ghost-btn desk-only"
@@ -152,11 +163,18 @@
             </div>
           }
 
+          @if (call.screenSharing() && !isMinimized()) {
+            <div class="share-banner" role="status">
+              <app-icon name="screen-share" [size]="16" />
+              <span>Vous partagez votre écran</span>
+              <button type="button" (click)="call.toggleScreenShare()">Arrêter</button>
+            </div>
+          }
+
           @if (call.localHasVideo() && !isMinimized()) {
             <video
               #localVideo
-              class="local-video"
-              [class.mirror]="!call.screenSharing()"
+              class="local-video mirror"
               [class.corner-tl]="corner() === 'tl'"
               [class.corner-tr]="corner() === 'tr'"
               [class.corner-bl]="corner() === 'bl'"

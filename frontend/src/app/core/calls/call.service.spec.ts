@@ -63,6 +63,29 @@ class FakeMediaStream {
   }
 }
 
+class FakePeer {
+  signalingState = 'stable';
+  connectionState = 'new';
+  remoteDescription = null;
+  readonly senders: { track: MediaStreamTrack | null; replaceTrack: ReturnType<typeof vi.fn> }[] = [];
+  ontrack: unknown;
+  onicecandidate: unknown;
+  onnegotiationneeded: unknown;
+  onconnectionstatechange: unknown;
+  addTrack = vi.fn((track: MediaStreamTrack) => {
+    const sender = { track, replaceTrack: vi.fn().mockResolvedValue(undefined) };
+    this.senders.push(sender);
+    return sender;
+  });
+  removeTrack = vi.fn();
+  createDataChannel = vi.fn(() => ({ readyState: 'closed', send: vi.fn(), close: vi.fn() }));
+  close = vi.fn();
+}
+
+function track(kind: string): MediaStreamTrack {
+  return { kind, enabled: true, readyState: 'live', stop: vi.fn(), addEventListener: vi.fn() } as unknown as MediaStreamTrack;
+}
+
 describe('CallService', () => {
   let chat: {
     incomingCall$: Subject<CallSessionDto>;
@@ -209,5 +232,41 @@ describe('CallService', () => {
     expect(service.elapsedText()).toBe('01:15');
     service.elapsedSeconds.set(3725);
     expect(service.elapsedText()).toBe('1:02:05');
+  });
+
+  it("permet de partager l'écran sans couper la caméra, avec deux envois vidéo distincts", async () => {
+    const peer = new FakePeer();
+    vi.stubGlobal('RTCPeerConnection', function () {
+      return peer;
+    });
+    const cameraTrack = track('video');
+    const screenTrack = track('video');
+    const display = { getTracks: () => [screenTrack], getVideoTracks: () => [screenTrack] };
+    Object.defineProperty(navigator.mediaDevices, 'getDisplayMedia', {
+      configurable: true,
+      value: vi.fn().mockResolvedValue(display),
+    });
+
+    await service.startCall('bob', 'Bob', CallType.Audio);
+    chat.callAccepted$.next({ ...SESSION, status: CallStatus.Accepted });
+    await vi.waitFor(() => TestBed.inject(HttpTestingController).expectOne((r) => r.url.endsWith('/api/calls/ice-servers')).flush([]));
+    await vi.waitFor(() => expect(peer.addTrack).toHaveBeenCalled());
+
+    getUserMedia.mockResolvedValueOnce(new FakeMediaStream([cameraTrack]));
+    await service.toggleCamera();
+    await service.toggleScreenShare();
+
+    expect(service.cameraOn()).toBe(true);
+    expect(service.screenSharing()).toBe(true);
+    expect(peer.senders.map((sender) => sender.track)).toEqual(expect.arrayContaining([cameraTrack, screenTrack]));
+
+    await service.toggleCamera();
+    expect(service.cameraOn()).toBe(false);
+    expect(service.screenSharing()).toBe(true);
+
+    await service.toggleScreenShare();
+    expect(service.screenSharing()).toBe(false);
+    expect(peer.removeTrack).toHaveBeenCalledTimes(1);
+    expect(screenTrack.stop).toHaveBeenCalled();
   });
 });
