@@ -3,6 +3,7 @@
 Messagerie d'entreprise en temps réel : conversations, fichiers, vocaux et appels audio/vidéo, pour plusieurs sociétés isolées les unes des autres. Hébergée sur AWS et déployée automatiquement.
 
 **Démo en ligne : [https://d1snkg4ggeeeq3.cloudfront.net](https://d1snkg4ggeeeq3.cloudfront.net)**
+
 La démo est mise en veille chaque nuit de 23h à 8h (UTC+1) pour limiter les coûts ; elle redémarre toute seule.
 
 ## Aperçu
@@ -39,7 +40,7 @@ La démo est mise en veille chaque nuit de 23h à 8h (UTC+1) pour limiter les co
 | Backend | ASP.NET Core (.NET 10), SignalR, Clean Architecture |
 | Base de données | PostgreSQL 16 (Amazon RDS), EF Core, cache HybridCache (Redis optionnel) |
 | Appels | WebRTC, signalisation par SignalR, STUN |
-| Cloud | AWS `eu-north-1` : CloudFront, S3, EC2, RDS, SES, SSM, ECR |
+| Cloud | AWS `eu-north-1` : CloudFront, S3, EC2, RDS, SES, SSM, ECR, Lambda, EventBridge, CloudWatch, SNS, CloudTrail |
 | Infrastructure | Terraform |
 | CI/CD | CodePipeline, CodeBuild, CodeDeploy |
 | Tests | xUnit, Moq, Testcontainers (PostgreSQL), Vitest |
@@ -65,7 +66,7 @@ Merge sur main ──► tests + image Docker + scan de sécurité ──► dé
 | Surveillance | Alarmes CloudWatch (serveur, base, erreurs de l'API) avec alertes par email, tableau de bord, journaux JSON |
 | Coûts | Arrêt automatique du serveur et de la base chaque nuit (Lambda), budget AWS avec alertes |
 | Sécurité | Droits IAM minimaux, base privée, accès public S3 bloqué, mots de passe hachés, journal d'audit CloudTrail |
-| Sauvegardes | Sauvegardes automatiques de la base (restauration à un instant donné), fichiers versionnés |
+| Sauvegardes | Sauvegardes automatiques de la base (restauration à un instant donné sur les dernières 24 h), fichiers versionnés |
 | Reproductibilité | Toute l'infrastructure est décrite en Terraform |
 
 ![Tableau de bord CloudWatch](docs/monitoring.png)
@@ -95,7 +96,7 @@ Créez ensuite votre société sur `/register`. Tests : `dotnet test backend/Tea
 | `frontend/` | Application Angular |
 | `infra/` | Infrastructure AWS en Terraform (réseau, base, CDN, pipeline, supervision) |
 | `aws/` | Scripts de déploiement, build des pull requests, fonction CloudFront |
-| `docs/` | Schéma d'architecture |
+| `docs/` | Schéma d'architecture et captures d'écran |
 
 ## Prochaines étapes
 
