@@ -17,6 +17,10 @@ La démo est mise en veille chaque nuit de 23h à 8h (UTC+1) pour limiter les co
 | Connexion sécurisée | Email et mot de passe ou compte Google ; jetons de courte durée renouvelés automatiquement |
 | Application installable | PWA : s'installe sur mobile et ordinateur, page hors ligne |
 
+## Captures d'écran
+
+![Messagerie TeamChat](docs/conversation.png)
+
 ## Architecture
 
 ![Architecture de TeamChat](docs/architecture.png)
@@ -47,6 +51,9 @@ Pull request ──► build + tests (CodeBuild)
 Merge sur main ──► tests + image Docker + scan de sécurité ──► déploiement (CodeDeploy) ──► contrôle de santé
 ```
 
+![Pipeline AWS](docs/pipeline.png)
+*Pipeline AWS : chaque fusion sur main est testée, construite et déployée automatiquement.*
+
 - **Tests** : les tests unitaires et d'intégration (sur une vraie base PostgreSQL) doivent passer avant toute publication.
 - **Scan de sécurité** : l'image Docker est analysée ; une vulnérabilité critique bloque le déploiement.
 - **Annulation automatique** : si l'API ne répond pas après le déploiement, CodeDeploy revient à la version précédente.
@@ -60,6 +67,13 @@ Merge sur main ──► tests + image Docker + scan de sécurité ──► dé
 | Sécurité | Droits IAM minimaux, base privée, accès public S3 bloqué, mots de passe hachés, journal d'audit CloudTrail |
 | Sauvegardes | Sauvegardes automatiques de la base (restauration à un instant donné), fichiers versionnés |
 | Reproductibilité | Toute l'infrastructure est décrite en Terraform |
+
+![Tableau de bord CloudWatch](docs/monitoring.png)
+*Tableau de bord CloudWatch : serveur et base de données*
+
+**Mise en veille automatique** : chaque soir à 23h, une fonction Lambda arrête le serveur et la base de données, puis les redémarre à 8h. Un email confirme chaque action.
+
+![Email de confirmation de la mise en veille](docs/veille-email.png)
 
 ## Lancer le projet en local
 
